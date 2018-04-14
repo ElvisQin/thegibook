@@ -124,18 +124,11 @@
 
 \usepackage{framed}
 \newenvironment{myshaded}{%
-  	\begin{shaded*}
+  	\begin{shaded*}\begin{small}
   }{%
-  	\end{shaded*}
+  	\end{small}\end{shaded*}
   }
 
-\newenvironment{myshaded*}{%
-	\begin{adjustwidth*}{}{-\overhang}	
-		\begin{shaded*}	
-		}{%
-		\end{shaded*}
-	\end{adjustwidth*}
-}
 
 
 

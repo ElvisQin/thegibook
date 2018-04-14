@@ -823,7 +823,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 
 
 \subsection{预过滤}
-对于一个给定位置处的入射光照场$L(l)$，例如本节介绍的环境贴图，给定观察方向$v$上的出射辐射亮度 $R(v)$可由下述反射方程得出：
+对于一个给定位置处的入射光照场$L(l)$，例如本节介绍的环境贴图，给定观察方向$v$上的出射辐射亮度 $R(v)$可由下述反射方程计算得出：
 
 \begin{equation}\label{e:pl-prefiltering-1}
 	R(v)=\int_H L(l)f(l,v)(n\cdot l){\rm d}l
@@ -879,8 +879,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 	f_{\rm phong}(v,l)=k_s\cfrac{(r\cdot l)^{N}}{n\cdot l}
 \end{equation}
 
-\noindent 其中，$k_s$和$N$分别表述冯氏BRDF函数的形状和尺寸，将上式代入
- 式\ref{e:pl-prefiltering-1}得到:
+\noindent 其中，$k_s$和$N$分别表述的是冯氏BRDF函数的形状和尺寸，将上式代入式\ref{e:pl-prefiltering-1}得到:
 
 \begin{equation}
 	\begin{aligned}
@@ -891,7 +890,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 
 由上式可以看出，对于同一粗糙度$N$，冯氏BRDF作为预过滤的核函数$(r\cdot l)^{N}$是相同的（注意这里表面的反射系数$k_s$被提到积分外面，并不参与预过滤计算），这和上一节中介绍的漫反射的情形是类似的；此外，由于冯氏模型只与反射方向有关，因此这里使用反射方向来索引预过滤的环境贴图，这里预过滤的环境贴图中存储的是辐射照度值，即前面介绍的反射贴图，在着色的时 候这个值从贴图中查询并与反射系数$k_s$相乘后作为表面像素的出射辐射亮度， 这种方法最早在\cite{a:Realistichardware-acceleratedshadingandlighting,a:IlluminationandReflectionMaps:SimulatedObjectsinSimulatedandRealEnvironments}被提出。
 
-除此之外，我们还需要考虑不同粗糙度下的预过滤，这需要分别对每个粗糙度系数$N$ 做一个单独的预过滤以生成一个不同的反射贴图，这样将会面临比较大的存储压力。实践中，这些指数形式的粗糙度往往被转换为多级纹理的形式\cite{a:Efficientreflectanceandvisibilityapproximationsforenvironmentmaprendering,a:Efficientrenderingofspatialbidirectionalreflectancedistributionfunctions}，即以渐进的方式生成一系列 反射贴图（预过滤的环境贴图），它们一起被存储进一个多级纹理（mip map） 当中（例如多级立方体贴图），其中多级纹理的每一级使用相对前一级具有2倍 标准差的高斯函数，例如$σ_{j+1} = 2σ_j$ 。最后，在实时着色计算的时候，首先根据表面的粗糙度计算出多级文件的层级，然后使用双线性插值计算出实际的纹理值。
+除此之外，我们还需要考虑对不同粗糙度表面的预过滤，这需要分别对每个粗糙度系数$N$ 做一个单独的预过滤以生成一个不同的反射贴图，这样将会面临比较大的存储压力。实践中，这些指数形式的粗糙度往往被转换为多级纹理的形式\cite{a:Efficientreflectanceandvisibilityapproximationsforenvironmentmaprendering,a:Efficientrenderingofspatialbidirectionalreflectancedistributionfunctions}，即以渐进的方式生成一系列 反射贴图（预过滤的环境贴图），它们一起被存储进一个多级纹理（mip map） 当中（例如多级立方体贴图），其中多级纹理的每一级使用相对前一级具有2倍 标准差的高斯函数，例如$\sigma_{j+1} = 2\sigma_j$ 。最后，在实时着色计算的时候，首先根据表面的粗糙度计算出多级纹理的层级，然后使用双线性插值计算出实际的纹理值。
 
 冯氏模型是最简单的光泽BRDF模型，因为它的微表面法线分布就是一个高斯函数，其中粗糙度由高斯函数的标准差控制，其反射函数的形状与观察方向和法线的夹角无关。另一些更一般的各向同性BRDF模型是与观察方向
 
@@ -932,10 +931,71 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 
 
 \subsubsection{重要性采样方法}
+阶层式预过滤是一种非常高效的预过滤方法，它主要通过减少对低频区域内环境贴图的像素读取次数来提高预过滤的效率，这是通过生成一个多级的环境贴图来实现的。然而，为了取得每个BRDF样本对应多级环境贴图的层级，阶层式方法依赖于一个从小向上的递归比较方法，这种递归的算法结构对GPU是非常不友好的，因为相邻的样本递归的次数可能完全不一样，这使得算法的并行性很差，因此原始的阶层式预过滤算法\cite{a:FastArbitraryBRDFShadingforLowFrequencyLightingUsingSphericalHarmonics}是实现于CPU中的。
 
-hh
+很显然，在实时渲染中，我们需要能够对GPU友好的算法，这样的算法要求程序具有较高的并行性，本节介绍的重要性采样方法\cite{a:Real-timeShadingwithFilteredImportanceSampling}就是这样一种方法，这种方法保留了阶层式预过滤方法的优点（即使用一个多级环境贴图来减少低频区域内像素的读取次数），同时又具有很好的并行性，能够高效地实现在GPU中。
+
+阶层式过滤方法的缺点在于，它无法预估一个BRDF方向样本的重要性，因此它需要在一个迭代算法结构中通过比较与相邻像素的差异来确定使用什么样的方向样本，以及计算其样本的重要性。给定一个BRDF的显式表述形式，我们可以使用重要性采样方法对其进行采样，如图\ref{f:pl-importance-sampling}(a)所示，然后样本的重要性将用于选择多级环境贴图的层级，如图\ref{f:pl-importance-sampling}(b)所示。
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{figures/pl/importance-sampling}
+	\caption{重要性采样方法首先对BRDF函数执行重要性采样(b)，然后根据样本的重要性来选择对应的多级环境贴图的层级(a)，其过滤的窗宽反比于其重要性（图片来自\cite{a:Real-timeShadingwithFilteredImportanceSampling}）}
+	\label{f:pl-importance-sampling}
+\end{figure}
+
+为了对BRDF采样，工业中通常使用一个简化的GGX模型\cite{a:Physically-basedlightingincallofduty:Black,a:Gettingmorephysicalincallofduty:Blackopsii,a:RealShadinginUnrealEngine4}，即将式\ref{e:pl-prefiltering-1}拆分成以下两部分：
+
+\begin{equation}
+\begin{aligned}
+	R(v)=&\int_H L(l)\cfrac{D(h)G(l,v,h)F(V,H)}{4(n\cdot v)}{\rm d}l\\
+	\approx&\Biggl(\int_H L(l)D(h){\rm d}l\Biggl)\Biggl(\int_H \cfrac{G(l,v,h)F(v,h)}{4(n\cdot v)}{\rm d}l\Biggl)
+\end{aligned}
+\end{equation}
+
+上式的第二个积分项可以被预计算起来，因为它们与光照场是无关的。所以剩下的，我们仅需要对微面元的法线分布函数$D(h)$进行采样，这形成下面的预过滤积分形式：
+
+\begin{equation}
+	\int_H L(l)D(h){\rm d}l
+\end{equation}
+
+对于一个给定的法线分布函数，我们在CPU端生成其使用的方向样本，并将其传输到GPU的常量寄存器中，然后所有使用该法线分布函数的表面都使用这些相同的样本。这些球面空间中相对于表面法线的方向样本，可以通过使用逆变换算法从一对均匀样本$\xi_0,\xi_1\in[0,1]$中生成，即：
+
+\begin{equation}
+\begin{aligned}
+	\theta=&2\pi \xi_0\\
+	\phi=&\tan^{-1}\Biggl(\cfrac{\alpha\sqrt{\xi_1}}{\sqrt{1-\xi_1}}\Biggl)
+\end{aligned}
+\end{equation}
+
+\noindent 其中，$\alpha$表示的是表面的粗糙度，这里考虑几何项的重要性，这里每个样本还需要被$|l\cdot n|$加权。
+
+通过上面的方法，我们已经得到了一个方向样本，那么接下来的问题就是怎样选择该样本使用的多级环境贴图的层级。通过观察图\ref{f:pl-importance-sampling}(a)，我们可以使用每个样本所“占据”的方向范围来决定该样本所过滤的范围，这个范围进而被用来选择多级纹理的层级，于是我们可以通过每个样本在方向空间所占据的固体角，与环境贴图中每个像素所占据的固体角的比率来计算多级纹理的层级。
+
+样本在方向空间的固体角$SA_{\rm sample}$等于均匀分布样本的尺寸除以每个样本的重要性函数，这是因为每个样本所占据的“范围”与其重要性函数成反比，如图\ref{f:pl-importance-sampling}(a)所示；而每个像素的表面尺寸可以通过如下的方式计算：即立方体每个面的面积4\footnote{每个边的坐标值范围为$[-1,1]$，所以面积为4。}，被由方向空间向立方体投影变换的雅可比矩阵$J(x,y,z)$加权，然后再除以每个面内像素的数量$Resolution^{2}$，其中有立方体面$[-1,1]^{3}$向单位球面投影的雅可比矩阵为$J(x,y,z)=\cfrac{1}{(x^{2}+y^{2}+z^{2})^{3/2}}$。综上，样本对应多级纹理的层级可由下式计算得出，即：
+
+\begin{equation}
+\begin{aligned}
+	SA_{\rm sample}=&\cfrac{4\pi}{ND\bigg(\cfrac{p+n}{||p+n||}\bigg)}\\
+	SA_{\rm texel}=&\cfrac{4J(p_x,p_y,p_z)}{Resolution^{2}}\\
+	MipLevel=&\cfrac{1}{2}\log^2\Biggl(\cfrac{SA_{\rm sample}}{SA_{\rm texel}}\Biggl)
+\end{aligned}
+\end{equation}
+
+由此可知，重要性采样方法通过对法线（或者BRDF）分布函数进行重要性采样，从而能够直接事先得到一个给定分布函数的采样样本的位置，然而这些样本被上传的GPU中，表面上的每个像素都执行相同的计算，因此能够符合GPU的并行计算特征，同时能够保留阶层式预过滤方法使用多级环境贴图的优点。
+
+\begin{myshaded}
+	尽管阶层式预过滤和重要性采样方法都能够实现对多级环境贴图的像素读取，但是两者的精确度是不一样的。
+	
+	阶层式预过滤方法由于使用过滤器与环境贴图中像素乘积的值来作为差异比较的依据，这相当于是对整个被积函数进行重要性采样，因此每个样本的贡献值能够最大化。方然这里我们不能说它就一定具有更快的收敛速度，因为它本质上不是一种完全的重要性采样方法，它的每个样本需要通过多次迭代才能最终确定，因此存在一定数量的浪费。
+	
+	但是反观重要性采样方法，它仅仅是对法线分布函数$D$进行重要性采样，因此当法线分布函数与整个被积函数的形状差异比较大时，其方差就会比较大。
+\end{myshaded}
+
+
+
+
 \subsubsection{实时预过滤方法}
-
+立方体贴图
 
 
 \begin{comment}
