@@ -1,0 +1,38 @@
+\contentsline {chapter}{\numberline {12}基于预计算的实时渲染技术}{1}{chapter.12}
+\contentsline {section}{\numberline {12.1}数学基础}{2}{section.12.1}
+\contentsline {subsection}{\numberline {12.1.1}勒让德多项式}{4}{subsection.12.1.1}
+\contentsline {subsection}{\numberline {12.1.2}球谐函数}{7}{subsection.12.1.2}
+\contentsline {subsubsection}{\numberline {12.1.2.1}投影和重建}{8}{subsubsection.12.1.2.1}
+\contentsline {subsubsection}{\numberline {12.1.2.2}球谐函数的属性}{9}{subsubsection.12.1.2.2}
+\contentsline {paragraph}{基本属性}{9}{paragraph*.5}
+\contentsline {paragraph}{乘积的投影}{11}{paragraph*.7}
+\contentsline {paragraph}{卷积的投影}{12}{paragraph*.8}
+\contentsline {subsection}{\numberline {12.1.3}球鞋函数的旋转}{13}{subsection.12.1.3}
+\contentsline {subsubsection}{\numberline {12.1.3.1}基本思路}{14}{subsubsection.12.1.3.1}
+\contentsline {subsubsection}{\numberline {12.1.3.2}ZXZXZ旋转}{15}{subsubsection.12.1.3.2}
+\contentsline {subsubsection}{\numberline {12.1.3.3}快速近似法}{18}{subsubsection.12.1.3.3}
+\contentsline {subsubsection}{\numberline {12.1.3.4}带谐函数}{19}{subsubsection.12.1.3.4}
+\contentsline {section}{\numberline {12.2}基于图像的光照技术}{23}{section.12.2}
+\contentsline {subsection}{\numberline {12.2.1}方向映射}{24}{subsection.12.2.1}
+\contentsline {subsubsection}{\numberline {12.2.1.1}极坐标映射}{24}{subsubsection.12.2.1.1}
+\contentsline {subsubsection}{\numberline {12.2.1.2}球面映射}{25}{subsubsection.12.2.1.2}
+\contentsline {subsubsection}{\numberline {12.2.1.3}立方体映射}{27}{subsubsection.12.2.1.3}
+\contentsline {subsubsection}{\numberline {12.2.1.4}八面体映射}{28}{subsubsection.12.2.1.4}
+\contentsline {paragraph}{球面域向八面体面的投影}{30}{paragraph*.18}
+\contentsline {paragraph}{八面体面的展开}{31}{paragraph*.21}
+\contentsline {subsection}{\numberline {12.2.2}预过滤}{33}{subsection.12.2.2}
+\contentsline {subsubsection}{\numberline {12.2.2.1}漫反射表面}{34}{subsubsection.12.2.2.1}
+\contentsline {subsubsection}{\numberline {12.2.2.2}光泽表面}{34}{subsubsection.12.2.2.2}
+\contentsline {subsubsection}{\numberline {12.2.2.3}阶层式预过滤}{36}{subsubsection.12.2.2.3}
+\contentsline {subsubsection}{\numberline {12.2.2.4}重要性采样方法}{38}{subsubsection.12.2.2.4}
+\contentsline {subsubsection}{\numberline {12.2.2.5}实时预过滤方法}{38}{subsubsection.12.2.2.5}
+\contentsline {chapter}{参\nobreakspace {}考\nobreakspace {}文\nobreakspace {}献}{41}{chapter*.26}
+\contentsline {xchapter}{}{41}{chapter*.26}
+\contentsline {chapter}{专有名词索引}{42}{chapter*.27}
+\contentsline {xchapter}{}{42}{chapter*.27}
+\contentsline {section}{中文索引}{42}{section*.28}
+\contentsline {section}{英文索引}{43}{section*.29}
+\contentsline {chapter}{数学概念索引}{44}{chapter*.30}
+\contentsline {xchapter}{}{44}{chapter*.30}
+\contentsline {section}{中文索引}{44}{section*.31}
+\contentsline {section}{英文索引}{44}{section*.32}

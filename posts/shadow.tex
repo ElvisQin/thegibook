@@ -1,0 +1,146 @@
+\chapter{Shadows}
+
+\subsection{Basics}
+
+
+ray-tracing shadows, dose it improved the bias, artifacts ?
+
+
+PowerVR Ray tracing uses G-buffer, but UE4 uses a distance fields of all the objects in GPU. 
+
+
+
+Even though the target applications for ray tracing are extremely varied, this post is focused mainly on shadows. Not only does ray tracing create more accurate shadows that are free from the artifacts of shadow maps, but ray traced shadows are also up to twice as efficient; they can be generated at comparable or better quality in half the GPU cycles and with half the memory traffic (more on that later).
+(It looks ray tracing shadow is more accurate than cascaded shadow maps, So I must also analyse the memory traffic)
+(And I must explain cascaded shadow maps technique heavily, it's most been used to replace CSM)
+http://blog.imgtec.com/multimedia/implementing-fast-ray-traced-soft-shadows-in-a-game-engine
+Unreal Engine also said ray tracing is faster than CSM, explain way, maybe the are same. 
+
+
+Ray traced shadows fundamentally operate in screen space. For that reason, there is no need to align a shadow map’s resolution to the screen resolution; the resolution problem just doesn’t exist.
+
+
+
+
+\subsubsection{How to calculate the penumbra Size}
+The diagram below shows how we can calculate the size of a penumbra based on three variables: the size of the light source (R), the distance to the light source (L), and the distance between the occluder and the surface on which the shadow is cast (O). By moving the occluder closer to the surface, the penumbra is going to shrink.
+
+\begin{equation}
+	P=\frac{RO}{L}
+\end{equation}
+
+Using this straightforward relationship, we can formulate an algorithm to render accurate soft shadows using only one ray per pixel. We start with the hard shadows algorithm above; but when a ray intersects an object, we record the distance from the surface to that object in a screen-space buffer.
+
+This method has several advantages over cascaded shadow maps or other common techniques:
+
+There are no shadow map resolution issues since it is all based in screen space
+There are no banding, noise or buzzing effects due to sampling errors
+There are no biasing problems (sometimes called Peter-Panning) since you are shooting rays directly off geometry and therefore getting perfect contact between the shadow and the casting object
+
+(So first must explain the sampling problems, bias, and peter-panning, resolution)
+
+
+
+
+UE4 using cone tracing, what is the difference? They are the same?
+Don't know how UE4 implement? doesn't matter, just explain the basic using PowerVR ray tracing, and UE4's distance field just accelerate the ray tracing speed.
+
+
+
+\subsection{Drawbacks}
+Screen space based ray tracing can not cast a ray to a direction out of screen, such as the sun is out of the screen.
+Ok, the light sources can be out of screen, because we using another memory record the lights. But how about the occluder out of the screen, the reflection point put of the screen?
+
+
+
+
+To calculate shadowing, a ray is traced from the point being shaded through the scene's signed distance fields toward each light. The closest distance to an occluder is used to approximate a cone trace for about the same cost as the ray trace. This allows high quality area shadowing from spherical light source shapes.
+
+'Source Radius' is used to determine how large shadow penumbras are on a point light. Area shadows are computed with sharp contacts that get softer over long distances. Note that the light source sphere should not be intersecting the scene or it will cause artifacts.
+
+'Light Source Angle' is used to determine how large shadow penumbras are on a directional light. Ray Traced shadows have very few self-intersection problems and therefore avoid the leaking and over-biasing problems in the distance that traditional shadow mapping is plagued by.
+
+Cascaded Shadow Maps are typically used to provide dynamic shadowing of a directional light. These require rendering the meshes in the scene into several cascade shadow maps. The cost of the shadowing increases steeply at larger shadow distances, because of how many meshes and triangles are being rendered into the shadowmaps.
+(So, how cascaded shadow map is generated dynamically?)
+
+Ray Traced Distance Field shadows behave much more gracefully in the distance, doing shadowing work only for visible pixels. Cascaded Shadow Maps can be used to cover regions near the camera, while Ray Traced Shadows will cover regions up until 'DistanceField Shadow Distance'.
+(Is cascaded shadow map more cheap than distance sphere tracing?)
+
+
+Distance field fidelity has a large impact on shadow accuracy, more so than Distance Field AO. Set the 'Distance Field Resolution' (under Build Settings) higher on Static Meshes that need it.
+
+These shadows are computed at half resolution with a depth-aware upsample. Temporal AA does a great job of reducing the flickering from half res, but jaggies in the shadows still appear sometimes.
+
+Directional light with distance 10k, 3 cascades
+
+Cascaded shadow maps 3.1ms
+Distance Field shadows 2.3ms (25\% faster)
+
+Soft shadow
+
+
+\subsection{Dynamic Cascaded Shadow Maps}
+1, Partition the frustum into subfrusta.
+2, Compute an orthographic projection for each subfrustum.
+3, Render a shadow map for each subfrustum.
+4, Render the scene.
+ 4.1Bind the shadow maps and render.
+ 4.2 The vertex shader does the following:
+  4.2.1 Computes texture coordinates for each light subfrustum (unless the needed texture coordinate is calculated in the pixel shader).
+  4.2.2 Transforms and lights the vertex, and so on.
+ 4.3 The pixel shader does the following:
+  4.3.1 Determines the proper shadow map.
+  4.3.2 Transforms the texture coordinates if necessary.
+  4.3.3 Samples the cascade.
+  4.3.4 Lights the pixel.
+
+
+
+Frustum culling
+Render scene into G-Buffer
+Render scene into shadow map
+Render decals and alpha-blend with G-Buffer
+Lighting
+Post-processing (only AO at the moment)
+Skybox
+GUI/ debug draw
+
+\subsection{Upsample}
+
+
+
+
+
+
+
+
+
+Several filtering methods for shadow mapping, which are mainly useful for reducing resampling error.
+1, Percentage-Closer Filtering
+While the idea of shadow-map filtering is very close to texture mapping, in practice there is an important difference. It is general not possible to apply a filter function to the shadow mao and then shadow test the result. In that case, the depth values would be averaged, but the resulting shadows would still show the same aliasing artifacts because for each view sample, the shadow test still leads to a binary outcome.
+
+2, Efficient filtering approaches
+While for texture mapping, the result of filtering with large filters can be precomputed, for example using mip-mapping, this is not easily possible with shadow mapping. The main problem is that we need to filter the outcome of the shadow test, and not the depth signal.
+
+2.1 Variance shadow maps
+2.2 Convolution shadow maps
+2.3 Exponential shadow maps
+
+
+
+
+
+Instead, one needs to filter the shadow signal, not the depth signal. This approach is called percentage-closer filtering(PCF). it is as simple as changing the order of depth testing and filtering.
+
+
+
+Several methods to reduce shadow-map aliasing artifacts. 
+1, Shadow-map reparameterization. To apply a single transformation to the scene before projecting it into the shadow map such that the sampling density is globally changed in a useful way. -- e.g, a logarithmic transformation along the z-axis.
+
+2, Global shadow-map partitioning. to subdivided the view frustum along the z-axis, and calculate a separate equal-sized shadow map for each sub-frustum. ----Cascaded shadow maps (Parallel split shadow maps, or z-partitioning)
+
+3, Adaptive shadow-map partitioning. 
+
+4, precise hard shadows
+
+Efficient Ray Traced Soft Shadows using Multi-Frusta Tracing

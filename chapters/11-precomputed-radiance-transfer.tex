@@ -1,0 +1,1551 @@
+从本章开始，本书的焦点将完全转向实时渲染，这意味着渲染算法需要在1/30秒甚至更少的时间内生成当前场景在当前视角下的一张2D图像。尽管这看起来只是在时效性上的要求不同，实时渲染和离线渲染采用的确是两种完全不同的渲染方法和架构。
+
+传统的离线渲染（例如本书前面的章节介绍的那些）算法基本上都依赖于光线追踪（ray tracing），狭义的光线追踪是指根据一条光线的传播方向寻找该光线与场景中的表面上最近的一个交点，这个过程的计算成本非常昂贵，所以目前的实时渲染算法通常并不能像前面介绍的离线渲染算法那样计算更完全的光线传播路径，而是仅仅只计算所谓的直接光照，然后间接光照通过其它的一些非直接渲染的方法来实现。由于直接光照往往具有比较好的连贯性，因此人们设计出一种高度并行的图形处理器，用于实现对直接光照的高速实时渲染。这些内容可以参见本书前面第\ref{chp:pipeline}和\ref{chp:shading}章的内容。
+
+在实时渲染中，直接光照又称为局部光照（local illumination），它的计算相对比较简单（限于篇幅，本书并不会特别对其进行介绍，而是假设读者能够理解基本的实时渲染中直接光照的计算）；相应地，间接光照又称为全局光照（global illumination，GI），所以通常在实时渲染中我们所说的全局光照其实是指间接光照，实时渲染中的间接光照的计算是相对比较困难的，它们通常会使用一些预计算或者其它一些特殊的近似方法，本章及其后面的章节就是要介绍几种目前工业中比较主流的全局光照算法。
+
+对于实时渲染来讲，最简单且高效的方法可能是将光照传输过程中的一些计算缓存起来，然后实时渲染时可以使用这些预计算的某种形式的数据结果，这些基于预计算的方法仍然是当前阶段实时渲染中比较核心的全局光照算法。本章的目的就是要讨论主流的基于预计算的全局光照算法，这些方法又统称为预计算光照（precomputed lighting）\myindex{预计算光照}{precomputed lighting}技术。
+
+根据其对光照方程预计算的位置不同，实时渲染中有多种不同的预计算光照技术，它们也分别拥有自己不同的名称，例如预计算辐射传输，辐射照度缓存，辐射照度/亮度体积等等，传统的教材也大都会对它们进行区分并给予单独介绍，在一些实时渲染引擎（如Unreal Engine和Unity等）中它们也表现为看似完全无关的流程和功能。然而从技术层面，它们却存在着很多联系，例如它们大部分都需要基于球谐函数的乘积属性来分离出预计算部分，它们也大都需要借助基于图像的光照技术来实现预计算，并且通过比较对不同渲染方程不同部分的预计算处理，我们可以更深刻地理解这些预计算全局光照技术的思路。所以，我们这里尝试将所有这些基于预计算的全局光照技术放到一个章节，除了介绍它们的基本算法，我们可以更深刻的洞悉它们之间的联系，进而更深刻地理解这些全局光照技术。
+
+在本章，我们首先在第\ref{sec:pl-sh}节和第\ref{sec:pl-sh}节介绍这些预计算光照技术的两个核心基础，即球谐函数和基于图像的光照技术，接着在后面三节介绍预计算光照技术中的三个主要算法，它们分别是预计算辐射传输（第\ref{sec:pl-prt}节），辐射照度/亮度缓存（第\ref{sec:pl-irradiance-caching}节），以及辐射照度/亮度体积算法（第\ref{sec:pl-irradiance-volume}节）。
+
+
+
+\section{数学基础}\label{sec:pl-sh}
+本章所有预计算光照技术的数学基础是基函数（basis function）\mathindex{基函数}{basis function}的概念及其相关知识，我们在第\ref{chp:rad}章第\ref{sec:r-wavelet-based}节已经介绍过相关的知识，这里首先对其做简要的回顾，然后介绍基于球面坐标系的基函数（球谐函数）的相关概念和属性。
+
+在数学中，一个基函数是函数空间（function space）\mathindex{函数空间}{function space}中的一个基，就像欧拉（实数或复数矢量）空间中的一个坐标轴一样。在函数空间中，每个连续的函数都可以表示为这些基函数的一个线性组合，正如矢量空间中的每个矢量都可以表示为各个坐标轴（基矢量）的线性组合一样。例如，对于所有二次多项式都可以表示为基函数组$\{1,t,t^{2}\}$的线性组合$a1+bt+ct^{2}$，这里$a,b$和$c$表示各个基函数的系数。此外，傅里叶变换其实也是将一个任意函数表示为一系列三角函数的线性组合。
+
+\begin{figure}
+	\begin{subfigure}[b]{0.49\textwidth}
+		\includegraphics[width=0.95\textwidth]{figures/prt/prt-1}
+		\caption{投影}
+	\end{subfigure}
+		\begin{subfigure}[b]{0.49\textwidth}
+		\includegraphics[width=0.9\textwidth]{figures/prt/prt-2}
+			\caption{重建}
+	\end{subfigure}
+	\caption{一种特殊的由线性分段函数组成的函数基，其每个基函数是一小段信号，它们可以被缩放并组合起来对原始函数形成近似，这个过程称为重建(b)，决定每个基函数的缩放系数的过程被称为投影(a)。}
+	\label{f:pl-projection-and-reconstruction}
+\end{figure}
+
+所以，如果已知一组基函数，则我们可以使用一个矢量来表述一个函数，该矢量的各个分量就是对于各个基函数的线性组合系数。给定一个定义在$T$上的函数$f(t)$以及一组基函数$B_i(t)$，该函数可以通过下面的积分被投影（projection）\mathindex{投影}{projection}（如图\ref{f:pl-projection-and-reconstruction}(a)所示）成系数（矢量）的形式：
+
+\begin{equation}
+	c_i=\int f(t)B_i(t)dt=:\langle f(t),B_i(t)\rangle
+\end{equation}
+
+然后，原始函数可以通过这些基函数与其对应系数乘积（如图\ref{f:pl-projection-and-reconstruction}(b)所示）的加和形式被重建（reconstruction）\mathindex{重建}{reconstruction}，即：
+
+\begin{equation}\label{e:pl-reconstruction}
+	f(t)\approx\tilde{f}(t) =\sum_{i}^{N}c_iB_i(t)=\raisebox{-.5\height}{\includegraphics[width=0.25\textwidth]{figures/prt/prt-3}}
+\end{equation}
+
+这里$N$表示系数的数量，一个连续函数通常需要无穷多个基函数的线性组合才能完全被重建，当基函数的数量有限，或者$N$小于基函数的数量时，上述基函数的线性组合只是原始函数的一个近似，记为$\tilde{f}(t)$（见式\ref{e:pl-reconstruction}）。
+
+上面的例子使用了一系列线性（一次）函数作为基函数，它给出原始函数的一个分段线性近似。在工程上最常用的是使用一组相互正交的多项式作为函数基，正交多项式（orthogonal polynomials）\mathindex{正交多项式}{orthogonal polynomials}是一组具有一些有趣特性的多项式，即任意两个基函数之间都是相互正交的，所以当对任意两个基函数的乘积进行积分时，只有当两者完全相同时才会取得非零值，例如：
+
+\begin{equation}
+	\int_{-1}^{1}F_m(x)F_n(x)dx=\begin{cases}
+		0 & \text{ for } n\neq m\\
+		1 & \text{ for } n=m
+	\end{cases}
+\end{equation}
+
+上式使用了更严格的限制：两个多项式乘积的积分必须返回0或者1，这些特定子集的基函数被称为标准正交基函数\footnote{注意正交（orthogonal）和标准正交（orthonormal）的区别，在欧几里得空间中，一个标准正交的基是指每个基矢量为单位矢量，并且相互正交。}（orthonormal basis functions）\mathindex{标准正交基函数}{orthonormal basis functions}。
+
+有了上述的理论基础，我们便可以使用一个分量为各个基函数系数的矢量来表述或近似一个连续函数。很显然，每个表面处的光照传输是一个关于BRDF分布函数，可见性及几何项的函数，因此如果场景是静态的，那么该传输函数可以被存储为一个矢量而被重复使用，本节后面将讨论的一些性质将说明这些系数矢量怎样与动态的环境贴图组合在一起用于计算整个光照贡献。
+
+然而，这里存在一个问题是，完整表述一个连续函数需要无限个系数，而光照传输发生于每个表面处，即每个表面位置都需要存储一个系数矢量，这显然面临巨大的存储和计算压力。为此，我们必须对每个表面点使用少量的系数对原函数进行近似，相对于由分段函数构成的基函数（如图\ref{f:pl-projection-and-reconstruction}所示），由多项式组成的基函数还具有另一种特征，不同阶的基函数能够表述原函数不同频率域的特征，阶数越高则保留的频率细节越多，但是需要的系数数量也越多，因此这给出一种可能，即使用少量的低阶多项式基函数来近似原函数的低频部分，这即是预计算辐射传输算法的核心思想。
+
+本节首先讨论多项式基函数（如勒让德多项式）的一些特征，以及基于球面坐标系下的一种多项式基函数（即球谐函数），然后将在后面的内容中利用这些基函数的特征来实现预计算辐射传输算法。
+
+
+
+
+\subsection{勒让德多项式}
+工程中最感兴趣的一类多项式是勒让德多项式（Legendre polynomials）\mathindex{勒让德多项式}{Legendre polynomials}，记为$P_l(x)$，其定义域为$x\in[-1,1]$，伴随勒让德多项式\footnote{有的数学文献又称其为连带勒让德多项式。}（associated Legendre Polynomials）\mathindex{伴随勒让德多项式}{associated Legendre Polynomials}$P^{m}_{l}(x)$ 和$P^{-m}_{l}(x)$是勒让德多项式的一般化或者说一般勒让德方程的解，其中$l$是一个非负整数，而$m=0,\cdots,l$，这些多项式返回实数（而一般的勒让德多项式返回复数）值。
+
+对于给定正整数$m$，伴随勒让德多项式可以表述为一般非伴随勒让德多项式的形式，即：
+
+\begin{equation}
+\begin{aligned}
+	p^{m}_{l}(x)&=(-1)^{m}(1-x^{2})^{m/2}\frac{d^{m}}{dx^{m}}P_l(x)\\
+	&=\frac{(-1)^{m}}{2^{l}l!}(1-x^{2})^{m/2}\frac{d^{l+m}}{dx^{l+m}}(x^{2}-1)^{l}
+\end{aligned}
+\end{equation}
+
+由此可以看出，参数$m$表示勒让德多项式导数的阶（order）\mathindex{阶}{order}，如果$m=0$，则伴随勒让德多项式退化为多项式（相当于勒让德多项式的0阶导数）。
+
+对于负整数$m$，其伴随勒让德多项式可以表述为：
+
+\begin{equation}
+	P_{l}^{-m}=(-1)^{m}\frac{(l-m)!}{(l+m)!}P^{m}_{l}(x)
+\end{equation}
+
+伴随勒让德多项式满足正交性，对于固定的$m$满足：
+
+\begin{equation}
+	\int^{1}_{-1}P^{m}_l(x) P^{m}_{l^{'}}(x)dx=\frac{2}{2l+1}\frac{(l+m)!}{(l-m)!}\delta_{ll^{'}}
+\end{equation}
+
+对于固定的$l$满足：
+
+\begin{equation}
+	\int^{1}_{-1}P^{m}_l(x)P^{m^{'}}_l(x)\frac{dx}{1-x^{2}}=\frac{(l+m)!}{m(l-m)!}\delta_{mm^{'}}
+\end{equation}
+
+那么伴随勒让德多项式的形式究竟是怎样的呢，这里不做推导，仅直接给出其形式。伴随勒让德多项式可以表述为下述的递归关系：
+
+\begin{equation}\label{e:pl-associated-legendre-polynomials-1}
+	(l-m)P^{m}_{l}(x)=x(2l-1)P^{m}_{l-1}(x)-(l+m-1)P^{m}_{l-2}(x)
+\end{equation}
+
+有了上述递归表述，就可以通过较小值的$l$推导出较大值$l$下同阶的伴随多项式。但是随着$l$的增大，伴随勒让德多项式的阶$m$也会增加（对于每一个参数$l$，$m=0,\cdots,l$），上式不足以推导出所有的伴随勒让德多项式，而下式给出了新增阶数的伴随勒让德多项式的递推关系：
+
+\begin{equation}\label{e:pl-associated-legendre-polynomials-2}
+\begin{aligned}
+	P^{l}_l(x)&=(-1)^{l}(2l-1)!!(1-x^{2})^{l/2}\\
+	P^{l}_{l+1}&=x(2l+1)P^{l}_l(x)
+\end{aligned}
+\end{equation}
+
+有了式\ref{e:pl-associated-legendre-polynomials-1}和\ref{e:pl-associated-legendre-polynomials-2}，便可以推导出任意参数$l$和$m$下的伴随勒让德多项式。例如以下是开头的6个伴随勒让德多项式：
+
+\begin{equation}
+\begin{aligned}
+	P^{0}_0(x)&=1\\
+	P^{0}_1(x)&=x\\
+	P^{1}_1(x)&=-(1-x^{2})^{1/2}\\
+	P^{0}_3(x)&=\frac{1}{2}(3x^{2}-1)\\
+	P^{1}_2(x)&=-3x(1-x^{2})^{1/2}\\
+	P^{2}_2(x)&=3(1-x^{2})\\
+	&\cdots
+\end{aligned}
+\end{equation}
+
+伴随勒让德多项式的另一个参数$l$的意义是什么呢，通过观察式\ref{e:pl-associated-legendre-polynomials-1}和\ref{e:pl-associated-legendre-polynomials-2}，随着$l$的增加，变量$x$的指数次数会越来越大，实际上$l$表示了伴随勒让德多项式的次数（degree of a polynomial）\mathindex{多项式的次数}{degree of a polynomial}，即多项式中所有单项式中指数次数和的最大值。由此也可以看出对于每一个固定的$l$，必须满足$m\leq l$，因为当$m>l$时（即导数的阶数大于多项式的次数），$P^{m}_l$的值始终为0。
+
+\begin{figure}
+\sidecaption
+	\includegraphics[width=0.65\textwidth]{figures/prt/associated-legendre-functions}
+	\caption{伴随勒让德多项式的定义域为$[-1,1]$，右图展示了开头一些伴随勒让德多项式的图，注意这里没有包含阶数$m$为负数的多项式，所有多项式都被归一化到1，随着次数$l$的增大，多项式频率变得越来越高（图片来自Wikipedia，作者：Geek3）。}
+	\label{f:pl-associated-legendre-functions}
+\end{figure}
+
+图\ref{f:pl-associated-legendre-functions}展示了开头一些伴随勒让德多项式的图，不难看出，随着次数$l$的增大，伴随勒让德多项式的频率变化变得原来越大，因此我们可以使用少数较低次数的伴随勒让德多项式来近似函数的低频部分。
+
+
+
+
+\subsection{球谐函数}
+满足拉普拉斯方程（$\nabla^{2} f=0$，即为一个二阶连续可导函数）的函数称为谐函数（harmonic function）\mathindex{谐函数}{harmonic function}，或者调和函数，球谐函数（spherical harmonics，SH）\mathindex{球谐函数}{spherical harmonics}则是将谐函数限制于球坐标系（spherical coordinates）\mathindex{球坐标系}{spherical coordinates}下的单位球面（unit sphere）上，即它忽略了球坐标系的半径$r$（因为其被固定于球面上），仅取其方向变化部分$\theta$和$\varphi$。因此正如同傅里叶级数（圆上的正弦和余弦函数）是一系列用于表示圆上的方向分布函数，球谐函数可以用来表述球面上的方向分布，例如表面的BRDF分布函数，环境贴图，光照传输，可见性分布等，这些都是仅与方向有关（而与位置无关）的函数。
+
+球谐函数是定义于单位球面上的正交基，因此可以使用以下的参数化：
+
+\begin{equation}
+	s=(x,y,z)=(\sin\theta \cos\varphi,\sin\theta \sin\varphi,\cos\theta)
+\end{equation}
+
+来描述球谐函数，这里$s$就是单位球面上的一个位置。球谐函数一般使用符号$y$表述，其定义为：
+
+\begin{equation}
+	y^{m}_{l}(\theta,\varphi)=\begin{cases}
+		\sqrt{2}K^{m}_{l}\cos(m\varphi)P^{m}_{l}(\cos\theta), &m>0\\
+		\sqrt{2}K^{m}_{l}\sin(-m\varphi)P^{-m}_{l}(\cos\theta), &m<0\\
+		K^{0}_{l}P^{0}_{l}(\cos\theta), & m=0
+	\end{cases}
+\end{equation}
+
+这里$P$正是前面介绍的伴随勒让德多项式，而$K$仅仅是一个用以实现规则化的缩放系数，其值为：
+
+\begin{equation}
+	K^{m}_{l}=\sqrt{\frac{(2l+1)}{4\pi}\frac{(l-|m|)!}{(l+|m|)!}}
+\end{equation}
+
+同伴随勒让德多项式一样，我们使用不同的$l$和$m$（满足$-1\leq m\leq l$）的组合来获取所有的球谐函数，这是一个类似金字塔的数据结构，如图\ref{f:pl-sperical-harmonic}所示，为了简化表述，通常使用特定的顺序将其转换为一个平坦的一维矢量，所以我们又可以使用下面的序列定义球谐函数：
+
+\begin{equation}\label{e:pl-harmonics-sequence}
+	y^{m}_{l}(\theta,\varphi)=y_i(\theta,\varphi), \text{\quad\quad  其中\quad} i=l(l+1)+m
+\end{equation}
+
+在这个序列上，参数$l$将球谐函数分成不同的带（band），每个带内都是次数相同的多项式，给定参数$l$，其对应的带内包含$2l+1$个次数相同的球谐函数，如图\ref{f:pl-sperical-harmonic}所示。
+
+\begin{figure}
+\sidecaption
+	\includegraphics[width=0.65\textwidth]{graphics/prt/prt-4}
+	\caption{头4个带的球谐函数可视化图，蓝色部分表示函数取正值，黄色部分则表示负值区域，表面上的点到原点的距离指示方向$(\theta ,\phi )$上的函数值$y_{\ell }^{m}(\theta ,\phi )$（图片来自Wikipedia，作者：Inigo.quilez）。}
+	\label{f:pl-sperical-harmonic}
+\end{figure}
+
+为了更直观的了解球谐函数的特征，我们希望像欧几里得空间的函数一样对其进行可视化（例如图\ref{f:pl-associated-legendre-functions}所示）。球谐函数可以被使用多种方法进行可视化，其中一种比较标准的方法是对单位球面执行扭曲变形操作，该操作对球面上每个点$y^{m}_l(\theta,\varphi)$沿其所在的方向$(\theta,\varphi)$进行缩放，使缩放后的表面上的每个点到原点的距离能够反映该球谐函数在该方向上的值$y^{m}_l(\theta,\varphi)$，同时用不同的颜色来区分球谐函数值的正负（蓝色为正，黄色为负），如图\ref{f:pl-sperical-harmonic}所示。从该图中也能够看出球谐函数的方向分布特征，每个带内的函数具有相似的频率变化，但是不同阶数的球谐函数具有不同的方向分布，以满足近似相似频率下函数的方向特征。
+
+
+
+
+\subsubsection{投影和重建}
+将一个球面函数投影为球谐函数系数的过程和一般的基函数投影是相同的，为了计算该投影系数，只需要将对原函数$f$与球谐函数$Y$的乘积进行积分即可：
+
+\begin{equation}
+	c_{l}^{m}=\int_{S}f(s)y^{m}_{l}(s)ds
+\end{equation}
+
+反之，为了重建对原函数的近似，对球谐函数按对应系数执行线性组合：
+
+\begin{equation}
+	\tilde{f}(s)=\sum^{n-1}_{l=0}\sum^{l}_{m=-1}c^{m}_{l}y^{m}_{l}(s)=\sum^{n^{2}}_{i=0}c_iy_i(s)
+\end{equation}
+
+可以看到，对原函数的$n$阶近似需要存储$n^{2}$个系数，同傅里叶级数一样，我们可以使用无限个球谐函数的系数来近似原始函数，所以，这里的每个重建实际上都只是一种近似，这称为带限近似（band-limited approximation），带限的过程是指将原始信息划分成各个频率分量，然后移除高于某个阈值的频率，这也是球谐函数中的参数$l$称为带的原因，它指的是频率带分布。
+
+\begin{figure}
+\begin{fullwidth}
+	\includegraphics[width=1.0\thewidth]{graphics/prt/prt-6-2}
+	\caption{函数在球谐函数上的投影近似，随着球谐函数次数（带）$l$的提高，其对原始函数近似度也逐渐提高。（图片来自\cite{a:SphericalHarmonicLightingTheGrittyDetails}。}
+	\label{f:pl-band-limited-approximation}
+\end{fullwidth}
+\end{figure}
+
+图\ref{f:pl-band-limited-approximation}展示了对原始信号的不同带限近似，从左到右分别为常数，线性，二次，$\cdots$等近似，从中可以看到，随着带的增加，球谐函数能够更好地近似原始信号，因此对于低频函数，我们可以使用少量的系数就可以做到很好的近似。
+
+
+
+\subsubsection{球谐函数的属性}
+相较于其它基函数，球谐函数有一些有趣的特性使得其非常适合于解决光照传输中的一些问题，例如近似那些仅与方向相关的量。
+
+
+\paragraph{基本属性}
+首先，球谐函数之间不仅仅是相互正交（orthogonal）的，还是相互标准正交（orthonormal）的，这意味着如果我们对任意索引（使用式\ref{e:pl-harmonics-sequence}的表述）分别为$i$和$j$对应的球谐函数的乘积$y_iy_j$进行积分，其结果为1（如果$i=j$）或0（如果$i\neq j$）。
+
+球谐函数的标准正交性提供了一种有用的属性，即对于给定的两个球面$S$上的函数$a$$b$，它们乘积的积分满足：
+
+\begin{equation}\label{e:pl-dot-product}
+	\int \tilde{a}(s)\tilde{b}(s)ds=\sum^{n^{2}}_{i=1}a_ib_i
+\end{equation}
+
+即经过旋转后的球谐函数的函数值保持不变。换句话说，两个带限函数乘积的积分被转化为它们各自投影系数的点积（dot product），这个属性在渲染方程中非常有用，我们可以将入射光照和传输函数均投影为球谐函数系数，而球谐函数的标准正交性保证了这些函数乘积的积分可以简单地计算为它们投影系数的内积。
+
+其次，球谐函数还具有旋转不变性（rotational invariance）\mathindex{旋转不变性}{rotational invariance}，即如果$Q$表示在球面$S$上的一个任意旋转，则对于函数$g(s)=f(Q(s))$，其投影为：
+
+\begin{equation}
+	\tilde{g}(s)=\tilde{f}(Q(s))
+\end{equation}
+
+换句话说，假设现有一个高频的环境光源$f$，并将其投影到球谐函数上得到一个低频的近似$\tilde{f}$，如果现在要对原始光源执行旋转操作$Q$，为了求出原始光源旋转过后的函数$g$的低频近似$\tilde{g}$的球谐函数系数，则我们可以通过直接对$\tilde{f}$的球谐函数系数执行一个线性变换来得到，这与首先对原始函数执行旋转$Q$得到$g$，然后再对$g$执行球谐函数投影得到$\tilde{g}$的效果是一样的，如图\ref{f:pl-sh-rotational-invariance}所示。
+
+\begin{figure}
+	\sidecaption
+	\includegraphics[width=0.42\textwidth]{figures/prt/sh-rotational-invariance}
+	\caption{球谐函数具有旋转不变性，即对一个原始函数执行旋转再投影的操作（右上路径），可以直接通过对原始函数的投影系数执行一个线性变换操作（左下路径）来实现（图片来自\cite{a:StupidSphericalHarmonicsSHTricks}）。}
+	\label{f:pl-sh-rotational-invariance}
+\end{figure}
+
+这类似于傅里叶变换的移位不变性（shift invariance）\mathindex{移位不变性}{shift invariance}，这意味着光源在旋转情况下是稳定的，因为不管光源发生什么样的旋转，我们只需要对光源执行一次采样操作以计算投影系数，然后任何旋转仅需要对这些系数构成的矢量执行线性变换即可，否则如果每次都需要对原始光源执行旋转，则需要重新计算投影系数，这就不得不对光源进行另一次采样，从而可能导致时间走样。
+
+这个线性变换本质上是一个高维的旋转矩阵，我们将在第\ref{sec:pl-rotation}节介绍该矩阵的计算方法以及旋转的另外一些特性。
+
+
+
+
+\paragraph{乘积的投影}
+在前面的内容中，我们已经将整个光照计算分为光源（这里仅考虑与位置无关的环境贴图）和光照传输函数两部分，这两部分均可以看做是仅与方向有关的单位球面上的函数，因此可以分别使用一个球谐函数系数矢量进行近似。如果光照交互所处的表面是漫反射表面，则这两个球面函数乘积的积分是一个常数，因此该表面上光照的计算完全可以使用式\ref{e:pl-dot-product}所示的两个矢量的点乘表示，这两个矢量的分量对应于这两个方向分布函数在球面上的球谐函数投影系数，其中光源的投影系数可以动态调整，而表面上的投影系数可以预计算并缓存起来，以供每一帧执行光照计算，这样就能提高静态场景的计算效率，因为对于静态场景，其光照传输是不变的。
+
+然而，当表面是光泽面时，光源和传输函数乘积的积分不再是一个常数积分值，因为摄像机从不同方向观察到的光照是不一样的，因此它是另一个方向分布函数，此时式\ref{e:pl-dot-product}不再适用，新的问题转换为对光源函数和传输函数的乘积（其结果为一个方向分布函数）的投影近似。即，设$c(s)=a(s)b(s)$为两个方向函数的乘积，我们需要对函数$c(s)$执行另一个投影近似。
+
+根据投影的定义，其投影系数可表示为目标函数和球谐函数乘积的积分，因此函数$c(s)$的投影系数可由下式计算：
+
+\begin{equation}
+\begin{aligned}
+	c_k=&\int y_k(s)c(s)ds\\
+	   =&\int y_k(s)\Biggl(\sum^{n^{2}}_{i=0}a_iy_i(s)\Biggl)\Biggl(\sum^{n^{2}}_{j=0}b_jy_j(s)\Biggl)ds\\
+	   =&\sum_{ij}\Gamma_{ijk}a_ib_j
+\end{aligned}
+\end{equation}
+
+在上式的第二行中，$a(s)$和$b(s)$分别被其投影系数近似，$\Gamma$是一个三重积张量（triple product tensor）\mathindex{三重积张量}{triple product tensor}：
+
+\begin{equation}
+	\Gamma_{ijk}=\int y_i(s)y_j(s)y_k(s)ds
+\end{equation}
+
+$\Gamma_{ijk}$是一个3阶对称张量，这意味着如果在每个表面位置处存储完全的光照传输，这需要每个顶点存储一个三维矩阵，这显然会占用大量的存储资源。但这里我们可以把光源部分抽取出来，即假设光照传输（即$a(s)$）是已知（固定）的，而光源（即$b(s)$）是未知（可变）的，那么表面上每个位置处的光照传输就仅需要存储一个二维矩阵，该矩阵可以通过下式计算而出：
+
+\begin{equation}
+	\mathbf{M}_{ij}=\sum_k\Gamma_{ijk} a_i
+\end{equation}
+
+然后每个表面处的光照传输结果对应的方向函数$c(s)$的球谐函数系数为：
+
+\begin{equation}
+	c_i=\mathbf{M}_{ij}b_j
+\end{equation}
+
+通过上面的乘积投影（product projection）\myindex{乘积投影}{product projection}属性，我们就可以在预计算辐射度方法中处理光泽表面，其中函数$a(s)$表示如表面处的阴影遮挡分布，$b(s)$表示环境贴图光源，$c(s)=a(s)b(s)$表示出射光照的方向分布，我们通过在物体表面处存储一个传输矩阵$\mathbf{M}_{ij}$，然后动态改变光源$b(s)$，就可以按照上式很简单地计算出表面在各个方向的出射光照。
+
+
+
+
+\paragraph{卷积的投影}
+本书前面已经讨论过卷积的意义，它通常用来对原始信息进行平滑和过滤，在卷积计算中，一个核函数$h$分别作用于一个信号函数$f$的每一个位置处，其结果是一个更平滑的函数，记为$h*f$。
+
+核函数同样可以用来平滑一个用球谐函数表述的方向分布函数，给定一个圆对称（circular symmetry）\myindex{圆对称}{circular symmetry}的核函数$h(z)$，通过对一个原始函数$f$执行卷积计算可以得到一个新的球谐函数，注意，这里核函数$h(z)$必须是圆对称的，即在垂直于$z$轴的平面上值相同，因此核函数可以只使用一个变量$z$表述，这样才能保证卷积的结果依然位于球面$S$上。
+
+在球面上，卷积可以直接作用于方向函数的频率域（类似于傅里叶级数，球谐函数实际上就是方向函数的频率域），即
+
+\begin{equation}\label{e:pl-sh-convolution}
+	(h*f)^{m}_{l}=\sqrt{\frac{4\pi}{2l+1}}h^{0}_{l}f^{m}_{l}
+\end{equation} 
+
+也就是说，函数$f$的卷积就是该函数每个带$l$内的所有球谐函数系数$f^{m}_l$被核函数的$m=0$项$h^{0}_l$执行一个缩放操作，注意因为核函数是圆对称的，所以每个带$l$内仅仅只有$m=0$项（在后面将看到该项球谐函数称为带谐函数）具有非零值。该卷积属性提供了一种快速的方法用于计算环境贴图与余弦核函数$h(z) = \max(z,0)$的卷积计算，该操作可以得到一个辐射照度图（irradiance map）\myindex{辐射照度图}{irradiance map}。此外，卷积计算还可以用于对环境贴图执行预过滤操作以得到一个更平滑的环境贴图。
+	
+	
+
+\subsection{球鞋函数的旋转}\label{sec:pl-rotation}
+在上面我们已经说明了球谐函数具有旋转不变性，但是并没有讨论怎样对球谐函数执行旋转操作。球谐函数的旋转操作对于光照渲染计算非常重要，例如每个物体表面的传输矢量（或矩阵）通常都是基于每个物体的局部坐标系的，而光源的球谐函数表述通常都是基于全局坐标系的，因此当它们在进行点积计算时，必须要将光源球谐函数旋转至每个物体的局部坐标系中，这个旋转操作发生于每个顶点甚至每个像素；并且，正如接下来的内容可知，球谐函数的旋转计算相对比较复杂，所以这里单独使用一个小节进行介绍。
+
+对一个（系数）矢量执行一个线性变换的过程是什么呢，根据线性变换的定义，该操作实际上可以表述为一个旋转矩阵，使得旋转过后矢量的每个系数是原始系数的一个线性组合，即：
+
+\begin{equation}\label{e:pl-linear-transform}
+	g_i=\sum^{n^{2}}_j f_j R_{ij}
+\end{equation}
+
+由矩阵操作的定义可知，$R_{ij}$为一个$n^{2}\times n^{2}$的矩阵。然而根据群论（group theory）\mathindex{群论}{group theory}的知识，在该旋转矩阵中，带与带之间的系数并不相交，因此可以推断出旋转矩阵是一个基于块的稀疏对角矩阵，其中每个块的尺寸对应每个带内的阶数，即旋转后的每个球谐函数系数$g_i$仅来自于原始球谐函数中对应带内系数的线性变换。因此，即旋转矩阵具有下述的结构：
+
+\begin{equation}\label{e:pl-sh-rotation-matrix}
+	R_{SH}=\left[
+	\centering
+	\begin{array}{c|ccc|ccccc|c}
+		\text{ 1 } & \text{ 0 } & \text{ 0 } & \text{ 0 } & \text{ 0 } & \text{ 0 } & \text{ 0 } & \text{ 0 } & \text{ 0 } & \cdots \\
+		\hline
+		0 & X & X & X & 0 & 0 & 0 & 0 & 0 & \cdots \\
+		0 & X & X & X & 0 & 0 & 0 & 0 & 0 & \cdots \\
+		0 & X & X & X & 0 & 0 & 0 & 0 & 0 & \cdots \\
+		\hline
+		0 & 0 & 0 & 0 & X & X & X & X & X & \cdots \\
+		0 & 0 & 0 & 0 & X & X & X & X & X & \cdots \\
+		0 & 0 & 0 & 0 & X & X & X & X & X & \cdots \\
+		0 & 0 & 0 & 0 & X & X & X & X & X & \cdots \\
+		0 & 0 & 0 & 0 & X & X & X & X & X & \cdots \\
+		\hline
+		\vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \ddots
+	\end{array}
+	\right]=\begin{bmatrix}
+		1 & 0     & 0     & \cdots \\
+		0 & R^{1} & 0     & \cdots \\
+		0 & 0     & R^{2} & \cdots \\
+		\vdots & \vdots & \vdots & \ddots 
+	\end{bmatrix}
+\end{equation}
+
+如果已知一个该矩阵的显式表述，那么球谐函数旋转的操作就非常简单。然而实际上该旋转矩阵的计算非常复杂；并且由于它是一个关于旋转角度的函数，因此它必须在每次执行旋转操作的时候即时计算，因为此时我们才知道实际的旋转角度；此外，在实时渲染中由于每一帧都需要对每个顶点甚至每个像素执行旋转操作，所以单个旋转操作的计算效率非常重要。
+
+以下我们首先简述旋转的计算方法，以及科学计算中球谐函数旋转的基本思路，然后介绍实时渲染中使用的快速计算方法。
+
+
+
+
+\subsubsection{基本思路}
+球谐函数旋转矩阵$R$（如式\ref{e:pl-sh-rotation-matrix}）是一个$n^{2}\times n^{2}$高维矩阵，为了求出该高维旋转矩阵的数学形式，我们首先将目光转向传统3维笛卡尔坐标系下的旋转问题，因为球谐函数的旋转本质上也可以看做是一个3维空间的旋转问题。
+
+根据欧拉旋转定理（Euler's rotation theorem）\mathindex{欧拉旋转定理}{Euler's rotation theorem}，三维坐标系下的任意一个旋转（假设原始坐标系为$(x,y,z)$，旋转后的坐标系为$(X,Y,Z)$），都可以被分解为三个基本旋转的组合，这些基本旋转可能是围绕坐标轴的旋转，例如旋转组合$XYZ,ZYX$或者$ZYZ$等，其中每个基本旋转的角度按顺序来自于称为欧拉角$(\alpha,\beta,\gamma)$中的一个角度，例如对于$XYZ$组合，它首先围绕$X$轴旋转$\alpha$角度，接着围绕$Y$轴旋转$\beta$角度，最后围绕$Z$轴旋转$\gamma$角度。每个旋转组合定义一个$3\times 3$的旋转矩阵。
+
+欧拉角（Euler angle）\mathindex{欧拉角}{Euler angle}是用于描述刚体在某个固定坐标系下的方向的三个角度，通常记为$(\alpha,\beta,\gamma)$，给定两个原点相同的坐标系以及特定的旋转组合，我们可以得出该旋转对应的欧拉角，这些欧拉角被用于描述一个$3\times 3$的旋转矩阵，进而被用于两个坐标内向量或点的旋转。
+
+上述的3维旋转矩阵很容易被计算出来，它的每个元素是关于欧拉角的函数，为了区分，我们将其表述为$R_{3D}$，它是一个作用于传统3维笛卡尔坐标系的$3\times 3$矩阵，以区别于前面介绍的球谐函数旋转矩阵$R_{SH}$，它是一个作用于高维球谐函数坐标系的$n^{2}\times n^{2}$矩阵。
+
+有了上述这些基础，群论\cite{a:GruppentheorieundihreAnwendungaufdieQuantenmechanikderAtomspektren}的知识指出，复数球谐函数的旋转矩阵的每个元素是关于上述3维旋转中元素的多项式，即是关于欧拉角的函数。\cite{a:RotationMatricesforRealSphericalHarmonicsDirectDeterminationbyRecursion}进一步指出实数球谐函数的旋转矩阵具有一种递推关系（recurrence relations）\mathindex{递推关系}{recurrence relations}，使得可以更高效地计算实数球谐函数的旋转矩阵，该关系指出：
+
+\begin{itemize}
+	\item 对于固定的带（或次数）$l$，球谐函数旋转矩阵$R_{SH}$中的元素可以表述为原始3维旋转矩阵$R_{3D}$中元素的多项式，并且多项式的次数为$l$。
+	\item 这些多项式可以以递归的形式被计算而出，即旋转矩阵$R^{l}_{SH}$中的元素可以表述为旋转矩阵$R^{l-1}_{SH}$中的元素与3维矩阵$R_{3D}$中元素的双线性关系（如式\ref{e:pl-sh-rotation-matrix}）。
+\end{itemize}
+
+上述的递推关系使得我们可以计算出任意次数球谐函数的旋转矩阵，读者可以参考原论文中的详细递推关系。然而由于这样的计算成本对于实时渲染仍然是非常高的，因为实时渲染涉及每顶点甚至每像素的大量旋转计算，因此以下两节我们将介绍两种更高效的计算旋转矩阵的方法。
+
+
+
+
+\subsubsection{ZXZXZ旋转}
+上述的递推方法不对旋转矩阵的形式作出任何已知的假设，对于每一次旋转计算，它都从最低的次数开始递归计算，以构建出整个旋转矩阵的表达式。根据\cite{a:FastApproximationtoSphericalHarmonicRotation}，递推方法构建旋转矩阵的计算复杂度约为$\mathcal{O}(l^{3})$，对球谐函数系数矢量执行旋转操作的复杂度也为$\mathcal{O}(l^{3})$。
+
+\cite{a:FastArbitraryBRDFShadingforLowFrequencyLightingUsingSphericalHarmonics}发现，球谐函数围绕$z$轴的旋转具有比较简单的形式和计算量，因此提出一种称为$ZXZXZ$的旋转方法，该方法构建旋转矩阵的复杂度约为上述递推方法的一半，并且$ZXZXZ$方法直接推导出一个显式公式然后直接作用于系数矢量，因此省去了显式执行旋转变换的操作，进一步提高了旋转计算的效率。
+
+该方法首先使用符号积分（symbolic integration）\mathindex{符号积分}{symbolic integration}表述出球谐函数旋转矩阵中每个元素的函数，即：
+
+\begin{equation}\label{e:pl-sh-rotation-symbolic-form}
+	\mathbf{M}_{ij}=\int_S y_i(\mathbf{R}s)y_i(s)ds
+\end{equation}
+
+上式具有什么意义呢？首先，我们需要解释一下什么是符号积分，符号积分跟传统的数值积分具有类似的含义，唯一的区别是数值积分计算的结果是一个确定的值，而符号积分的结果是一个函数，也就是说被积函数中包含除积分变量以外的自变量，可以理解为符号积分就是寻找不定积分的公式形式，因此上式\ref{e:pl-sh-rotation-symbolic-form}是一个函数，它给出球谐函数旋转矩阵$R_{SH}$中每个元素的形式；其次，那么旋转矩阵是关于谁的函数呢，在式\ref{e:pl-sh-rotation-symbolic-form}中，$R$是一个使用欧拉角表述的3维旋转矩阵，因此上述旋转矩阵元素就是关于欧拉角的函数；最后，为什么式\ref{e:pl-sh-rotation-symbolic-form}可以用来求球谐函数的旋转矩阵呢，这是因为$y_(Rs)$可以看做旋转后的球谐函数基，回想一个函数与某个基函数乘积的积分可以表述为该函数在该基函数上的投影，而坐标变换正式关于每个原始坐标轴（函数）在新坐标系下各个基函数上的投影，所以式\ref{e:pl-sh-rotation-symbolic-form}的积分可以用来表述球谐函数的旋转矩阵。
+
+因此，如果能够直接求出式\ref{e:pl-sh-rotation-symbolic-form}的形式，则可以直接将其用于球谐函数系数矢量的旋转操作。例如，对于围绕$z$轴的旋转，其可以表述为以下的形式：
+
+\begin{equation}
+	\mathbf{M}_{ij}=\int^{2\pi}_0\int^{\pi}_0y_i(\theta,\varphi+\alpha)y_i(\theta,\varphi)\sin(\theta)d\theta d\varphi
+\end{equation}
+
+根据上式，我们可以得出围绕$z$轴的开头三个带的$9\times 9$旋转矩阵为：
+
+\begin{equation}\label{e:pl-sh-rotation-z}
+	Z_{\alpha}=\left[
+	\centering
+	\begin{array}{c|ccc|ccccc}
+		\text{ 1 } & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0  \\
+		\hline
+		0 & \cos(\alpha) & 0 & \sin(\alpha) & 0 & 0 & 0 & 0 & 0  \\
+		0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
+		0 & -\sin(\alpha) & 0 & \cos(\alpha) & 0 & 0 & 0 & 0 & 0  \\
+		\hline
+		0 & 0 & 0 & 0 & \cos(2\alpha) & 0 & 0 & 0 & \sin(2\alpha)  \\
+		0 & 0 & 0 & 0 & 0 & \cos(\alpha) & 0 & \sin(\alpha) & 0  \\
+		0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0  \\
+		0 & 0 & 0 & 0 & 0 & -\sin(\alpha) & 0 & \cos(\alpha) & 0  \\
+		0 & 0 & 0 & 0 & -\sin(2\alpha) & 0 & 0 & 0 & \cos(2\alpha)  \\
+	\end{array}
+	\right]
+\end{equation}
+
+上述的矩阵形式也可以推广到次数更高的球谐函数，其中带$l$对应的项为$l\alpha$的正弦和余弦函数。从上述矩阵的结构也可以看出前面介绍的递推方法的思路，因为高次数的旋转矩阵对应的正余弦函数可以展开为低次数旋转矩阵对应的正余弦函数。
+
+上述的矩阵$Z_{\alpha}$也揭示了另一个特征，即围绕$z$轴的旋转矩阵具有比较简洁而稀疏的形式，因此我们可以设想将整个旋转矩阵$R_{SH}$分解成$R_{\alpha}$与其它基本矩阵的组合，根据欧拉旋转定理，\cite{a:FastArbitraryBRDFShadingforLowFrequencyLightingUsingSphericalHarmonics}使用了$ZXZ$的旋转组合，这样三个基本旋转矩阵的其中两个都可以使用上述的围绕$z$轴的旋转矩阵$R_{\alpha}$，剩下的问题只需要计算出围绕$y$轴的旋转矩阵即可。\cite{a:FastArbitraryBRDFShadingforLowFrequencyLightingUsingSphericalHarmonics}进一步将该基础矩阵分解为三个矩阵的组合：首先围绕$x$轴旋转$90^{\circ}$，然后再围绕$z$轴旋转$\beta$角度，最后再围绕$x$轴旋转$-90^{\circ}$。其中，由于围绕$x$轴的两次旋转角度是固定的，因此这两个旋转矩阵可以被预存起来，即：
+
+\begin{fullwidth}
+\begin{equation}
+\begin{aligned}
+	X_{-90}=\left[
+	\centering
+	\begin{array}{c|ccc|ccccc}
+		1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0  \\
+		\hline
+		0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0  \\
+		0 & -1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+		0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0  \\
+		\hline
+		0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0  \\
+		0 & 0 & 0 & 0 & 0 & -1 & 0 & 0 & 0  \\
+		0 & 0 & 0 & 0 & 0 & 0 & -\frac{1}{2} & 0 & -\frac{\sqrt{3}}{2}  \\
+		0 & 0 & 0 & 0 & -1 & 0 & 0 & 0 & 0  \\
+		0 & 0 & 0 & 0 & 0 & 0 & -\frac{\sqrt{3}}{2} & 0 & \frac{1}{2}  \\
+	\end{array}
+	\right] && 
+	X_{+90}=\left[
+	\centering
+	\begin{array}{c|ccc|ccccc}
+		1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0  \\
+		\hline
+		0 & 0 & -1 & 0 & 0 & 0 & 0 & 0 & 0  \\
+		0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+		0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0  \\
+		\hline
+		0 & 0 & 0 & 0 & 0 & 0 & 0 & -1 & 0  \\
+		0 & 0 & 0 & 0 & 0 & -1 & 0 & 0 & 0  \\
+		0 & 0 & 0 & 0 & 0 & 0 & -\frac{1}{2} & 0 & -\frac{\sqrt{3}}{2}  \\
+		0 & 0 & 0 & 0 & -1 & 0 & 0 & 0 & 0  \\
+		0 & 0 & 0 & 0 & 0 & 0 & -\frac{\sqrt{3}}{2} & 0 & \frac{1}{2}  \\
+	\end{array}
+	\right]
+\end{aligned}
+\end{equation}
+\end{fullwidth}
+
+根据上述过程，原始的旋转矩阵被分解为以下ZXZXZ的旋转矩阵的组合：
+
+\begin{equation}
+	R_{SH}(\alpha,\beta,\gamma)=Z_{\gamma}X_{-90}Z_{\beta}X_{+90}Z_{\alpha}
+\end{equation}
+
+上式涉及到4个$9\times 9$矩阵的相乘计算，我们可以进一步将这些矩阵的相乘转变为一个显式的旋转矩阵，并且其中的每个包含欧拉角的三角函数的矩阵元素可以表述原始$R_{3D}$中元素的多项式。将该矩阵直接作用于球谐函数系数矢量，这相对于递推方法省略了显式构建的过程（由本节开头的内容可知，仅该显式矩阵的构建复杂度都为$\mathcal{O}(n^{3})$）。
+
+$ZXZXZX$方法虽然简单，但是它仅适用于次数比较小的球谐函数的旋转，例如$l\leq 6$，对于较高次数的球谐函数，由于围绕$y$轴计算成本增加很快，因此其效率会低于递推方法，但是这对于实时渲染来说基本上已经足够。
+
+
+
+\subsubsection{快速近似法}
+$ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastApproximationtoSphericalHarmonicRotation}在此基础上对$R_y$提出一种使用低阶泰勒展开（Taylor expansion）\mathindex{泰勒展开}{Taylor expansion}的近似方法，该方法的矩阵分解可以表述为
+	$R=R_z(\alpha)R_y(\beta)R_z(\gamma)$，其中围绕$z$轴的$R_z(\alpha)$和$R_z(\gamma)$采样上节介绍的方法进行计算。
+
+为了计算$R_y(\beta)$，我们首先使用二阶泰勒公式将其展开，即：
+
+\begin{equation}\label{e:pl-sh-rotation-2-taylor}
+	\mathbf{R}_y(\beta)\approx\mathbf{I}+\beta\frac{d\mathbf{R}_y}{d\beta}(0)+\frac{\beta^{2}}{2}\frac{d^{2}\mathbf{R}_y}{d\beta}(0)
+\end{equation}
+
+这里$\mathbf{I}$为单位矩阵，上述$\mathbf{R}_y$的一阶和二阶导数如式\ref{e:pl-sh-rotation-taylor}所示，它们是根据前面介绍的递推方法推导而来，\cite{a:FastApproximationtoSphericalHarmonicRotation}的附录A包含了其推导过程。注意这里旋转矩阵$\mathbf{R}$的右上标表示的是球谐函数的次数（或带数）$l$，所以$\mathbf{R}^{l}_y$及其导数均是一个$2l+1\times 2l+1$的矩阵。
+
+观察式\ref{e:pl-sh-rotation-taylor}可以看出，$\mathbf{R}_y$的一阶导数矩阵$\frac{d\mathbf{R}_y}{d\beta}(0)$（式\ref{e:pl-sh-rotation-taylor}的左边一列）仅仅在上下两个副对角线上具有非零值（如图\ref{f:pl-15-taylor}(b)所示），而$\mathbf{R}_y$的二阶导数矩阵$\frac{d^{2}\mathbf{R}_y}{d\beta^{2}}(0)$（式\ref{e:pl-sh-rotation-taylor}的右边一列）仅仅在主对角线，以及高于上副对角线和低于下副对角线的两个对角线上具有非零值（如图\ref{f:pl-15-taylor}(c)所示），因此$\mathbf{R}_y$的二阶泰勒展开是一个非常稀疏的矩阵（如图\ref{f:pl-15-taylor}(d)所示），并且我们知道哪些元素具有非零值，所以仅仅需要构建这部分矩阵元素即可。
+
+\begin{figure}
+\begin{fullwidth}
+	\includegraphics[width=1.0\thewidth]{figures/prt/15-taylor}
+	\caption{围绕$y$轴的球谐函数旋转矩阵$\mathbf{R}_y$的二阶泰勒展开及其各项的矩阵，(a)，(b)和(c)分别对应式\ref{e:pl-sh-rotation-2-taylor}中的单位矩阵，一阶导数矩阵和二阶导数矩阵，由于二阶导数矩阵(d)的非主对角线项具有对整个近似具有较小的影响，因此这些元素被忽略，而形成一个1.5阶的泰勒近似(e)。}
+	\label{f:pl-15-taylor}
+\end{fullwidth}
+\end{figure}
+
+在实践中，\cite{a:FastApproximationtoSphericalHarmonicRotation}发现$\mathbf{R}_y$的二阶泰勒展开项中的非主对角线（即高于上副对角线和低于下副对角线的两个对角线）上的元素对整个近似的影响很小，因此这些对象性上的元素被忽略，剩下的整个二阶泰勒近似矩阵仅包含主对角线和上下两个副对角线上的元素，这称之为一个1.5阶泰勒近似，如图\ref{f:pl-15-taylor}(e)所示，相比式\ref{e:pl-sh-rotation-2-taylor}，它的精确度只有一点点损失，但是减少了更多的计算量。
+
+该近似方法的计算复杂度为$\mathbf{O}(n^{2})$，据\cite{a:FastApproximationtoSphericalHarmonicRotation}说明，该方法比$ZXZXZ$方法的性能快约$4\sim 5$倍，这使得该方法甚至可以用于实时的每像素计算中。然而由于使用了泰勒近似，因此该方法仅适用于比较小的旋转角度，但是这种限制在实时渲染中影响较小，我们会在后面的例子中给予说明，并且即使某些少量的旋转角度大于一定的误差范围，我们可以对这少部分的旋转计算转换为使用前面介绍的$ZXZXZ$方法。
+
+\begin{figure}
+\begin{equation}\label{e:pl-sh-rotation-taylor}
+\rotatebox{90}{$
+\begin{aligned}
+	\frac{dR_Y}{d\beta}(0)&=\begin{pmatrix}
+		0          & \mathbf{0}                 & \mathbf{0}                 & \mathbf{0}                 & \cdots \\
+		\mathbf{0} & \frac{dR^{1}_Y}{d\beta}(0) & \mathbf{0}                 & \mathbf{0}                 & \cdots \\
+		\mathbf{0} & \mathbf{0}                 & \frac{dR^{2}_Y}{d\beta}(0) & \mathbf{0}                 & \cdots \\
+		\mathbf{0} & \mathbf{0}                 & \mathbf{0}                 & \frac{dR^{3}_Y}{d\beta}(0) & \cdots \\
+		\vdots     & \vdots                     & \vdots                     & \vdots                     & \ddots
+	\end{pmatrix} & \frac{d^{2}R_Y}{d\beta^{2}}(0)&=\begin{pmatrix}
+		0          & \mathbf{0}                         & \mathbf{0}                         & \mathbf{0}                         & \cdots \\
+		\mathbf{0} & \frac{d^{2}R^{1}_Y}{d\beta^{2}}(0) & \mathbf{0}                         & \mathbf{0}                         & \cdots \\
+		\mathbf{0} & \mathbf{0}                         & \frac{d^{2}R^{2}_Y}{d\beta^{2}}(0) & \mathbf{0}                         & \cdots \\
+		\mathbf{0} & \mathbf{0}                         & \mathbf{0}                         & \frac{d^{2}R^{3}_Y}{d\beta^{2}}(0) & \cdots \\
+		\vdots     & \vdots                             & \vdots                             & \vdots                             & \ddots
+	\end{pmatrix}\\
+	\text{其中：} && \text{其中：}\\
+	\frac{dR^{1}_Y}{d\beta}(0)&=\begin{pmatrix}
+		0 & 0 & 0\\
+		0 & 0 & -1\\
+		0 & 1 & 0
+	\end{pmatrix} & \frac{d^{2}R^{1}_Y}{d\beta^{2}}(0)&=\begin{pmatrix}
+		0 & 0  & 0\\
+		0 & -1 & 0\\
+		0 & 1  & -1
+	\end{pmatrix}\\
+	\frac{dR^{2}_Y}{d\beta}(0)&=\begin{pmatrix}
+		0  & 1 & 0    & 0     & 0\\
+		-1 & 0 & 0    & 0     & 0\\
+		0  & 0 & 0    & -1.73 & 0\\
+		0  & 0 & 1.73 & 0     & -1\\ q
+		0  & 0 & 0    & 1     & 0
+	\end{pmatrix} & \frac{d^{2}R^{2}_Y}{d\beta^{2}}(0)&=\begin{pmatrix}
+		-1 & 0  & 0    & 0  & 0\\
+		0  & -1 & 0    & 0  & 0\\
+		0  & 0  & -3   & 0  & 1.73\\
+		0  & 0  & 0    & -4 & 0\\
+		0  & 0  & 1.73 & 0  & -1
+	\end{pmatrix}\\
+	\frac{dR^{3}_Y}{d\beta}(0)&=\begin{pmatrix}
+		0     & 1.22  & 0    & 0    & 0     & 0     & 0\\
+		-1.22 & 0     & 1.58 & 0    & 0     & 0     & 0\\
+		0     & -1.58 & 0    & 0    & 0     & 0     & 0\\
+		0     & 0     & 0    & 0    & -2.45 & 0     & 0\\
+		0     & 0     & 0    & 2.45 & 0     & -1.58 & 0\\
+		0     & 0     & 0    & 0    & 1.58  & 0     &-1.22\\
+		0     & 0     & 0    & 0    & 0     & 1.22  & 0
+ 	\end{pmatrix} & 
+ 	\frac{d^{2}R^{3}_Y}{d\beta^{2}}(0)&=\begin{pmatrix}
+		-1.5 & 0  & 1.94 & 0    & 0    & 0    & 0\\
+		0    & -4 & 0    & 0    & 0    & 0    & 0\\
+		1.94 & 0  & -2.5 & 0    & 0    & 0    & 0\\
+		0    & 0  & 0    & -6   & 0    & 3.78 & 0\\
+		0    & 0  & 0    & 0    & -8.5 & 0    & 1.94\\
+		0    & 0  & 0    & 3.78 & 0    & -4   & 0\\
+		0    & 0  & 0    & 0    & 1.94 & 0    & -1.5
+ 	\end{pmatrix} 
+\end{aligned}$}
+\end{equation}
+\end{figure}
+
+
+
+
+\subsubsection{带谐函数}
+如果函数$f$是关于$z$轴圆对称的，则它的投影中仅包含$m=0$的球谐函数，这样的球谐函数也称为带谐函数（zonal harmonics，ZH），如图\ref{f:pl-sperical-harmonic}的中间一列所示。广义的带谐函数是指在单位圆上围绕任意一个对称轴圆对称的方向函数，例如大部分参与介质中的相位函数（phase function）\mathindex{相位函数}{phase function}都是圆对称的方向函数。所有的带谐函数都可以由围绕$z$轴的带谐函数旋转而来，为了便于描述，以下我们仅称围绕$z$轴圆对称的球谐函数为（狭义的）带谐函数，而本节的目标就是要讨论带谐函数的旋转。
+
+相对于普通球谐函数，带谐函数的旋转操作要简单得多，因为带谐函数在每个带中只取一个基函数（$m=0$），所以式\ref{e:pl-sh-rotation-matrix}中的每个带内仅包含中间的一列取非零值，既具有如下的矩阵结构：
+
+\begin{equation}\label{e:pl-zonal-rotation-matrix}
+	R=\left[
+	\centering
+	\begin{array}{c|ccc|ccccc|c}
+		\text{ 1 } & \text{ 0 } & \text{ 0 } & \text{ 0 } & \text{ 0 } & \text{ 0 } & \text{ 0 } & \text{ 0 } & \text{ 0 } & \cdots \\
+		\hline
+		0 & 0 & X & 0 & 0 & 0 & 0 & 0 & 0 & \cdots \\
+		0 & 0 & X & 0 & 0 & 0 & 0 & 0 & 0 & \cdots \\
+		0 & 0 & X & 0 & 0 & 0 & 0 & 0 & 0 & \cdots \\
+		\hline
+		0 & 0 & 0 & 0 & 0 & 0 & X & 0 & 0 & \cdots \\
+		0 & 0 & 0 & 0 & 0 & 0 & X & 0 & 0 & \cdots \\
+		0 & 0 & 0 & 0 & 0 & 0 & X & 0 & 0 & \cdots \\
+		0 & 0 & 0 & 0 & 0 & 0 & X & 0 & 0 & \cdots \\
+		0 & 0 & 0 & 0 & 0 & 0 & X & 0 & 0 & \cdots \\
+		\hline
+		\vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \ddots
+	\end{array}
+	\right]
+\end{equation}
+
+那么应该怎样（使用简单的方法）计算出上述的旋转矩阵呢？即我们的目标是要计算出上述矩阵中非零项的列中每个元素的值，可以记为$C_{lm}$。为了计算旋转矩阵中的元素值，可以考虑对一个位置$z=(0,0,1)$处的脉冲函数$\delta(s)$执行旋转，由于脉冲函数具有确定（且简单）的表述形式，我们可以借此来计算旋转矩阵的元素值$C_{lm}$，然后将该旋转矩阵运用于一般的带谐函数的旋转。
+
+首先根据投影的定义可计算出位置$(0,0,1)$处的脉冲函数的投影系数为：
+
+\begin{equation}\label{e:pl-delta-sh-coefficients}
+	\delta_l=\int\delta(s)y^{0}_{l}(s)ds=y^{0}_{l}(z)=\sqrt{\frac{2l+1}{4\pi}}
+\end{equation}
+
+在上式中，由于带谐函数的投影仅包含$m=0$项，所以这里系数$\delta_l$仅与带$l$有关；其次，由于脉冲函数仅在$(0,0,1)$处取值且为1，所以上述的投影积分值即为球鞋函数$y^{0}_l(s)$在$s=z=(0,0,1)$处的值，该脉冲函数的带谐函数近似如图\ref{f:pl-zonal-rotation}(a)所示。
+
+现在我们对脉冲函数$\delta(s)$执行一个旋转操作，使其旋转到任意指定方向$z^{'}$，得到$\hat{\delta}(s)$，如图\ref{f:pl-zonal-rotation}(b)所示，根据和式\ref{e:pl-delta-sh-coefficients}类似的方法可以得出$\hat{\delta}(s)$的投影系数为：
+
+\begin{equation}
+	\hat{\delta}^{m}_l=\int\hat{\delta}(s)y^{m}_{l}(s)ds=y^{m}_{l}(z^{'})
+\end{equation}
+
+注意这里$z^{'}$表示一个已知的确定值。由于旋转后的函数不再是关于$z$轴圆对称的（如图\ref{f:pl-zonal-rotation}(b)所示），所以它会投影到每个带内的各个$m$值对应的球谐函数上，因此其系数同时与$m$和$l$相关。
+
+\begin{figure}
+	\sidecaption
+	\includegraphics[width=0.47\textwidth]{figures/prt/zonal-rotation}
+	\caption{(a)为单位球面上位置$(0,0,1)$处的脉冲函数的球谐函数近似，其中$l=6$，(b)为其旋转到方向$z^{'}$后的近似。由于脉冲函数的表述比较简单，因此可以用来计算带谐函数的旋转矩阵（图片来自\cite{a:LocalDeformablePrecomputedRadianceTransfer}）。}
+	\label{f:pl-zonal-rotation}
+\end{figure}
+
+根据旋转不变性，对系数$\delta_l$执行旋转操作后的值等于系数$\hat{\delta}^{m}_l$，可以得到：
+
+\begin{equation}
+	C_{lm}\delta_l=\hat{\delta}^{m}_{l}=y^{m}_{l}(z^{'})
+\end{equation}
+
+由上式可以计算出旋转矩阵中的元素的值为：
+
+\begin{equation}
+	C_{lm}=y^{m}_l(z^{'})/\delta_l=\sqrt{\frac{4\pi}{2l+1}} y^{m}_l(z^{'})
+\end{equation}
+
+由此我们便计算出了带谐函数的旋转矩阵中每个元素的值，进而可以将该旋转矩阵运用于任意由$z$旋转到$z^{'}$方向的带谐函数。一般地，假设$g(s)$为关于$z$轴圆对称的带谐函数，将其旋转至$s^{*}$方向得到$\hat{g}(s)$，如果已知$g(s)$的投影系数为$g_l$，则旋转至$s^{*}$方向后的函数$\hat{g}(s)$的的投影系数为：
+
+\begin{equation}
+	\hat{g}^{m}_l=\sqrt{\frac{4\pi}{2l+1}} y^{m}_l(s^{*}) g_l
+\end{equation}
+
+将上式和式\ref{e:pl-sh-convolution}进行对比可以发现，对带谐函数执行旋转的操作，等效于带谐函数$g(s)$与一个方向$s^{*}$处的脉冲函数$\delta(s)$的卷积（该脉冲函数的投影系数为$y^{m}_l(s^{*})$）。
+
+
+
+
+\section{基于图像的光照技术}\label{sec:pl-ibl}
+基于图像的光照（image-based lighting，IBL）\myindex{基于图像的光照}{image-based lighting}技术，主要是指将某种形式的光照度量（例如辐射照度或辐射亮度等）存储为图片的格式，然后在渲染时相应部分的光照计算被转化为对纹理数据的查询或读取，这可以大大加速光照的计算，被广泛运用于离线和实时渲染中。
+
+当前大部分基于图像的光照技术主要都是基于环境映射（environment mapping）\myindex{环境映射}{environment mapping}的，环境映射又称为反射映射（reflection mapping）\myindex{反射映射}{reflection mapping}，它最早由\cite{a:Textureandreflectionincomputergeneratedimages}提出，主要用于加速镜面曲面对周围环境的反射计算。传统的镜面反射光照的计算需要对镜面曲面上的每一个点分别执行光照计算，也就是说曲面上的入射光照分布是随着着色位置的变化而变化的，这就使得镜面反射光照的计算很难达到实时要求。然而，如果假设周围环境距离当前着色物体比较远，以至于物体表面着色位置的变化对光照的影响相对于物体与环境的距离是可以忽略不计的，这时的环境光照也就可以近似认为是与着色位置无关的，而仅与方向有关，所以我们可以将整个周围的环境光照缓存到一张纹理当中，然后通过一个入射方向作为索引对纹理数据进行读取，此时环境光照的计算转变为对一个纹理的查询操作（当然这也忽略了局部物体之间的遮挡关系），这可以大大加速环境光照的计算。
+
+\begin{figure}
+	\sidecaption
+	\includegraphics[width=0.55\textwidth]{figures/pl/environment-mapping}
+	\caption{反射映射的基本概念图，图中物体$S$为镜面曲面，$\mathbf{n},\mathbf{v}$和$\mathbf{r}$分别为着色点处的法线，观察方向和入射方向，它们的关系可由反射定律得出，右上角的曲面表示一个环境贴图，其中入射方向$r$首先被映射为一个纹理坐标$(u,v)$，然后用于直接从环境贴图中读取入射光照。}
+	\label{f:pl-environment-mappling}
+\end{figure}
+
+图\ref{f:pl-environment-mappling}演示了环境映射的基本概念，对于镜面曲面$S$，它与光的交互遵循反射定律，因此对于给定法线$\mathbf{n}$和观察方向$\mathbf{v}$，其入射方向$\mathbf{r}$为：
+
+\begin{equation}
+\mathbf{r}=2(\mathbf{n}\cdot\mathbf{v})\mathbf{n}-\mathbf{v}
+\end{equation}
+
+环境贴图中存储的是入射光照的方向分布，因此上式计算出的入射方向$\mathbf{r}$可以用于对环境贴图的查询操作。但是要知道怎么对环境贴图按方向进行查询（或索引），我们需要知道环境贴图按照怎样的方式将周围环境投影到环境贴图中，这种投影方式决定着怎样将世界空间的入射方向$\mathbf{r}$映射为纹理空间的一个纹理坐标$(u,v)$，以下我们就分别介绍几种不同的环境贴图映射方法，然后介绍环境贴图在光照计算中的一般运用。
+
+
+
+\subsection{方向映射}
+环境贴图（environment maps）\myindex{环境贴图}{environment maps}是一个泛义上的2D图像，它也可以被理解为是一个方向函数，即对于给定单位球面上任意一个方向，该函数返回纹理中的一个纹素值。从这个意义上理解，环境贴图可以具有不同的格式，或者说对方向的不同编码方式，即针对相同的方向，它们可能被映射到环境贴图上不同的纹理坐标$(u,v)$值。因此，当需要构建或使用一个环境贴图时，我们首先需要考虑的是以何种方式将单位球面上（世界空间内）的方向$\mathbf{r}$映射为纹理空间的一个$(u,v)$坐标值，这个过程也称为投影（projection）\myindex{投影}{projection}，这个投影操作将3D的方向矢量$\mathbf{r}=(r_x,r_y,r_z)$转变成了一个2D矢量$(u,v)$。传统的环境映射如极坐标映射，立方体映射，球面映射等。
+
+不同的环境映射方法具有不同的优缺点，在选择时需要考虑多方面的因素。例如不仅需要考虑方向与纹理坐标之间直接的编码/解码效率，还需要考虑环境贴图占据的存储大小，该映射过程带来的最大误差，以及（本章后面将会介绍的）对光照计算（如预过滤等）带来的影响。例如，这种映射是否是均匀的，非均匀的映射会使得有些方向的采样密度过于密集，而另一些方向的分布则非常稀疏，这就导致映射的误差很大。也就是说，世界空间物体表面相同的面积应该被映射到纹理中相似大小的面积中；此外，纹理的映射还应该是线性的，这意味着世界空间的一条直线被映射到纹理空间仍然保持为一条直线，非线性的映射则使会得映射的算法变得复杂。\cite{a:ASurveyofEfficientRepresentationsforIndependentUnitVectors, a:ALightFieldRepresentationforRealTimeGlobalIllumination}比较了几种常见的环境映射方法的计算效率和准确度。读者在学习下面的这些映射算法时应该带着这些问题去比较它们的优势与不足。
+
+
+
+\subsubsection{极坐标映射}
+\cite{a:Textureandreflectionincomputergeneratedimages}提出的极坐标映射是最早的环境光照映射算法，在这种极坐标表述中，屏幕空间的坐标被表述为一个角对$(\theta,\phi)$，其中$\theta$和$\phi$分别对应极坐标下的纬度和经度，$\theta$的取值范围为$[0,2\pi]$，$\phi$的取值为$[0,\pi]$。假设某个归一化的入射方向为$\mathbf{r}=(r_x,r_y,r_z)$，则其对应的纹理坐标为：
+
+\begin{equation}
+	\begin{aligned}
+		\theta &= \arccos(-r_z) \\
+		\phi &=atan2(r_y,r_x)
+	\end{aligned}
+\end{equation}
+
+极坐标映射的计算非常简单，从概念上看它就是相当于将一个球面沿某个经度剖开，然后向两边拉伸，直至形成一个矩形，这个矩形就是被映射后的纹理空间，如图\ref{f:pl-polar-coordinates}所示。
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{figures/pl/polar-coordinates}
+	\caption{极坐标可以被用于实现对球面向图像平面的映射，这个过程可以看做沿着某个经度将球面划开，然后沿着两边拉伸(b)，直至形成一个矩形形状(c)，这个过程也类似于地球被展开到一张矩形地图上的位置映射。}
+	\label{f:pl-polar-coordinates}
+\end{figure}
+
+尽管极坐标映射的形式看起来非常简单，但实际计算效率却非常低，例如它的投影计算涉及到计算成本非常高的反三角函数计算，另外它也不满足前面介绍的均分采样和线性映射，例如从图\ref{f:pl-polar-coordinates}就可以看出，它仅仅是直接从一个形状经过拉伸形成另一个形状，这种变换显然不是线性的，南北极附近相对于赤道被拉伸得更加厉害。
+
+
+
+\subsubsection{球面映射}
+球面映射（sphere mapping）\myindex{球面映射}{sphere mapping}是第一个被运用于工业中的环境映射方法，它最早在\cite{a:PyramidalParametrics}中被提出，随后在\cite{a:IlluminationandReflectionMaps:SimulatedObjectsinSimulatedandRealEnvironments,a:TextureMappingasaFundamentalDrawingPrimitive}被更全面地讨论，OpenGL和DirectX都集成了对球面映射的支持。
+
+球面映射的概念非常简单，如图\ref{f:pl-sphere-mapping}所示，我们将一个完全光滑的小球放置于环境的中心（如图中大圆圆心处的小黑点），然后通过一个观察平面（如图中左边垂直于$z$轴的平面）以正交投影（orthographic projection）\myindex{正交投影}{orthographic projection}的方式收集来自该球面上各个方向的入射光照（如图中红色箭头线$\mathbf{r}$所示），这些光照表述的就是位于环境中心处的面向观察平面方向（即$z$轴）半球空间内的入射光照，这个过程可以通过光线追踪的方式进行计算，也可以通过从后面介绍的立方体贴图中投影而来。通过面向$z$和$-z$两个方向分别做一次球面映射就可以得到整个球面的入射光照。
+
+球面贴图（sphere map）\myindex{球面贴图}{sphere map}是通过观察平面计算出来的，该观察平面的宽度和高度都等于光滑球面的直径，观察平面通过正交投影发出的观察光线如黑色的箭头线$\mathbf{v}$所示，这些光线在球面上被反射至入射光线$\mathbf{r}$方向上。从图中可以看出，在位于赤道附近，反射光线几乎反向平行于观察光线，在球面的边缘，反射光线则几乎平行于该球面的正切面。
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{figures/pl/sphere-mapping}
+	\caption{球面映射的概念示意图，一个绝对光滑的球体被放置于环境中心，然后从$z$轴反方向以正交投影的方式向球面发出光线$\mathbf{v}$，该光线经与球面反射后收集来自入射方向$\mathbf{r}$的光照形成球面贴图（左图来自\cite{a:TheStoryofReflectionMapping}）。}
+	\label{f:pl-sphere-mapping}
+\end{figure}
+
+那么，在生成一个球面环境贴图之后，通过给定一个光照的入射方向$\mathbf{r}$，我们怎样得到该贴图上对应的纹理位置呢？换句话说，一个入射方向$\mathbf{r}$是怎样被映射为一个纹理坐标$(u,v)$的？如图\ref{f:pl-sphere-mapping}(b)所示，一个入射方向$\mathbf{r}$到球面贴图的映射，可以看做为观察光线$\mathbf{v}$与球面的交点$\mathbf{h}=(h_x,h_y,h_z)$到球面贴图的映射，而根据正交投影的定义，直接取交点$\mathbf{h}$的$x$和$y$轴的值$(h_x,h_y)$即可作为球面贴图的$(u,v)$值，那么剩下的问题就归结为通过已知的$\mathbf{r}=(r_x,r_y,r_z)$求出其对应的交点$\mathbf{h}$。
+
+由于观察光线$\mathbf{v}$平行于$z$轴，所以其归一化的观察方向可以表述为$\mathbf{v}=(0,0,1)$，因此$\mathbf{v}$与$\mathbf{r}$所对应的法线可以表述为$(r_x,r_y,r_z+1)$，归一化后为：
+
+\begin{equation}\label{e:pl-sm-m}
+	\begin{aligned}
+		m=&\sqrt{r^{2}_x+r^{2}_y+(r_z+1)^{2}}\\
+		\mathbf{n}=&\Bigg(\frac{r_x}{m},\frac{r_y}{m},\frac{r_z+1}{m}\Bigg)
+	\end{aligned}
+\end{equation}
+
+有了上述法线$\mathbf{n}$的表述，如果假设光滑球面的半径为1，则上述法线$\mathbf{h}$中的分量值正好可以用来表述其对应的交点$\mathbf{h}$的位置。同时由于$(h_x,h_y)$的取值范围为$[-1,1]$，所以我们通过下面的方式将其映射到$[0,1]$:
+
+\begin{equation}
+	\begin{aligned}
+		u=&\frac{r_x}{2m}+0.5\\
+		v=&\frac{r_y}{2m}+0.5
+	\end{aligned}
+\end{equation}
+
+其中$m$取式\ref{e:pl-sm-m}中的值。
+
+尽管球面映射的整个计算过程相对比较简单，并且整个方向映射没有缝隙，但它依然面临一些缺点。首先球面映射的采样分布是非常不均匀的，例如在靠近$z$轴附近，方向被映射得比较密集，而在靠近球面边缘附近，大量的方向被映射到纹理中圆形区域边缘较窄的面积，这种非线性的特征使得顶点之间的线性插值结果是可能错误的。这非线性可以从图\ref{f:pl-sphere-mapping}(a)中看出，随着入射光线向球面边缘靠近，球面贴图被扭曲越来越严重。
+
+此外，在球面的边缘，由于入射光线$\mathbf{r}$几乎平行于球面的正切面，因此整个球面边缘其实代表一个相同的方向，因此它们具有相同的光照值，又称为一个奇点。在这种情况下，两个顶点之间的插值很有可能是穿过球面背部的部分，但是却可能错误地在球面贴图中的圆形图像内部进行插值\cite{a:Reflectionvectorshadinghardware}；此外，在边缘部分，由于较小的表面（像素）面积被映射到更多的方向，因此可能形成比较大的采样方差，是这部分的着色形成一些比较刺眼的斑点或暗点。
+
+最后，由于球面映射只能生成特定观察方向下半个球面的入射光照，另外半个球面的光照则被忽略，因此它是与视角有关的。\cite{a:View-independentenvironmentmaps}在此基础上提出抛物面球面映射，它分别对$z$和$-z$轴分别执行一次球面映射以生产两个覆盖全空间方向的球面贴图，然后这两张纹理被用于环境映射的计算，这里不再详述。
+
+
+
+\subsubsection{立方体映射}
+\cite{a:EnvironmentMappingandOtherApplicationsofWorldProjections}提出了目前为止工业中最为流行的环境映射算法，该方法称为立方体映射（cube mapping）\myindex{立方体映射}{cube mapping}，在该表述中，摄像机被放置于一个环境的中央位置，然后将整个环境分别投影到一个立方体的六个面上。这个投影过程可以很容易地被现代图形处理器实现，例如我们只需要将摄像机分别朝向图\ref{f:pl-cube-mapping}(a)所示的六个方向（即$-x,+x,-y,+y,-z,+z$），然后分别对每个方向执行一次渲染，使每个方向上对应的场景被投影到垂直于该方向的一个2D图像上，如图\ref{f:pl-cube-mapping}(b)所示。在更新的图形处理器接口中，上述过程甚至只需要一个渲染通道就可以完成，我们只需要在几何着色器中修改摄像机的朝向即可。
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{figures/pl/cube-mapping}
+	\caption{立方体映射的过程，它首先将周围环境映射到一个立方体的六个面上(a)，然后将该立方体展开即形成一个立方体贴图(b)。}
+	\label{f:pl-cube-mapping}
+\end{figure}
+
+在立方体映射中，由世界空间的方向向纹理空间的变换非常简单，这只需要将表示方向的范围矢量投影到立方体对应的面即可，该面上对应投影使用的坐标值即可作为立方体贴图中的纹理坐标，例如对于$+y$面上的方向（即图\ref{f:pl-cube-mapping}(a)中立方体的上平面），其对应的纹理坐标为方向矢量在$-zx$平面上的投影（如图\ref{f:pl-cube-mapping}(b)中最上面的FACE2正方形平面）。
+
+立方体映射的主要优点是整个映射是分段线性映射，即在立方体的每个面内的映射是线性的；立方体映射的主要缺点是它的光照值需要分别存储的6个纹理中，例如在读取的时候需要额外区分每个方向对应于立方体的哪一个面，这会导致在着色器中形成分支选择；此外，位于每个面中心位置处的纹素相对于正方形边缘附近的纹理对应于更小的立体角，这使得立方体映射表述的方向密度是不均匀的；最后，所有方向被存储在不同的纹理中，这使得跨越多个面的顶点之间的插值计算变得比较困难。
+
+
+
+\subsubsection{八面体映射}
+通过对前面这些环境映射技术的比较，我们可以推导出一种比较理想的环境映射方法，它既应该拥有球面映射那样的将整个球面的所有方向表述在一张纹理上的能力，又应该具有立方体映射那样具有线性映射和高效索引的特征，八面体映射就是一种比较接近这种要求的环境映射方法。
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{figures/pl/surface-parametrization}
+	\caption{几种不同的表面参数化表述及其演进（图片来自\cite{a:SphericalParametrizationandRemeshing}）。}
+	\label{f:pl-surface-parametrization}
+\end{figure}
+
+八面体映射（octahedron mapping）在计算机图形学中的运用最早要追溯到对表面参数化的改进，表面参数化（surface parametrization）\myindex{表面参数化}{surface parametrization}是指将几何物体的表面与一个平面域（planar domain）\myindex{平面域}{planar domain}建立一种联系，使得我们可以对表面提供各种需要的属性，这即是对表面建立一种参数表述。传统的做法是将表面划分成多个图块（charts）\myindex{图块}{charts}，然后让它们分别与平面域上的某个区域建立一种映射，这些平面域上对应的区域即是对该表面图块的参数化，这个平面域上的区域的集合称为一个纹理图集（texture atlas）\myindex{纹理图集}{texture atlas}\cite{a:Texturemappingprogressivemeshes,a:Interactivetexturemapping,a:Ageneralmethodforpreservingattributevaluesonsimplifiedmeshes,a:Leastsquaresconformalmapsforautomatictextureatlasgeneration}，如图\ref{f:pl-surface-parametrization}(b)所示，这也即是当前工业中对物体网格表面进行参数化的主要形式，这些纹理图集可以用来存储各种表面属性数据，如法线，漫反射系数等。
+
+然而纹理图集的缺点是各个图集之间有不连续的缝隙，如图\ref{f:pl-surface-parametrization}(b)所示，这种缝隙不仅会反应在着色的表面上，而且会使得对纹理的过滤操作产生错误的结果。为了弥补这种缺陷，\cite{a:Geometryimages}提出一种称为几何图像（geometry images）\myindex{几何图像}{geometry images}的概念，该方法将整个几何表面映射为一个完整的2D图像，该几何图像因此不包含任何缝隙，如图\ref{f:pl-surface-parametrization}(c)所示。
+
+基于几何图像的思路，\cite{a:SphericalParametrizationandRemeshing}进一步提出了球面参数化（spherical parametrization）\myindex{球面参数化}{spherical parametrization}的方法，该方法认为，对于一个零亏格\footnote{在数学上，亏格（genus）是指一个自闭的表面包含的“洞”的数量，参见\url{https://en.wikipedia.org/wiki/Genus_(mathematics)}}（genus-zero）\mathindex{零亏格}{genus-zero}的几何表面，假如它们的表面细节变化不是特别复杂（例如那些由球面简单变形而来的表面），则这些表面完全可以使用一个球面域（spherical domain）\myindex{球面域}{spherical domain}来进行参数化，即我们可以将整个表面区域“展开”到一个球面作用域上，使表面上的每个区域对应于该球面域上的某个部分，即表面与球面域之间形成1对1的映射。例如在图\ref{f:pl-spherical-parametrization}中，一个零亏格的闭合曲面被首先映射到一个球面域，然后这个球面域被映射到一个正方面体上，最后这个正八面体被展开为一个参数化的2D纹理。
+	
+\begin{figure}
+	\includegraphics[width=\textwidth]{figures/pl/spherical-parametrization}
+	\caption{球面参数化的基本概念，从右到左，首先一个零亏格的闭合曲面(d)被映射到一个球面域(c)上，然后球面投影到一个八面体上(b)，最后八面体展开为一个2D图像(a)，这样整个曲面被参数化为一个无缝的2D纹理（图片来自\cite{a:SphericalParametrizationandRemeshing}）。}
+	\label{f:pl-spherical-parametrization}
+\end{figure}
+
+虽然球面参数化方法的提出是用于解决表面表述的问题，但是对于环境映射的问题，如果将整个周围环境中的表面看做一个零亏格的单个几何物体，那么我们可以使用球面参数化的思路将这个“环境几何表面”参数化到一个球面域，这个球面域上的每个点对应于一个入射方向的光照值，整个环境被均匀地映射到一个球面域上，这就是\cite{a:OctahedronEnvironmentMaps}提出的八面体环境贴图（octahedron environment maps）\myindex{八面体环境贴图}{octahedron environment maps}的基本思路。
+
+球面参数化和环境映射的区别是，球面参数化需要去构造一个均匀的方向分布，来使曲面被更好地映射到一个球面域上，进而被参数化为一个2D纹理，也就是图\ref{f:pl-spherical-parametrization}中由(d)到(c)的一步；然而对于环境映射，这个球面域其实是已知的，我们只需要对每个方向存储一个光照值即可，即它只包含图\ref{f:pl-spherical-parametrization}中的(a)(b)和(c)两个步骤，也就是怎样将一个球面域投影到一个正八面体上，以及怎样将一个正八面体展开为一个2D图片。
+
+
+
+\paragraph{球面域向八面体面的投影}
+几何中的八面体是指拥有八个面，12条边和6个顶点的多面体，我们常使用的八面体通常是指由八个等边三角形构成的正八面体，其中每4个面共享一个顶点，如图\ref{f:pl-octahedron-mapping}左图所示，以下我们所讨论的八面体都是指这种正八面体。
+
+前面介绍的几种环境映射方法都是直接将球面域映射到2D的纹理空间，而八面体映射需要首先将球面域映射到一个中间的八面体结构，然后再由八面体展开形成2D的图像，表面上看起来这更复杂了，然而以下我们将看到八面体有一种特殊的性质使得这个映射算法反而更加简单高效。
+
+\begin{figure}
+	\sidecaption
+	\includegraphics[width=0.4\textwidth]{figures/pl/manhattan-distance}
+	\caption{出租车几何学中的曼哈顿距离与传统欧几里得距离的比较，在出租车几何学中，红，黄和蓝三条路径具有相同的最短距离12，在欧几里得几何中则只有绿色一条最短路径为$6\sqrt{2}\approx 8.49$（图片来自Wikipedia，作者：Psychonaut）。}
+	\label{f:pl-manhattan-distance}
+\end{figure}
+
+一般的映射算法都涉及到一些高次的乘/除法或者三角函数计算，例如式\ref{e:pl-sm-m}中的归一化系数就涉及乘法和开方的计算，然而正八面体却具有一种特殊的属性使得其仅使用最简单的加法运算就可以实现由球面域到正八面体的映射。在出租车几何学（taxicab geometry）\mathindex{出租车几何学}{taxicab geometry}中，我们使用另一个不同于笛卡尔坐标系下的距离度量（如$|d|=\sqrt{x^{2}+y^{2}+z^{2}}$），那就是两点之间的距离等于每个对应分量的绝对差值的和，例如$ds=dx+dy+dz$，这个距离度量又称为直角距离（rectilinear distance）\mathindex{直角距离}{rectilinear distance}，$L^{1}$范数（$L^{1}$ norm）或者曼哈顿距离（Manhattan distance）\mathindex{曼哈顿距离}{Manhattan distance}等，它指示了一辆出租车在两个位置之间行驶的最短距离，如图\ref{f:pl-manhattan-distance}所示。
+
+对于一个正八面体，假设其两个顶点的坐标分为为$(\pm r,0,0),(0,\pm r,0)$和$(0,0,\pm r)$，其中$r$为正八面体的中心距离任意一个顶点的距离，由正八面体的几何特征可得，任意一个点$p=(p_x,p_y,p_z)$位于正八面体的面上的条件是$p$到正八面体中心点的曼哈顿距离为$r$，即$|p_x|+|p_y|+|p_z|=r$。根据上述性质，对于一个位于由正八面体的顶点构成的球面上的点$p$，我们可以通过下述方式得到它在八面体上的投影$p^{'}$：
+
+\begin{equation}\label{e:pl-octahedron-projection}
+	p^{'}=\frac{p}{|p_x|+|p_y|+|p_z|}
+\end{equation}
+
+上述的投影操作仅涉及到最简单的加法运算，计算效率非常高；同时由于上式只是对$p$点位置各个分量的等比缩放，因此投影到正八面体上的的点$p^{'}$仍位于由$p$到原点构成的直线上，如图\ref{f:pl-octahedron-mapping}右图所示。
+
+\begin{figure}
+\begin{fullwidth}
+	\includegraphics[width=\thewidth]{figures/pl/octahedron-mapping}
+	\caption{八面体映射的基本概念，球面上代表方向的点首先被投影到八面体的面上，然后八面体被展开为一个正方形或者矩形的2D图像（图片来自\cite{a:OctahedronEnvironmentMaps}）。}
+	\label{f:pl-octahedron-mapping}
+\end{fullwidth}
+\end{figure}
+
+
+
+\paragraph{八面体面的展开}
+为了将正八面体展开为一个正方形，对于所有位于正半球面上的点，即$p_y>0$，我们将它直接正交投影到XZ平面（即是仅取X和Z轴上的分量），这形成四个全等的等腰直角三角形，其要长均为$r$，如图\ref{f:pl-octahedron-mapping}左二图中的1,2,3和4面，并且这四个等腰直角三角形构成一个正方形；对于负半球面上的点，我们首先仍然按类似的方式投影到ZX平面形成四个等腰直角三角形，然后将这些等腰三角形沿其与上面的三角形的交线向外展开，形成图\ref{f:pl-octahedron-mapping}左二图中的5,6,7和8面。上述的过程可以按下式进行计算：
+
+\begin{equation}
+	p^{''}_q=\begin{cases}
+		(p^{'}_x,0,p^{'}_z)  & p^{y}\geq 0\\
+		(\sigma(p^{'}_x)(1-\sigma(p^{'}_z))p^{'}_z,0,(\sigma(p^{'}_z)(1-\sigma(p^{'}_x))p^{'}_x) & p^{'}_y<0
+	\end{cases}
+\end{equation}
+
+这里$\sigma(x)$是一个符号函数。
+
+除了上述的方法，我们还可以将正八面体投影到一个比率为$2:1$的矩形纹理上，首先同样是将所有面正交投影到ZX平面上形成8个等腰直角三角形，然后我们将其中一对上下相邻面沿其公交线展开，最后在分别将上下半球的面沿八面体的上下顶点展开，如图\ref{f:pl-octahedron-mapping}右二图所示，该过程可以按下式进行计算：
+
+\begin{equation}
+	p^{''}_r=\begin{cases}
+		(p^{'}_x-p^{'}_z-1,0,p^{'}_x+p^{'}_z) & p^{'}_y\geq 0 \\
+		(p^{'}_z-p^{'}_x+1,0,p^{'}_x+p^{'}_z) & p^{'}_y< 0
+	\end{cases}
+\end{equation}
+
+根据图\ref{f:pl-octahedron-mapping}的布局可知，$p^{''}_r\in[-2,2]\times [-1,1]$，而$p^{''}_q\in [-1,-1]^{2}$。
+
+八面体环境映射是一种计算效率非常高的映射方法，这得益于它将$L^{2}$范数转换为$L^{1}$范数，它的映射仅仅涉及到加法的运算，同时每个面内方向的映射也是线性的，它的方向分布也非常均匀，\cite{a:ASurveyofEfficientRepresentationsforIndependentUnitVectors}对通过几种环境映射算法进行比较，八面体映射也是误差非常低的一种映射方法。
+
+
+
+
+\subsection{预过滤}
+对于一个给定位置处的入射光照场$L(l)$，例如本节介绍的环境贴图，给定观察方向$v$上的出射辐射亮度 $R(v)$可由下述反射方程得出：
+
+\begin{equation}\label{e:pl-prefiltering-1}
+	R(v)=\int_H L(l)f(l,v)(n\cdot l){\rm d}l
+\end{equation}
+
+上式意味着，对于表面上的每一个位置，我们都需要计算围绕该点法线方向上整个半空间范围$H$内的一个积分，该积分的被积函数为入射光照场与反射分布函数以及几何项的乘积。对于绝对光滑的镜面表面，其反射分布函数只包含一个唯一的入射方向，此时上述的积分退化为单个函数值的计算，如果入射光照场存储为一个环境贴图，则这意味着每个像素位置只需要一次纹理查询操作，正如本节前面介绍的那要，如图\ref{f:pl-pl-pre-filtering-3}和\ref{f:pl-pl-pre-filtering-1}(a) 所示;然而对于光泽反射，由于表面具有一定的粗糙度，因此同一观察方向可以接受来自多个入射方 向的光照，如图\ref{f:pl-pl-pre-filtering-1}(b)所示，此时每个表面像素的着色都需要执行一个积分计算，这种计算成本对于实时渲染来说是不可承受的，本节我们就来讨论怎样 计算使用环境贴图光照下的光泽和漫反射。
+
+\begin{figure}
+	\sidecaption
+	\includegraphics[width=0.65\textwidth]{figures/pl/pl-pre-filtering-1}
+	\caption{对于环境贴图表述的入射光照场，镜面表面反射只需要执行一次纹理查询操作(a)，而光泽表面具有一定的粗糙度，因此它需要执行多次纹理查询操作(b)，每个查询方向的光照被反射分布函数加权后形成对入射光照的贡献}
+	\label{f:pl-pl-pre-filtering-1}
+\end{figure}
+
+对于式\ref{e:pl-prefiltering-1}，$L(l)$可以被看做一个未过滤的原始环境贴图，如果将BRDF函数看做一个用于加权各个方向入射辐射亮度的核函数，则可以将这个对入射辐射亮度的加权计算预先计算并存储起来，形成一个预过滤的环境贴图，该预过滤的环境贴图存储的是每个观察方向$v$上的辐射亮度，它通过对入射辐射亮度场$L(l)$使用BRDF函数执行加权计算而出，这样在实时渲染着色的时候只需要对该预过滤环境贴图执行一次查询操作（就像原始环境贴图对于镜面反射那样）即可，我们称这样的预计算操作为预过滤（prefiltering）\myindex{预过滤}{prefiltering}，并称这种预过滤后的环境贴图为反射贴图（reflection map）\myindex{反射贴图}{reflection map}，预过滤的目的是将加权的积分计算过程放到预处理阶段，以加速实时计算的性能，它使得实时计算的成本被 降低到一个固定开支，例如单次纹理查询的成本。
+
+从上述的分析来看，预过滤计算本身是很简单的，它仅仅是将一个积分计算预先计算出来而已，其中的过滤器可以具有任意的形式，例如不同的窗宽，各向异性等属性。然而本节的难点在于，我们希望把这种预过滤结果存储在纹理中以供着色器执行像素查询操作，由于表面上每个位置处的BRDF函数可能具有不同的形式（例如不同的窗宽），这就给反射贴图增加了维度以及复杂度，本节后面的主要内容就是讨论这些不同BRDF形式下的预过滤技术。
+
+此外，除了运用于环境贴图光照的预计算，预过滤技术也是实时渲染中常用而高效的一种技术手段，我们还将在后面的章节继续介绍它的其它运用。
+
+
+
+
+\subsubsection{漫反射表面}
+首先来看最简单的漫反射模型，对于漫反射，其BRDF函数对于所有观察和入射方向是一个常数，即$f_{\rm diff} = c_{\rm diff}/\pi$，其中$c_{\rm diff}$为漫反射表面的漫反射率，将该BRDF常数代入式\ref{e:pl-prefiltering-1}，则该式转换为漫反射率 $c_{\rm diff}$ 与以下辐射照度的乘积：
+
+\begin{equation}\label{e:pl-prefiltering-2}
+	\int_H \cfrac{L(l)(n\cdot l)}{\pi}{\rm d}l
+\end{equation}
+
+上式表述的是一个特定的法线方向对应的辐射照度，由于它只与方向有关，因此同样可以使用前面的环境贴图的表述形式进行存储，例如立方体贴图，不同的是，这里每个值存储的是一个辐射照度（irradiance）值，因此这种预过滤的环境贴图又称为辐射照度环境贴图（irradiance environment maps）\myindex{辐射照度环境贴图}{irradiance environment maps}\cite{a:IlluminationandReflectionMaps:SimulatedObjectsinSimulatedandRealEnvironments}，该贴图通过一个法线方向进行索引（或者说辐射照度是关于法线的函数），如图\ref{f:pl-f:pl-pl-pre-filtering-2}(a)所示。
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{figures/pl/pl-prefiltering-2}
+	\caption{漫反射表面的预过滤计算，其过滤函数为法线方向面对的半空间$H$内法线和入射方向夹角的余弦函数，其预过滤计算的值又称为辐射照度，它被存储在一个辐射照度贴图中(c)，通过法线方向索引查询（图片来自于\cite{a:Anefficientrepresentationforirradianceenvironmentmaps}）}
+	\label{f:pl-f:pl-pl-pre-filtering-2}
+\end{figure}
+
+由于漫反射光照可以看做是对原始高频的环境贴图作用了一个低通过滤器（low pass filter）\myindex{低通过滤器}{low pass filter}，如图\cite{f:pl-f:pl-pl-pre-filtering-2}(b)和(c)所示，因此辐射照度的频率变化非常低，它可以使用非常低分辨率的贴图进行存储，也可以使用前面介绍的球谐函数进行表述 \cite{a:Anefficientrepresentationforirradianceenvironmentmaps}。
+
+
+
+\subsubsection{光泽表面}
+从上一节的内容可以看出，漫反射光照的预过滤使用的是一个空间不变的（space invariant）\myindex{空间不变的}{space invariant}过滤器（即余弦函数），因此对原始环境贴图上的每一个像素使用一个相同的过滤器。然而光泽表面的BRDF函数则要复杂得多，光泽表面的BRDF函数通常是空变的（space variant）\myindex{空变的}{space variant}或者说移变的（shift variant）\myindex{移变的}{shift variant}，即表面上不同位置处使用完全不同的BRDF核函数，这可能是由于粗糙度变化引起的，例如不同粗糙度对应的BRDF函数具有不同的窗宽，也可能是由于各向异性造成的，例如不同反射方向的BRDF函数具有不同的形式。
+
+要讨论任意BRDF作为核函数的预过滤是非常复杂的，当前也没有比较统一且高效的方法能够处理任意BRDF函数的预过滤，后面的内容我们将聚焦于各向同性的（isotropic）BRDF分布函数，这也是目前工业中比较主流的方案，读者应能够通过了解光泽表面预过滤技术的基本原理及思路，去阅读和理解更一般的BRDF函数下的预过滤。
+
+本节将首先讨论最简单的冯氏BRDF模型，冯氏模型之所以简单，是因为它不仅是各向同性的，并且它的反射函数形状仅与粗糙度有关，而与反射方向和表面的法线无关，这使得在同一粗糙度下，冯氏模型的核函数是固定的，也就是我们可以近似地用粗糙度来表述冯氏BRDF函数的窗宽。
+
+冯氏BRDF模型（Phong model）\myindex{冯氏模型}{Phong model}可以表述为:
+
+\begin{equation}
+	f_{\rm phong}(v,l)=k_s\cfrac{(r\cdot l)^{N}}{n\cdot l}
+\end{equation}
+
+\noindent 其中，$k_s$和$N$分别表述冯氏BRDF函数的形状和尺寸，将上式代入
+ 式\ref{e:pl-prefiltering-1}得到:
+
+\begin{equation}
+	\begin{aligned}
+		L_{\rm phong}(r)=&\int_H k_s\cfrac{(r\cdot l)^{N}}{n\cdot l}L(l)(n\cdot l){\rm d}l\\
+		=&k_s\int_H(r\cdot l)^{N}L(l){\rm d}l
+	\end{aligned}
+\end{equation}
+
+由上式可以看出，对于同一粗糙度$N$，冯氏BRDF作为预过滤的核函数$(r\cdot l)^{N}$是相同的（注意这里表面的反射系数$k_s$被提到积分外面，并不参与预过滤计算），这和上一节中介绍的漫反射的情形是类似的；此外，由于冯氏模型只与反射方向有关，因此这里使用反射方向来索引预过滤的环境贴图，这里预过滤的环境贴图中存储的是辐射照度值，即前面介绍的反射贴图，在着色的时 候这个值从贴图中查询并与反射系数$k_s$相乘后作为表面像素的出射辐射亮度， 这种方法最早在\cite{a:Realistichardware-acceleratedshadingandlighting,a:IlluminationandReflectionMaps:SimulatedObjectsinSimulatedandRealEnvironments}被提出。
+
+除此之外，我们还需要考虑不同粗糙度下的预过滤，这需要分别对每个粗糙度系数$N$ 做一个单独的预过滤以生成一个不同的反射贴图，这样将会面临比较大的存储压力。实践中，这些指数形式的粗糙度往往被转换为多级纹理的形式\cite{a:Efficientreflectanceandvisibilityapproximationsforenvironmentmaprendering,a:Efficientrenderingofspatialbidirectionalreflectancedistributionfunctions}，即以渐进的方式生成一系列 反射贴图（预过滤的环境贴图），它们一起被存储进一个多级纹理（mip map） 当中（例如多级立方体贴图），其中多级纹理的每一级使用相对前一级具有2倍 标准差的高斯函数，例如$σ_{j+1} = 2σ_j$ 。最后，在实时着色计算的时候，首先根据表面的粗糙度计算出多级文件的层级，然后使用双线性插值计算出实际的纹理值。
+
+冯氏模型是最简单的光泽BRDF模型，因为它的微表面法线分布就是一个高斯函数，其中粗糙度由高斯函数的标准差控制，其反射函数的形状与观察方向和法线的夹角无关。另一些更一般的各向同性BRDF模型是与观察方向
+
+和法线的夹角有关的，所谓BRDF函数是各向同性的（isotropic），通常是指BRDF函数的形状围绕法线是成圆对称的，这意味着还需要一个额外的维度用以存储观察方向与法线的夹角，\cite{a:Approximationofglossyreflectionwithprefilteredenvironmentmaps,a:Reflectionspaceimagebasedrendering}对一般的各向同性BRDF做了一些近似处理，在这些近似假设下，原始的高维辐射照度函数被降维，使得仍然可以像冯氏模型那样仅用一个反射方向就可以查询反射贴图的值，这里不再详述，我们会在后面介绍一个快速计算一般各向同性BRDF模型的预过滤方法。
+
+
+
+\subsubsection{阶层式预过滤}
+前面的两节介绍了环境贴图预过滤使用的两种不同的过滤器，它们分别对应两种不同的BRDF模型，即漫反射BRDF和冯氏BRDF模型。本节我们将聚焦于，给定一个过滤器，怎样高效地执行预过滤计算本身，因此本节的内容与具体过滤器的形式无关。传统的预过滤计算使用的是一种暴力（brute force）方法，即对于每个像素的过滤，它使用周围的每个像素与过滤器中对应的每个离散值进行加权计算，这种计算方法虽然精确，但是计算成本也非常高，特别是如果我们希望这个预过滤计算实时发生，本节我们将介绍一种高效且通用的阶层式预过滤计算框架。
+
+首先回顾一下预过滤的过程，如图\ref{f:pl-pl-pre-filtering-3}所示，为了要计算反射贴图中的一个像素值，如图\ref{f:pl-pl-pre-filtering-3}(a) 中的小黑点所示，我们将一个给定的过滤器作用与原始环境贴图上相同的位置，然后用该核函数与该核函数覆盖的原始环境贴图区域执行卷积计算，该卷积计算的结果及时预过滤的结果。
+
+\begin{figure}
+	\sidecaption
+	\includegraphics[width=0.65\textwidth]{figures/pl/pl-prefiltering-3}
+	\caption{预过滤的过程：对于目标反射贴图(a)，它的每一个像素值来自于将一个过滤器核函数 （绿色圆形区域）作用于原始环境贴图中该像素的位置处(b)，其结果为该核函数覆盖区域内像素值的加权平均（图片来自\cite{a:Aunifiedapproachtoprefilteredenvironmentmaps}）}
+	\label{f:pl-pl-pre-filtering-3}
+\end{figure}
+
+由此可知，对于每一个目标贴图中的像素，过滤器中的每一个离散值与原 始环境贴图中对应位置处的像素值相乘，然后对所有这些乘积值相加得到过滤后的值，这使得预过滤计算的过程非常慢。在这个过滤过程中，如果过滤器核函数中的某些区域非常平滑，即频率变化很低，那么我们可以使用对该过滤器核函数进行缩减采样（downsampling）后的版本进行过滤计算，基于此观察，\cite{a:Aunifiedapproachtoprefilteredenvironmentmaps}提出了阶层式预过滤（hierarchical prefiltering）技术。
+
+大部分BRDF分布函数仅在很窄的区域内频率变化非常大，例如那些接 近反射方向的方向，所以我们可以对原始过滤器执行一系列的$2\times 2$ 箱式过滤器（box filter），使得到一个关于BRDF过滤器的多级纹理，如图\ref{f:pl-pre-filtering-4}左一小图 所示。尽管这降低了对过滤器纹理数据的读取次数，但是它仍然需要与原始环境贴图中的多个像素值进行相乘计算，所以为了同步减少相乘计算的次数，原始环境贴图也需要执行相应的$2\times 2$箱式过滤器，以生成对应的多级纹理，如图\ref{f:pl-pre-filtering-4}左二小图所示。
+
+\begin{figure}
+\begin{fullwidth}
+	\includegraphics[width=\thewidth]{figures/pl/pre-filtering-4}
+	\caption{环境贴图的阶层式预过滤，左一和左二分别是BRDF过滤器核函数和原始环境贴图的多级纹理，右一和右二图解释了阶层式预过滤（对于单个像素）的工作机制；对于过滤器多级纹理中的每一个像素值（其中上下抛物面分 开处理），分别检查它与其下一（更高）级四个相邻像素的差异，如果这些差异均小于某个阈值，则该像素被使用并与环境贴图多级纹理中对应的像素相乘，否则下一级四个相邻的像素被执行相同的检查，最后将所有这些贡献值累加起来形成目标贴图中一个单一的像素值(图片来自 [Kautz et al., 2000])。（图片来自\cite{a:Aunifiedapproachtoprefilteredenvironmentmaps}）}
+	\label{f:pl-pre-filtering-4}
+\end{fullwidth}
+\end{figure}
+
+目标贴图中每个像素值的计算过程如下，如图\ref{f:pl-pre-filtering-4}右一右二小图所示，对于每一个过滤器，我们首先从该过滤器多级纹理的最低一级（即第0级）开始，这一级只有一个像素，如图\ref{f:pl-pre-filtering-4}右二小图的第0级，对于该单个像素，首先检查它与下一级（即第1级）相邻4个像素值的差异，如果该差异小于某个阈值，例如0.001，则说明过滤器中的该部分区域比较平滑，因此该低级的过滤器值可以直接被使用，否则更高一级的4个相邻像素被使用。
+
+在图\ref{f:pl-pre-filtering-4}中，第0级与第1级4个相邻像素的差异较大，因此第0级的 像素被抛弃，并用第1级的4个像素值来代替，而这4个像素与第3级纹理中相邻的4个像素的差异值均小于阈值，因此这4个值直接被使用，它们的像素值直接与环境贴图多级纹理中的对应像素值相乘然后被累加到最终结果中。
+
+通过阶层式过滤，过滤器核函数中平滑的部分不必按其实际的像素数量执 行相乘操作，因此加速了预过滤计算，这和本书前面第\ref{chp:rad}章第\ref{sec:r-hierarchical-radiosity}节介绍的阶层 式辐射度方法的原理类似。
+
+
+
+\subsubsection{重要性采样方法}
+
+hh
+\subsubsection{实时预过滤方法}
+
+
+
+\begin{comment}
+
+
+\section{预计算辐射传输}\label{sec:pl-prt}
+在场景渲染的每一帧中，渲染方程都要计算光照传输，它是光子从光源发出通过场景中的表面到达摄像机的过程，如果场景是完全静止的，那么这样的计算过程对于每一帧是相同的，因此我们可以将这个“传输过程”提前计算并缓存起来，这样可以达到较高的实时性能。
+
+预计算辐射（亮度）传输（precomputed radiance transfer，PRT）\myindex{
+预计算辐射传输}{precomputed radiance transfer}\cite{a:PrecomputedRadianceTransferforRealTimeRenderinginDynamicLowFrequencyLightingEnvironments}的主要原理，就是上述的光照积分可以被分离为一个包含自阴影和内部反射的预计算传输函数，以及运行时与之组合的一个实时动态改变的环境光照贴图，为了实现这个目标，传输函数和环境光照都被投影到一个正交基函数（例如球谐函数或小波函数），因此原始的光照积分被转化为这些基函数系数的内积，其中环境贴图的系数可以实时修改，而传输函数的系数则被存储于物体表面，因此光照传输只需要计算一次，大大提高了静态场景的渲染效率。
+
+不过，尽管预计算辐射传输方法比较高效，但是其仅限于静态场景，这大大限制了其运用与发展，所以本章仅对其做简要介绍（不过这并不意味着我们可以完全忽视它，作为一种重要的解决全局光照的思路，还是很有必要对其进行简单地了解，并且它所涉及的关于球谐函数的知识对于后面的辐射照度缓存也是想通的）。首先我们会简要复习一下相应的数学基础知识，然后介绍漫反射表面下的预计算辐射传输，最后将其扩展到一般（如光泽）表面情形，以及对高频函数的处理。
+
+
+
+
+
+
+
+
+
+更精确：
+2005 Fast and Detailed Approximate Global Illumination by Irradiance Decomposition
+
+2017 Real-time Global Illumination by Precomputed Local Reconstruction from Sparse Radiance Probes
+
+
+
+有了上述关于基函数投影以及函数近似的理论基础，假设场景是静态的，预计算辐射传输方法的核心思路就是为表面上的每个点预计算出一个传输矢量或矩阵并存储起来。
+
+在预计算辐射传输方法\cite{a:PrecomputedRadianceTransferforRealTimeRenderinginDynamicLowFrequencyLightingEnvironments}中，光源被近似为球谐函数，阴影和反射被视作一个传输矢量（对于漫反射表面）或矩阵（对于光泽表面），然后每个表面处的光照结果就是该矢量或矩阵与光源的球谐函数系数（矢量）的乘积，根据球谐函数的属性，这被转化为一个点积计算。
+
+所以预计算辐射传输方法的另一个假设是方向函数（光源和传输函数）是低频的，因为我们必须使用很少的系数来表述光源和预计算的数据（矢量或矩阵），这可以减少内存的占用以及运行时的点积计算。所以这也意味着预计算辐射传输仅能处理很柔和的阴影。不过，在该方法的演化中，其它一些方法（例如基于小波的方法）被引入使之能够处理全频率的方向函数。
+
+
+
+\subsection{光照传输问题}
+为了更直接地理解预计算辐射传输方法的思路，本节我们先讨论最简单的漫反射表面的预计算辐射传输，然后在后续的内容中将其扩展至光泽表面以及全频率光源。
+
+首先我们从光照方程的纽曼级数中的直接光照项开始，即：
+
+\begin{equation}
+\begin{aligned}
+	L(p\to\vec{d})=&L_0(p\to\vec{d})+L_1(p\to\vec{d})+\cdots \\
+	L_0(p\to\vec{d})=&\int_\Omega f_r(p,\vec{s}\to\vec{d})L_{env}(\vec{s})V(p\to\vec{s})H_{N_p}(-\vec{s})d\vec{s}
+\end{aligned}
+\end{equation}
+
+对于漫反射物体，向各个方向反射的光照是相同的，所以出射辐射亮度是一个与观察方向无关的，这也意味着BRDF函数是一个与方向无关的，因此它可以从积分中提取出来，上式中的直接光照项可以重写为：
+
+\begin{equation}\label{e:pl-diffuse}
+	L_0(p)=\frac{\rho_d}{\pi}\int L_{env}(\vec{s})V(p\to\vec{s})H_{N_p}(-\vec{s})d\vec{s}
+\end{equation} 
+
+这里$\rho_d$表示描边的漫反射系数，它的值介于$0$到$1$之间，分母$\pi$用于保证能量守恒。上式同时假设光源位于无限远处，因此入射辐射亮度与位置无关，而仅与方向$s$有关。
+
+\begin{figure}
+	\sidecaption
+	\includegraphics[width=0.65\textwidth]{graphics/prt/prt-7}
+	\caption{The main tricky we are going to use for precomputed radiance transfer is to combine the visibility and the cosine into one function.}
+	\label{f:pl-diffuse}
+\end{figure}
+
+图\ref{f:pl-diffuse}预计算辐射传输的基本概念，图左边包含式\ref{e:pl-diffuse}中的三个方向函数，即光源，可见性以及余弦项，预计算辐射传输中的一个特殊处理将是将可见性和余弦项的卷积计算放在预处理过程中，由于卷积计算的结果仍然是一个方向函数，该方向函数被投影为由球谐函数系数构成的矢量中并存储起来。最后，在运行时阶段，预存的光照传输矢量和投影的光源系数矢量进行点积计算得出最终的光照积分值。
+
+
+
+
+\subsection{光源近似IrradianceEnvironmentMaps}
+The light source $L_{env}$ can be seen as an unknown function, and the combined cosine-weighted visibility or transfer function the known. According to the property of SH, we can use SH coefficients represent the light source, and the transfer function becomes a transfer vector (or matrix) which can be precomputed. 
+ 
+Now we are going to approximate the source radiance function with its projection into a set of basis functions on the sphere:
+
+\begin{equation*}
+	L_{env}(\vec{s})\approx\sum_{i}l_iy_i(\vec{s})
+\end{equation*}
+
+where $l_i$ are the projection coefficients of a particular lighting environment. 
+
+
+
+\subsection{传输矢量}
+We can plug this approximation directly into the reflected radiance equation. Since it's linear, sum of integrals = integral of sums, we can move sum outside integral. Everything within the integral can be precomputed (since it is independent of the actual lighting environment being used):
+
+\begin{equation*}
+	L_0(p)=\frac{\rho_d}{\pi}\sum_i l_i\int_{\Omega}y_i(\vec{s})V(p\to\vec{s})H_{N_p}(-\vec{s})d\vec{s}
+\end{equation*}
+
+The integral represents a transfer coefficient -- it maps how direct lighting in basis function l becomes outgoing radiance at point p. The set of transfer coefficients is a transfer vector that maps lighting into outgoing radiance:
+
+\begin{equation*}
+	L_0(p)=\frac{\rho_d}{\pi}\sum_i l_i t^{0}_{pi}
+\end{equation*}
+
+We can fold the diffuse reflectivity into the transfer vector as well:
+
+\begin{equation*}
+	L_0(p)=\sum_i l_i t^{0}_{pi}
+\end{equation*} 
+
+A similar process can be used to model the other bounces, so that a final vector can be computed and used to map source radiance to outgoing radiance at every point on the object.
+
+\begin{equation*}
+	\begin{aligned}
+		L(p)=&\sum_i l_i(t^{0}_{pi}+t^{1}_{pi}+\cdots)\\
+		    =&\sum_i l_i t_{pi}
+	\end{aligned}
+\end{equation*}
+
+
+
+\subsection{Rendering}
+Outgoing radiance is then just the dot product of the lights projection coefficients with the transfer vector.
+
+\begin{equation*}
+	L(p)=\sum^{n}_{i}l_it_{p,i}
+\end{equation*}
+
+At run-time, we need to lookup the transfer vector at every pixel. A (vertex/pixel)-shader then computes the dot-product between the coefficient vectors. The result of this computation is the outgoing radiance at that point.
+
+
+
+
+\subsection{预计算}
+The main question is how to evaluate the integral. We will evaluate it numerically using Monte-Carlo integration. This basically means, that we generate a random (and uniform) set of directions $s_j$, which we use to sample the integrand. All the contributions are then summed up and weighted by $4\pi/(\#samples)$.
+
+The visibility $V(p\to \vec{s})$ needs to be computed at every point. The easiest way to do this, is to use ray-tracing.
+
+
+
+
+
+
+\subsection{一般表面PRT}
+\begin{comment}
+	
+
+
+A transfer vector $(T_p)_i$ is useful for diffuse surfaces and represents a linear transformation on the lighting vector producing scalar exit radiance. In other words, each component of $(T_p)_i$ represents the linear influence that a lighting basis function $l_i$ on shading at $p$.
+
+In this section, we'll derive general case for glossy (view-dependent) reflection. As the previous section, we'll be looking at an object sitting in free space, distant from the lighting environment that illuminates it. "Distant" means that location on the object does not affect the directional distribution of incident light. In other words, in absence of occlusion, the direct light incident upon all points on the object is the same, i.e., $L_{env}(p,\omega)=L_{env}(\omega)$ for all $p$.
+
+As described in the earlier section, the environment map that we use for lighting the object is projected into a function basis $\{y_i\}$ with $i=1,\cdots,n$. This yields an approximation to the original environment map, and the approximation is fully defined by the vector $l$ of coefficients:
+
+\begin{equation*}
+	L_{env}(\omega)\approx\sum^{n}_{i=1}l_iy_i(\omega)
+\end{equation*} 
+
+
+
+
+\subsection{Goals -- What does $p$ look like, given $L_{env}$?}
+We have two goals in this section:
+
+\begin{enumerate}
+	\item Global illumination with glossy reflections and time-varying lighting. Shiny BRDFs mean that the appearance of a point changes depending on where it is looked at from.
+	\item We also want to approximate the lighting in \textit{free space} around the object. For example, if we can compute the lighting incident to points in free space in the landscape, we can shade moving objects (vehicles, characters, etc.) with lighting that is affected by the environment, and thus get color bleeding and soft shadowing effects onto the moving objects.
+\end{enumerate}
+
+\begin{figure}
+\sidecaption
+	\includegraphics[width=0.65\textwidth]{graphics/prt/pl-8-1}
+	\caption{Compute transfer matrices for many points and interpolate to get appearance of whole object.}
+	\label{f:pl-goal-1}
+\end{figure}
+
+So what we want to know is: given some projected environment map, what do points on the object look like? That is, what is the directional distribution of outgoing light from each point? See figure \ref{f:pl-goal-1}. If we know these values, we can directly assign to pixels in an image.
+
+The appearance of each point is linearly related to the distant lighting environment, so we are looking for some linear operator that takes as input the lighting environment, and produces the appearance of the point as output. In the end, we will represent this appearance in some linear basis, so the linear mapping will be, for each point, a matrix that maps the coefficients of incident, distant lighting environment into coefficients for outgoing radiance for the point $p$:
+
+\begin{equation*}
+	L_{env}(\omega)\to L_{out}(p\to\omega)
+\end{equation*}
+
+We'll compute this mapping for many points on the object, so that we can get a reasonable approximation for the appearance of the whole object by interpolating from these samples. See figure \ref{f:pl-goal-1}.
+
+The other question is: what do the points near but not on the object "see" when the object is illuminated using an environment map? In other words, how does the presence of the object affect the lighting that impinges upon these points in free space?
+
+Let's concentrate on a single point $p$ somewhere near the object, see figure \ref{f:pl-goal-2}. What does the point $p$ see can be decided by the following:
+
+\begin{figure}
+\sidecaption
+	\includegraphics[width=0.65\textwidth]{graphics/prt/pl-8-2}
+	\caption{What does a point $p$ near the object see?}
+	\label{f:pl-goal-2}
+\end{figure}
+
+\begin{itemize}
+	\item Some light proceeds directly from the lighting environment to point $p$. That happens in those directions where the object doesn't block the view from $p$.
+	\item Some light that leaves the distant environment will be blocked by the object. That happens in directions where the object blocks the view from $p$ to the environment. We denote that by cutting away a part of the environment here on the right.
+	\item Some light takes a bounce or multiple bounces off the object before impinging upon point $p$. In other words, $p$ sees an image of the what our object looks like when lit by the environment map.
+\end{itemize}
+
+The relationship between the lighting environment and what point $p$ sees is linear. We will in the following project the light impinging on $p$ in a finite space, and thus this relationship will be characterized by a matrix. This matrix will in general be different for each point:
+
+\begin{equation*}
+	L_{env}(\omega)\to L_{xfer}(p\leftarrow\omega)
+\end{equation*}
+
+
+
+\subsection{Transferred Incident Radiance}
+In this section we will derive the exact relationship of the distant lighting environment and the lighting after it has interacted with the scene.
+
+\begin{figure}
+\sidecaption
+	\includegraphics[width=0.65\textwidth]{graphics/prt/pl-9}
+	\caption{Define transfer incident radiance $L_{xfer}(p\leftarrow\omega)$ for point $p$ as all light arriving at $p$ that originated from $L_{env}$. The point either on surface or in free space are treated unified.}
+	\label{f:pl-matrix}
+\end{figure}
+
+We first define a quantity called \textit{transferred incident radiance} $L_{xfer}(p\leftarrow\omega)$, see figure \ref{f:pl-matrix}. For each point in the scene, be it on the surface of the object or in free space, we define it as the radiance incident onto that point from each direction. This is different from the distant environment, since the light is blocked and reflected by the object before impinging upon the point. In other words, it is a spherical function for each point in the scene, and it defines "what point $p$ sees", and it of course changes as the lighting environment changes.
+
+
+The basic idea is that we'll precompute the linear operators (that is, matrices) that map our distant lighting environment into transferred incident radiance for discrete set of points in the scene, and at runtime we'll use them for computing transferred incident radiance at those points, given the current lighting environment.
+
+Obviously, the light outgoing from a point on the object is the sum of emitted light and reflected light, and we get reflected light by computing the usual reflectance integral of the transferred incident lighting. This yields final reflected radiance towards the virtual camera.
+
+So the outline of the PRT process can be seen as following:
+
+\begin{enumerate}
+	\item precompute transfer matrices off-line
+	\item Use them at runtime to determine $L_{xfer}$ for surfaces to be shaded.
+	\item Then integrate $L_{xfer}$ with BRDF*cosine to get outgoing radiance (just evaluate the usual reflectance equation)
+\end{enumerate}
+
+\begin{myshaded}
+So why bother with transferred incident radiance and not compute outgoing radiance directly? For surfaces of the object, this is certainly possible. But it is also possible to decouple the sampling rates of transferred incident radiance and outgoing radiance. The rationale is that transferred incident radiance often (but not always) varies quite slowly over space, whereas the outgoing radiance from a surface often has high spatial frequencies. Thus, the transferred incident radiance can often be interpolated from sparser samples, and turned into higher-frequency outgoing radiance (bi-scale radiance transfer). Of course, we want to avoid as much work as possible, and computing the transfer is expensive.
+\end{myshaded}
+
+
+\subsection{Derivation of Transfer Matrices}
+To start the way towards deriving the transfer matrix that maps the distant illumination into transferred lighting, we project the transferred lighting into a finite, spherical function space spanned by functions $\{z\}$, see figure \ref{f:pl-tir-projection}. That is, we discretize transferred incident radiance and represent it using a finite number of basis coefficients that we denote by $l^{p}$:
+
+\begin{figure}
+\sidecaption
+	\includegraphics[width=0.65\textwidth]{graphics/prt/pl-10}
+	\caption{Project transferred incident radiance at $p$ into a function space.}
+	\label{f:pl-tir-projection}
+\end{figure}
+
+\begin{equation*}
+	L_{xfer}(p\leftarrow\omega)\approx\sum^{m}_{i=1}l^{p}_{i}z_i(\omega)
+\end{equation*}
+
+The coefficients $l^{p}$ are unknown, the coefficients $l$ that define the distant incident lighting we know. What we want to do is find their relationship. This relationship between the two vectors is linear, and thus it can be expressed using a matrix. We call this matrix the \textit{transfer matrix} for point $p$: It maps the distant, incident illumination to an approximation of the lighting that reaches $p$:
+
+\begin{equation*}
+	l^{p}=T^{p}l
+\end{equation*} 
+
+Let's think about that for a while. What happens if the scene is lit by just a single lighting basis function $y_i$, i.e., there is just a single one in the emission vector $l$ and the rest is just zero? See figure \ref{f:pl-matrix}. That's marked there in the visual depiction as the white box in the gray vector. If we think of the matrix-vector product, in the end, it just copied the fourth column of the matrix over to the rest.
+
+\begin{figure}
+\sidecaption
+	\includegraphics[width=0.65\textwidth]{graphics/prt/pl-11}
+	\caption{Consider light from a single lighting basis function at unit intensity.}
+	\label{f:pl-matrix}
+\end{figure}
+
+This leads us to conclude that the $i$-th column of the matrix is a \textit{basis appearance}: it describes the lighting at $p$ when the scene is lit using the $i$-th lighting basis function alone. And since the scene is lit by a linear combination of basis lights, getting the transferred incident radiance at $p$ just involves taking a linear combination of these basis appearances with weights taken from the emission vector $l$. That's just matrix-vector multiplication.
+
+
+
+
+\subsection{Entries of the Transfer Matrix}
+We denote that $L^{i}_{xfer}(p\leftarrow\omega)$ is the light from basis function $y_i$ that reaches $p$ either directly or through any number of bounces off the object. Then $T^{p}_{ji}$ is the $j$-th projection coefficient of $L^{i}_{xfer}(p\leftarrow\omega)$:
+
+\begin{equation*}
+	T^{p}_{ji}=\langle L^{i}_{xfer}(p),\hat{z}_j\rangle =\int_\Omega L^{i}_{xfer}(p\leftarrow\omega)\hat{z}_j(\omega)d\omega
+\end{equation*}
+
+All we need is to be able to compute the radiance that is incident to the point $p$ when the scene is lit using the $i$-th light basis function alone. These algorithms include Monte Carlo path tracing, photon mapping and progressive radiosity, etc. 
+
+Next we'll consider the simple case of direct illumination only. That is, we consider only the light incident to the object that has been shadowed by the object, but has not bounced on the surface before impinging upon $p$. The direct lighting incident to $p$ (denote by $L_0$) is just the lighting environment modulated by the visibility from $p$:
+
+\begin{equation*}
+	L_0(p\leftarrow\omega)=L_{env}(\omega)V(p,\omega)
+\end{equation*}
+
+The direct lighting to $p$ due to basis function $y_i$ is then:
+
+\begin{equation*}
+	L^{i}_0(p\leftarrow\omega)=y_i(\omega)V(p,\omega)
+\end{equation*}
+
+and thus:
+
+\begin{equation*}
+\begin{aligned}
+	T^{p}_{0,ji}=&\langle L^{i}_0(p\leftarrow\omega),\hat{z}_j\rangle \\
+	=&\int_\Omega y_i(\omega)\hat{z}_j(\omega)V(p,\omega)d\omega
+\end{aligned}
+\end{equation*}
+
+We call the direct-lighting-only matrix $T^{p}_0$. If we substitute the previous into the equation that gives the approximated transferred incident from the its basis coefficients, we get the following formula for the approximate lighting impinging on $p$ from the full lighting environment:
+
+\begin{equation*}
+\begin{aligned}
+	L(p\leftarrow\omega)\approx &\sum^{m}_{j=1}l^{p}_{j}z_j(\omega)\\
+	=&\sum^{m}_{j=1}z_j(\omega)\Biggr[ \sum^{n}_{i=1}l_iT^{p}_{ji}  \Biggr]
+	=z(\omega)^{T}T^{p}l
+\end{aligned}
+\end{equation*} 
+
+The sum in the middle can be written in matrix form as given on the second line, where we have stacked the values of all the basis functions $z_j$, evaluated in direction $\omega$, together to form the vector $z$.
+
+
+
+
+\subsection{Accounting for Indirect Lighting}
+This section derives a particular method for computing the transfer matrices that account for indirect lighting as well. It resembles a progressive gathering radiosity method, and bears a close resemblance to an early non-diffuse global illumination method.
+
+In what follows, we'll derive a recursive formula that computes the transfer matrices that correspond to $k+1$ bounces of light, given that we know the transfer matrices that account for $k$ bounces for light everywhere in the scene. As we already have a method for computing $T_0$, the transfer matrix for direct lighting, we are able to account for an arbitrary number of bounces this way. And as lighting is linear, the transfer matrix $T^{p}$ that accounts for all bounces is just the sum of the matrices $T^{p}_0,T^{p}_1,\cdots$ that each account for a particular number of bounces.
+
+In order to derive the method, we'll use a "transposed" version of the rendering equation. One that we have specifically using transferred incident radiance as the unknown, not outgoing radiance as is usually done. These equations are equivalent, if we know the solution to the other, we get the other pretty easily from it (see figure \ref{f:pl-transposed-version}).
+
+\begin{figure}
+\sidecaption
+	\includegraphics[width=0.65\textwidth]{graphics/prt/pl-12}
+	\caption{$p^{'}$ is the point that the ray from $p$ towards $\omega$ intersects. Note that the usual reflectance integral is performed above the point $p^{'}$ here, not $p$ as in the usual version of the rendering equation.}
+	\label{f:pl-transposed-version}
+\end{figure}
+
+\begin{equation*}
+\begin{aligned}
+	L_{xfer}(p\leftarrow\omega)=&L_{env}(\omega)V(p,\omega)\\
+	&+\int_{\Omega (p^{'})}L_{xfer}(p^{'}\leftarrow\omega^{'})f_r(p^{'},\omega^{'}\to -\omega)cos\theta^{'}d\omega^{'}
+\end{aligned}
+\end{equation*}
+
+This equation says that the lighting incident to $p$ is the sum of:
+
+\begin{itemize}
+	\item Direct lighting from the lighting environment, shadowed by the object.
+	\item Lighting reflected by the scene towards $p$.
+\end{itemize}
+
+The incident version of the rendering equation can be solved using Neumann series just as well as the outgoing version: the lighting upon $p$ is the sum of direct light, light that has taken one, two, three, etc. bounces.
+
+Given that we know the lighting in the scene that has taken $k$ bounces, then the Neumann series gives the relationship of this known $k$-times reflected light and $k+1$-times reflected light, i.e., if we know the incident radiance from the previous bounce, the next one is obtained from the reflectance equation:
+
+\begin{equation*}
+	L_{k+1}(p\leftarrow\omega)=\int_{\Omega (p^{'})}L_k(p^{'}\leftarrow\omega^{'})f_r(p^{'},\omega^{'}\to -\omega)cos\theta^{'}d\omega^{'}
+\end{equation*}
+
+To derive transfer matrices for all bounces, we'll start from the projection equation: we want to express $L_{xfer}$ at $p$ in terms of the basis functions $z$. In the end this will yield the transfer matrices for all bounces:
+
+\begin{equation*}
+	L_{xfer}(p\leftarrow\omega)\approx\sum^{m}_{j=1}l^{p}_jz_j(\omega)
+\end{equation*}
+
+As we saw earlier, in order to get the $j$-th projection coefficients, we have to integrate the function against the dual basis function $\tilde{z}$:
+
+\begin{equation*}
+	l_j^{p}=\int_\Omega L_{xfer}(p\leftarrow\omega)\tilde{z}_j(\omega)d\omega=:\langle L_{xfer}(p),\tilde{z}_j\rangle
+\end{equation*}
+
+By the Neumann series:
+
+\begin{equation*}
+	L_{xfer}(p\leftarrow\omega)=L_{0}(p\leftarrow\omega)+L_{1}(p\leftarrow\omega)+L_{2}(p\leftarrow\omega)+\cdots
+\end{equation*}
+
+Since the inner product is linear, the projection coefficients can be computed by projecting each bounce of light separately and adding the results together:
+
+\begin{equation*}
+	l^{p}_j=\langle L_0(p),\tilde{z}_j\rangle+\langle L_1(p),\tilde{z}_j\rangle+\langle L_2(p),\tilde{z}_j\rangle+\cdots
+\end{equation*}
+
+
+
+
+\subsection{Transfer Matrix for Bounce $k+1$}
+So far, we've already derived per-point matrices $T^{p}_0$ that map coefficients of lighting environment to coefficients that represent direct lighting. We'll start the derivation of the matrices $T^{p}_{k+1}$ from the projection coefficients $l^{p}_k$.
+
+
+
+
+In a non-scattering medium, points not on surfaces do not affect the appearance of the scene. So just compute solution with all bounces for surface points first, then gather all bounces at once for points in free space.
+
+
+\subsection{Outgoing Radiance}
+
+
+\end{comment}
+%\subsection{基于小波函数}
+\begin{comment}
+All-Frequency Relighting of Glossy Objects.pdf
+Our system approaches the sampling problem by choosing a high sampling rate for the lighting but a low sampling rate for the view. This is achieved by combining non-linear wavelet approximation for the lighting with low-order separable approximation for the BRDF. As a result, we have bandlimited high-frequency specularities; however, unlike the spherical harmonics based approach, our renderings preserve intricate all-frequency shadows while remain at interactive rates.
+
+
+
+Ng et al. [129] introduce the use of wavelets for high-frequency illumination. Wavelet coefficients are selected on-the-fly to achieve a nonlinear approximation of high quality. This system demonstrates interactive performance for fixed viewing of nondiffuse scenes and arbitrary viewing of diffuse scenes. Figure 8.19 compares spherical harmonics with wavelets.
+
+High-frequency illumination effects, such as sharp shadows, cannot be rep- resented with great fidelity using a small number of coefficients in the spher- ical harmonics basis functions. The next major set of innovations in PRT aim at supporting both all-frequency illumination effects and generalized BRDFs.
+
+
+
+
+
+
+
+
+
+
+
+PRT缓存的是transfer函数，因此允许光源动态改变，而场景只能是静态的，但是irradiance caching则相反，它缓存lighting，而允许物体时可移动的。
+
+
+Precomputed transfer using light-field remapping [18] and dynamic ray tracing [16] has been used to achieve highly specular reflections and refractions. We apply a similar precomputed, per- object decomposition but designed instead for soft shadows and caustics on nearly diffuse objects in low-frequency lighting. Irradiance volumes [15] allow movement of diffuse receivers in precomputed lighting. Unlike our approach, lighting is static and the receiver’s effect on itself and its environment is ignored.
+
+
+http://www.ludicon.com/castano/blog/2014/07/irradiance-caching-continued/
+
+
+Fast Filtering of Reflection Probes
+
+
+
+
+
+	
+
+
+\section{基于表面位置的缓存}\label{sec:pl-irradiance-caching}
+\subsection{光照贴图}
+
+
+
+
+
+
+
+
+
+
+\subsection{辐射照度缓存}
+因为插值计算不需要考虑法线，在辐射照度中，法线已经被集成进辐射照度的计算中，辐射照度已经是一个考虑法线的结果，因此对辐射照度插值无法考虑法线，但是辐射亮度缓存仍然需要考虑法线去计算方向，所可以计算几何法线细节
+
+
+重要：是因为插值的原因，只能存储在顶点或者很稀疏的位置，因为存储太大？所以导致不能标准detailed geometry？COD中也有这种区分
+lightmap：Can have issues with complex or intersecting geometry.
+https://docs.unity3d.com/Manual/GlobalIllumination.html
+
+
+
+
+irradiance cachingyulightmap的主要区别是前者适应性地放置缓存点，而后者是一个存储irradiance值的贴图，前者可以用来计算后者或者直接用于实时的插值计算。I have developed some interesting technology to compute automatic paramaterizations, to formulate the lighting computations in a way that can be easily mapped to the GPU, and to speed them up performing them at a lower frequency by using irradiance caching. http://the-witness.net/news/2010/03/graphics-tech-texture-parameterization/
+
+In my previous post I mentioned the need to find an algorithm that would allow us to extrapolate the irradiance to fill lightmap texels with invalid samples, to smooth the resulting lightmaps to reduce noise, and to sample the irradiance at a lower frequency to improve performance. 
+
+
+
+
+
+
+
+The incident indirect light over a range of image pixels is often coherent. Two common approaches to exploit this inter-pixel coherence to improve rendering performance are Irradiance Caching and Radiance Caching. Both compute incident indirect light only for a small subset of pixels (the cache), and later interpolate between pixels. Irradiance Caching uses scalar values that can be interpolated efficiently, but cannot account for shading variations caused by normal and reflectance variation between cache items. Radiance Caching maintains directional information, e. g., to allow highlights between cache items, but at the cost of storing and evaluating a Spherical Harmonics (SH) function per pixel. The arithmetic and bandwidth cost for this evaluation is linear in the number of coefficients and can be substantial. In this paper, we propose a method to replace it by an efficient per-cache item pre-filtering based on MIP maps — such as previously done for environment maps — leading to a single constant-time lookup per pixel. Additionally, per-cache item geometry statistics stored in distance-MIP maps are used to improve the quality of each pixel’s lookup. Our approximate interactive global illumination approach is an order of magnitude faster than Radiance Caching with Phong BRDFs and can be combined with Monte Carlo-raytracing, Point-based Global Illumination or Instant Radiosity.
+
+2012 Pre-convolved Radiance Caching.pdf
+
+
+
+
+
+I didn’t coin the term “irradiance caching” -- that was someone else’s good idea. I just called it “lazy evaluation,” being too lazy myself to think up a good name.
+
+
+
+\subsubsection{梯度}
+
+\subsection{辐射亮度缓存}
+
+Radiance Caching represents incoming radiance $L_i(\mathbf{x},\omega_i)$ using the spherical harmonics basis:
+
+\begin{equation}
+	L_i(\mathbf{x},\omega_i)\approx\sum^{n_d}_{k=1}c_k(\mathbf{x})B_k(\omega_i)
+\end{equation}
+
+
+Radiance Caching [KGPB05] overcomes the limitation to diffuse reflectance by storing incoming radiance as a direc- tional function, interpolating it between pixels and convolving with the BRDF for every pixel. For highly specular surfaces, however, a high number of SH coefficients have to be stored and evaluated per pixel i. e., a simple dot-product, but on a high-dimensional vector.
+
+
+
+Radiance Caching
+
+
+Radiance caching [Kˇriva ́nek et al. 2005; Kˇriva ́nek 2005] general- izes Ward et al.’s [1988] irradiance caching algorithm for the use on glossy surfaces.1 It accelerates indirect illumination computa- tion by reusing previously computed and cached incoming radiance values through interpolation over glossy surfaces.
+
+
+%Several researchers have investigated how to reduce the noise by distributing rays more carefully and for example, by using bidirectional Monte Carlo ray tracing, in which rays are traced simultaneously from the light and the eye. However, these pure unbiased Monte Carlo-based ray tracing methods are still very time-consuming. An alternative is biased Monte Carlo ray tracing, in which other convergence properties are accepted. One example is irradiance caching which stores and re-uses indirect illumination on diffuse surfaces via an interpolation scheme.
+
+%Caching in the context of GI means to compute results sparsely and interpolated in-between. Caching is mostly orthogonal to the particular GI method used and should be compatible to many of the before mentioned approaches. Pre- viously it was mainly used in combination with Monte Carlo ray tracing however (Sec. 3.2).
+%
+%Similar ideas are used in interactive GI, e. g., when combining screen space-illumination for nearby and other approaches for far fields [KD10,REH⇤11].
+%
+%As other schemes that use interpolation to reconstruct illumination from a sparse set of samples, the irradiance cache is a biased algorithm (see section 2.1.9).
+
+%The irradiance cache, in its initial form, suffers from a number of problems:
+%• The range calculation for a sample involves a stochastic process, which may occasionally result in a density that is too sparse, leading to leaks and other artifacts.
+%• Adding samples on-the-fly may lead to new samples that would have affected the estimated radiance arriving at pixels that already have been finalized.
+%• In a multi-threaded environment, adding samples from several rendering threads simultaneously requires extensive synchronization.
+%• For dynamic light sources, the samples need to be recreated for each frame, leading to temporal noise.
+%Most of these have been addressed in more recent work. Krˇivánek et al. propose to use neighbor clamping to prevent leaks [141]. Progressive refinement or an irradiance gathering pass can be used to prevent samples from affecting already rendered pixels [142]. Several methods have been proposed to make the irradiance cache more suitable for a multi-threaded environment [232, 64]. In an off-line environment, temporal noise is solved by refining the irradiance cache until a predefined maximum error is guaranteed to be not exceeded. This illustrates an important design constraint of the irradiance cache: where necessary, it trades rendering time for image fidelity.
+
+传统的插值不考虑遮挡，因此光照比较平坦，2017 Precomputed Lighting IN CoD
+Now, this is what the typical probe lighting usually looks like. And by „typical” i mean that you sample lighting in one location and use it for the whole object, it’s usually encoded as 3rd order spherical harmonics, it’s looked up by the normal, you do the convolution with the cosine on the fly and voila. And this of course gives you some directional variation, but in general looks fairly flat and uninteresting
+
+What we really want is something like that – so with spatial variation over the object, with proper account for occlusion – something that would be comparable in quality with baking lighting per vertex.
+
+
+
+\subsection{环境探针的预过滤}
+针对specular BRDF的pre-convolution，或者称为pre-filtering
+
+2012 Pre-convolved Radiance Caching
+
+
+2016 Fast Filtering of Reflection Probes
+
+
+
+\section{基于空间位置的缓存}\label{sec:pl-irradiance-volume}
+\subsection{光场}
+Light fields. The light field (or plenoptic function) describes the spatial-angular distribution of radiance in free space for an envi- ronment, dating back to models proposed in physics literature in the early 1930’s. The first works to use light fields in graphics in- troduced the concept of a light slab, encoding a rectangular subset of the light field [Levoy and Hanrahan 1996; Gortler et al. 1996]. This light slab has been employed in many products and produc- tions, and methods exist for reconstructing it in real-time with the slab region. However, ours is the first method to encode and ap- ply to real-time rendering a light field parameterization that can be evaluated at any point in space, with correct occlusion.
+
+
+将不规则空间分布的真实摄像机拍摄的probe序列重采样成规则的3D计算机友好的数据结构
+2009 HDR light probe sequence resampling for realtime incident light field rendering
+
+
+
+
+\subsection{辐射照度体积}
+
+使用适应性方法减少存储内存
+2007 View-independent irradiance map generation
+
+
+
+\subsection{光照探针}
+Unity’s realtime GI allows moving lights to cast dynamic bounced light against your static scenery. However, you can also receive dynamic bounced light from moving lights on moving GameObjects when you are using llight probes.
+
+非常重要
+Since a probe is reconstructed by a linear combination of coe cients and basis functions, interpolating two probes can be done just by interpolating their coe cients.
+
+
+From a high-level, the Volumetric Lightmaps system works in the following manner:
+
+Lightmass places lighting samples throughout the level and computes indirect lighting for them during the lighting build.
+When it comes time to render a dynamic object, the Volumetric Lightmap is interpolated to each pixel being shaded, providing precomputed indirect lighting.
+If no built lighting is available (meaning the object is new or has moved too much), lighting is interpolated to each pixel from the Volumetric Lightmap for Static objects until lighting is rebuilt.
+When a Lightmass Importance Volume is placed, the Volumetric Lightmap builds bricks that are made up of 4x4x4 cells (lighting samples). When lightmass is run, the cells are placed over the whole Lightmass Importance Volume and then it uses more cells around static geometry in the scene to capture better indirect lighting results.
+
+Each of these points (or spheres) is a Volumetric Lightmap lighting sample, which uses a Third Order Spherical Harmonic to store the incoming lighting in all directions.
+
+
+
+Lightmass creates lightmaps with complex light interactions like area shadowing and diffuse interreflection. It is used to precompute portions of the lighting contribution of lights with stationary and static mobility.
+
+
+Character lighting
+
+Lightmass places samples in a uniform 3d grid inside the Lightmass Importance Volume at a low resolution, and also on top of upward facing surfaces that characters are likely to walk on, at a higher resolution. Each lighting sample captures indirect lighting from all directions, but not direct lighting.
+
+The Indirect Lighting Cache then interpolates the indirect lighting for a movable object using these lighting samples. The indirect lighting affects the color of the light environment shadow, but not the direction. Use Show->Visualize->Volume Lighting Samples to preview these in your viewport.
+
+The volume lighting samples store directional indirect lighting which allows normal maps to work.
+
+
+
+
+
+
+
+
+
+
+
+
+2005 Irradiance Volumes for Games.pdf
+
+
+Volumetric Lightmaps
+
+https://docs.unrealengine.com/latest/INT/Engine/Rendering/LightingAndShadows/VolumetricLightmaps/index.html
+
+
+
+
+
+
+
+
+
+Reflection Probe
+SWITCH TO SCRIPTING
+A Reflection Probe is rather like a camera that captures a spherical view of its surroundings in all directions. The captured image is then stored as a Cubemap that can be used by objects with reflective materials. Several reflection probes can be used in a given scene and objects can be set to use the cubemap produced by the nearest probe. The result is that the reflections on the object can change convincingly according to its environment.
+
+
+
+\subsubsection{可见性}
+
+
+
+
+\subsection{实时生成光照探针}
+2017 Real-time Global Illumination by Precomputed Local Reconstruction from Sparse Radiance Probes
+
+Systems such as Geomerics re-render radiance probes and light maps in real-time using complex schedul- ing and threading. Our input data are similar, so a similar software engineering approach may be applicable to the light field probe rep- resentation to enable real-time updates of the global illumination
+solution.
+\end{comment}

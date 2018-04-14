@@ -1,0 +1,16 @@
+
+%在了解各个GI计算之后，再对偏差和一致性的概念进行系统总结，以求彻底掌握各种GI技术，也会涉及到它们之间联系的总结
+
+
+https://labs.chaosgroup.com/index.php/rendering-rd/the-truth-about-unbiased-rendering/
+
+
+2015 Overview of biased light transport and light source minimization techniques
+
+2013 Five Common Misconceptions about Bias in Light Transport Simulation
+
+传统的很多资料主要聚焦于有偏性和一致性的定义本身，很少涉及这些具体的估计算法怎样的选择导致有偏，例如即时辐射度是怎样产生偏差，光子映射是怎样产生偏差的等。
+
+
+
+At the end of the previous chapter, we mentioned some of the Monte Carlo techniques that evaluate the integro-differential equation by recursive sampling. Thanks to the central limit theorem, these approaches yield correct results, on average, but the results often suffer from high amount of noise. Several algorithms strive to overcome this and accelerate rendering by reusing computation and/or correlating estimates. These techniques split the simulation of transport between emitters and cameras into two phases. In the first phase, the algorithm distributes information about (multi-bounce) illumination coming from emitters, and stores it in a form of e.g. irradiance samples [Ward et al. 1988], a photon map [Jensen 1996], or a collection of virtual point lights [Keller 1997]. The second phase is then responsible for connecting these samples to the camera e.g. by shooting primary rays and estimating the density of photons. While the scheme may seem convoluted, the great advantage of these algorithms is that they can reuse results of the first part across multiple pixel queries, thereby reducing the variance.

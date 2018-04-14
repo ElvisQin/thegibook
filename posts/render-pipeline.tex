@@ -1,0 +1,13 @@
+\chapter{Render Pipeline}
+
+Moden Render Pipeline
+
+deferred shading
+raster + depth buffer
+
+UE4's documents didn't explain how render equation worked, mean while how the physically based material be used. The material just is used to provide the inputs to the render equation, as the parameters of the render equation. This input are just about the basic properties of the 'objects' in the world, all the thing about light and shadows are hiddened. How lightmass be used? How Roughness, How indirect lighting cache is used?
+
+All the things about real rendering things can't be found in Unreal Engine document.
+
+
+GPU raytracing beyond spheres and planes (I mean polygons)• A very hot research topic today (because raytracing is the future...)• Difficult to beat CPU raytracers• kd-tree/bih/bvh traversal is quite incoherent• They all need a stack (unavailable today on shaders).• For massive models, streaming to video memory is needed. That makes it more complex.• In any case, demosceners have not been interested on real raytracing so far; even less in the 4k categories.
