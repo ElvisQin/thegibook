@@ -954,13 +954,13 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 
 上式的第二个积分项可以被预计算起来，因为它们与光照场是无关的。所以剩下的，我们仅需要对微面元的法线分布函数$D(h)$进行采样，这形成下面的预过滤积分形式：
 
-\begin{equation}
+\begin{equation}\label{e:pl-intergal-directional}
 	\int_H L(l)D(h){\rm d}l
 \end{equation}
 
 对于一个给定的法线分布函数，我们在CPU端生成其使用的方向样本，并将其传输到GPU的常量寄存器中，然后所有使用该法线分布函数的表面都使用这些相同的样本。这些球面空间中相对于表面法线的方向样本，可以通过使用逆变换算法从一对均匀样本$\xi_0,\xi_1\in[0,1]$中生成，即：
 
-\begin{equation}
+\begin{equation}\label{e:pl-uniform-sampling}
 \begin{aligned}
 	\theta=&2\pi \xi_0\\
 	\phi=&\tan^{-1}\Biggl(\cfrac{\alpha\sqrt{\xi_1}}{\sqrt{1-\xi_1}}\Biggl)
@@ -973,7 +973,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 
 样本在方向空间的固体角$SA_{\rm sample}$等于均匀分布样本的尺寸除以每个样本的重要性函数，这是因为每个样本所占据的“范围”与其重要性函数成反比，如图\ref{f:pl-importance-sampling}(a)所示；而每个像素的表面尺寸可以通过如下的方式计算：即立方体每个面的面积4\footnote{每个边的坐标值范围为$[-1,1]$，所以面积为4。}，被由方向空间向立方体投影变换的雅可比矩阵$J(x,y,z)$加权，然后再除以每个面内像素的数量$Resolution^{2}$，其中有立方体面$[-1,1]^{3}$向单位球面投影的雅可比矩阵为$J(x,y,z)=\cfrac{1}{(x^{2}+y^{2}+z^{2})^{3/2}}$。综上，样本对应多级纹理的层级可由下式计算得出，即：
 
-\begin{equation}
+\begin{equation}\label{e:pl-lod}
 \begin{aligned}
 	SA_{\rm sample}=&\cfrac{4\pi}{ND\bigg(\cfrac{p+n}{||p+n||}\bigg)}\\
 	SA_{\rm texel}=&\cfrac{4J(p_x,p_y,p_z)}{Resolution^{2}}\\
@@ -981,7 +981,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 \end{aligned}
 \end{equation}
 
-由此可知，重要性采样方法通过对法线（或者BRDF）分布函数进行重要性采样，从而能够直接事先得到一个给定分布函数的采样样本的位置，然而这些样本被上传的GPU中，表面上的每个像素都执行相同的计算，因此能够符合GPU的并行计算特征，同时能够保留阶层式预过滤方法使用多级环境贴图的优点。
+在实现中，有两种策略来执行上述的重要性采样预过滤过程，对于各向同性的BRDF分布函数，我们可以直接在CPU段预计算出每个BRDF分布函数需要使用的样本，然后这些样本被上传的GPU中，表面上的每个像素都执行相同的计算，因此能够符合GPU的并行计算特征，同时能够保留阶层式预过滤方法使用多级环境贴图的优点；对于各向异性的BRDF分布函数，那么方向采样的过程则涉及到表面法线，因此这个重要性采样过程必须发生在GPU阶段，这种情况下CPU只能生成均匀的随机$[\xi_1,\xi_2]$，而包括式\ref{e:pl-uniform-sampling}和\ref{e:pl-lod}的整个过程则均实时发生于GPU端的像素着色器中。
 
 \begin{myshaded}
 	尽管阶层式预过滤和重要性采样方法都能够实现对多级环境贴图的像素读取，但是两者的精确度是不一样的。
@@ -995,7 +995,127 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 
 
 \subsubsection{实时预过滤方法}
+重要性采样方法的主要缺点，是它的样本具有随机性，因此整个估计会有比较大的方差，这往往需要使用更多数量的样本才能减少这种估计误差，例如它需要增加4倍的样本数量才能减少2倍的方差。对于GGX而言，它的一个重要特征是在很大的方向范围内存在一个“拖尾”，在这些拖尾的区域，其BRDF分布函数的重要性很低，因此这些拖尾区域的方差会非常高，为了实现这种重要的光泽反射特征，重要性采样方法不得不使用非常大数量的样本，因此使得其很难满足实时预过滤的要求。
+
+重要性采样预过滤方法的误差来源于其使用方向样本的随机性，本节要介绍的也是一种基于重要性采样的方法，但是它通过精心控制这些样本的位置，其影响环境贴图的尺寸，以及样本的权重来最小化这种随机性，从而使得最终的预过滤结果的误差最小。通过减少样本的随机性，整个预过滤估计具有更小的误差，因此在相同的误差条件下，这种方法需要的样本数量相对于重要性采样要少得多，从而使其能够比较好的适用于实时地对环境贴图执行预过滤。
+
+除此之外，前面这些关于预过滤的内容，仅讨论了一般预过滤的原理及方法，并没有针对特定的环境贴图表述形式，这些方法能够很好地作用于球面空间，但是当前工业中大多使用的是立方体贴图，当这些过滤方法作用于立方体环境贴图时，其会遇到一些困难。一方面，这需要考虑立方体贴图各个面之间的缝隙，特别是那些边角的位置，这些地方的过滤需要考虑来自三个面的像素的加权，这种对于三个表面的参数化非常困难；另一方面，即是过滤器核函数在球面上是圆对称的，但是当期投影到立方体表面时，过滤器会变成各向异性的，尽管许多方法能够处理各向异性的过滤器，但是它们均不能满足实时计算的需求。本节介绍的方法将会描述对这些困难的处理。
+
+
+
+\paragraph{基本思路}
+样本的随机性带来估计的方差，然而怎样在保证重要性采样的前提下，又能使样本的随机性带来的误差最小化，我们需要一种对估计误差形式上的定义。
+
+为了推导出这个误差的公式形式，首先将式\ref{e:pl-intergal-directional}基于方向的积分转变成以下基于面积的积分形式，这样我们将能够在像素区域进行分析：
+
+\begin{equation}\label{e:pl-intergal-area}
+\begin{aligned}
+	\int L(x)D(x){\rm d}x\approx &\int L(x)B(x){\rm d}x\\
+	\approx &\sum_i c_i\int L(x)b_i(x){\rm d}x
+\end{aligned}
+\end{equation}
+
+在上式中，$B(x)$表示法线分布函数$D(x)$在立方体贴图上的投影，$i$表示多级立方体贴图上的每一个纹素，该纹素对整个积分的贡献为$b_i(x)$。式\ref{e:pl-intergal-area}中，实际上$\sum_i c_ib_i(x)$是对$B(x)$的一个近似，即将将$b_i(x)$看做一个基函数，那么$c_i$就是$B(x)$投影到这些基函数的系数。
+
+
+通过观察式\ref{e:pl-intergal-area}可以发现，光照场$L(x)$是一个公共因子，因此上式可重组为：
+
+\begin{equation}
+	\int L(x)\Biggl| B(x)- \sum_i c_i b_i(x)\Biggl| {\rm d}x \approx 0
+\end{equation}
+
+\noindent 然后通过将$L(x)$从上式移除，可以得到一个不依赖于特定光照场的形式\cite{a:Cardinality-constrainedtexturefiltering}：
+
+\begin{equation}\label{e:pl-min-error}
+	\int \Biggl| B(x)- \sum_i c_i b_i(x)\Biggl| {\rm d}x \approx 0
+\end{equation}
+
+上式说明，我们可以通过选择某组基函数$b_i(x)$，并使得上述积分被积函数的绝对值最小化，来使得整个预过滤估计（即式\ref{e:pl-intergal-area}）的误差最小化。
+
+式\ref{e:pl-intergal-area}并没有定义$b_i(x)$的具体形式，$b_i(x)$是环境贴图所在纹理空间上的基函数\footnote{因为$D(x)$已经被投影到立方体贴图所在的纹理空间。}，它表示的是第$i$个像素位置处的贡献值。不管$b_i$如何选择，只要能够找到一组系数$c_i$使得式\ref{e:pl-min-error}的值最小化，即可以使得整个预过滤估计的误差最小化。
+
+特别地，如果选择基函数$b_i(x)$为一个$2\times 2$的盒式过滤器（box filter）\myindex{盒式过滤器}{box filter}，则在式\ref{e:pl-intergal-area}第二行公式中，被积函数$L(x)b_i(x)$刚好可以表述为将一个盒式过滤器作用与原始的环境贴图，这刚好是我们形成多级环境贴图的过程，因此式式\ref{e:pl-intergal-area}就转化为各个像素位置处投影系数$c_i$与多级环境贴图中纹素值的乘积的和，这仅仅涉及对多级环境贴图的一次三线性查询操作，而系数$c_i$独立于环境贴图，因此它可以被预计算至一个查询表中，最后整个预过滤的实时计算就会的非常简单：两次纹理的查询操作以及相应两项的乘积计算。
+
+有了上述的理论基础，本节介绍的快速预过滤方法\cite{a:FastFilteringofReflectionProbes}的思路就变得很清晰了，为了实现对立方体环境贴图的实时预过滤，这要求算法的结构非常简单，并且对于每个带预过滤像素仅使用很少的样本，算法中对纹理的查询应该尽可能地使用GPU的三线性插值特性。快速预过滤方法将整个过滤卷积计算分成两个通道，以及一个与环境贴图无关的查询表格的预计算：
+
+\begin{itemize}
+	\item 在第一个通道，算法首先对原始环境贴图执行过滤以生成一个多级纹理的结构，这个过程和前面的阶层式预过滤和重要性采样方法的思路是一致的，即减少对低频区域像素的读取次数，因为这些样本覆盖这更大的方向范围，原本它们需要从原始环境贴图读取更多数量的纹素。
+	\item 在第二个通道，算法组合多级环境贴图中的纹素与样本查询表格中的系数，计算出最终过滤后的环境贴图。
+	\item 最后，上述快速预过滤方法的实时计算部分非常简单，基本上仅仅涉及纹素的读取，该过滤过程的大部分操作都被转移到查询表的生成当中，由于查询表示与环境贴图无关的，因此它在一个预处理阶段被执行，并且可以使用非常复杂的方法来减少估计的误差以及提高最终结果的质量。查询表格中存储着每一个方向样本的位置，其对应多级环境贴图中的细分层级，以及该样本的过滤权重值
+\end{itemize}
+
+以下，我们分别详细介绍这三个过程及其涉及的一些相关问题。
+
+
+
+\paragraph{第一通道：向下采样}
+
+
+
+
+
+\paragraph{第二通道：过滤器近似}
+\paragraph{预计算：系数表的优化}
+
+
+
+
+
+
+Our contribution is to show that you can do a better job by optimizing for the best sample positions, sizes, and weights.
+
+
 立方体贴图
+
+\cite{a:FastFilteringofReflectionProbes}
+
+
+
+\begin{figure}
+\begin{fullwidth}
+	\begin{subfigure}[b]{0.245\thewidth}
+		\includegraphics[width=\textwidth]{figures/pl/reconstruction-reference}
+		\caption{参考}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.245\thewidth}
+		\includegraphics[width=\textwidth]{figures/pl/reconstruction-box}
+			\caption{盒过滤器}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.245\thewidth}
+		\includegraphics[width=\textwidth]{figures/pl/reconstruction-unweighted}
+			\caption{为加权}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.245\thewidth}
+		\includegraphics[width=\textwidth]{figures/pl/reconstruction-weighted}
+			\caption{雅可比加权}
+	\end{subfigure}
+	\caption{一种特殊的由线性分段函数组成的函数基，其每个基函数是一小段信号，它们可以被缩放并组合起来对原始函数形成近似，这个过程称为重建(b)，决定每个基函数的缩放系数的过程被称为投影(a)。}
+	\label{f:pl-reconstruction-comparation}
+\end{fullwidth}
+\end{figure}
+
+
+
+
+
+\begin{figure}
+	\begin{subfigure}[b]{0.325\textwidth}
+		\includegraphics[width=\textwidth]{figures/pl/sampling-raster}
+		\caption{光栅化方法}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.325\textwidth}
+		\includegraphics[width=\textwidth]{figures/pl/sampling-importance}
+			\caption{重要性采样}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.325\textwidth}
+		\includegraphics[width=\textwidth]{figures/pl/sampling-optimized}
+			\caption{优化的重要性采样}
+	\end{subfigure}
+	\caption{一种特殊的由线性分段函数组成的函数基，其每个基函数是一小段信号，它们可以被缩放并组合起来对原始函数形成近似，这个过程称为重建(b)，决定每个基函数的缩放系数的过程被称为投影(a)。}
+	\label{f:pl-sampling-comparation}
+\end{figure}
+
+
 
 
 \begin{comment}
