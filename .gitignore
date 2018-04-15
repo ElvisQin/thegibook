@@ -11,6 +11,8 @@
 *.mtc1
 *.mtc2
 *.mtc3
+*.mtc4
 *.out
+*.gz
 *.synctex.gz
 *.pdf
