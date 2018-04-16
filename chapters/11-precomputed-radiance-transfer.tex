@@ -1049,27 +1049,36 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 
 
 \paragraph{第一通道：向下采样}
+第一个通道的主要目的，是对原始环境贴图执行向下采样以生成多级的环境贴图。纹素的向下采样（down sampling）\myindex{向下采样}{down sampling}就是对周围的相邻纹素执行加权平均来生成低分辨率纹理的过程，通过前面的分析可知，每个相邻像素的加权权重就是我们用于重建过滤器$B(x)$的基函数$b_i(x)$。
 
+传统生成多级纹理的标准方法是使用一个递归的盒式过滤器（box filter）\myindex{盒式过滤器}{box filter}，盒式过滤器其实是一个0阶的B样条（B-spline）\mathindex{B样条}{B-spline}，它的递推关系（recurrence relation）\myindex{递推关系}{recurrence relation}为$(1/2,1/2)$\cite{a:Apracticalguidetosplines;rev.ed}。
 
+虽然盒式过滤器非常简单并且计算速度很快，但是从这种分段常数基函数（piecewise constant basis）表述的图像中获取的纹素，用在第二通道的组合计算时，其收敛速度会非常慢，因此我们需要一种相邻纹素之间过渡更加平滑的多级纹理。下一个能够被用于2次幂（power-of-two）网格的B样条是二次B样条（quadratic b-spline）基函数，它的递推关系为$(1/8,3/8,3/8,1/8)$，实验发现它能够在收敛速度和质量之间取得最好的平衡。
 
+然而二次方B样条是一个$4\times 4$的张量积，这意味着我们需要对相邻的16个纹素执行加权计算，目前GPU一般并没有提供这种线性插值特性。但是从\cite{a:Fastthird-ordertexturefiltering}中得到启发，我们可以使用4个双线性的样本来计算对16个纹素的加权平均。考虑1D的情形，我们需要对相邻的$s_1,s_2,s_3$和$s_4$这4个纹素执行的加权计算为：
 
+\begin{equation}\label{e:pl-4-weighted-average}
+	1/8s_1+3/8s_2+3/8s_3+1/8s_4
+\end{equation}
 
-\paragraph{第二通道：过滤器近似}
-\paragraph{预计算：系数表的优化}
+\noindent 对于线性插值函数${\rm lerp}(a,b,t)=(1-t)a+tb$，上述的加权计算可以重写为两个线性插值的和，即：
 
+\begin{equation}
+	\cfrac{1}{2}\bigg({\rm lerp}(s_1,s_2,3/4)+{\rm lerp}(s_3,s_4,1/4)\bigg)
+\end{equation}
 
+上式说明，我们可以使用两个简单的线性插值计算来计算式\ref{e:pl-4-weighted-average}所示的加权计算，而这种线性插值特性是GPU能够提供的。图\ref{f:pl-downsampling}显式了这种线性插值的图形化描述，其中黑色轮廓线表示位于立方体贴图边角的4个纹素，其中每个纹素的中心位于由蓝色线条构成的网格单元的顶点位置，绿色点线表示立方体面的边，4个红色的原点分别表示4个双线性的样本位置，它们分别位于相邻两个纹素的$1/4$和$3/4$的位置处。
 
+\begin{figure}
+	\sidecaption
+	\includegraphics[width=0.3\textwidth]{figures/pl/downsampling}
+	\caption{16个样本的二次方B样条加权可以使用4个双线性的样本插值来得到相同的结果}
+	\label{f:pl-downsampling}
+\end{figure}
 
+另一方面，上述的过滤操作是作用于立方体环境贴图每一个2D的面上的，这也是一般生成多级纹理的方式，过滤器作用于2D的纹理上。然而在本节讨论的快速过滤方法中，我们最终需要将这些二次方B样条的权重值作为法线分布函数的基函数，以更好的近似法线分布函数，如式\ref{e:pl-min-error}所示，而法线分布函数是表述于球面上的，虽然二次方B样条是平滑的，但是球面上一个常数函数投影到立方体的每个面之后，在面与面之间并不是平滑的，所以为了更好地近似法线分布函数，我们需要对递推过程中的每一个样本，使用由球面到立方体表面投影变换的雅可比矩阵$J(x,y,z)$进行加权，这种使用$J(x,y,z)$加权后的$b_i(x)$才能更好地重建法线分布函数。
 
-
-Our contribution is to show that you can do a better job by optimizing for the best sample positions, sizes, and weights.
-
-
-立方体贴图
-
-\cite{a:FastFilteringofReflectionProbes}
-
-
+图\ref{f:pl-reconstruction-comparation}显式了不同的基函数$b_i(x)$在立方体表面上对法线分布函数（本节主要指GGX）的近似，其中盒式过滤器的近似效果比较差，它需要更大数量的方向样本采样比较平滑的近似法线分布函数，如图\ref{f:pl-reconstruction-comparation}(b)所示；图\ref{f:pl-reconstruction-comparation}(c)和(d)均使用了二次方B样条作为基函数$b_i(x)$，但是为加权的二次方B样条不能很好地近似立方体边缘的法线分布函数，如图\ref{f:pl-reconstruction-comparation}(c)所示；而使用雅可比矩阵进行加权的基函数$b_i(x)$能够更好地近似法线分布函数。
 
 \begin{figure}
 \begin{fullwidth}
@@ -1089,7 +1098,7 @@ Our contribution is to show that you can do a better job by optimizing for the b
 		\includegraphics[width=\textwidth]{figures/pl/reconstruction-weighted}
 			\caption{雅可比加权}
 	\end{subfigure}
-	\caption{一种特殊的由线性分段函数组成的函数基，其每个基函数是一小段信号，它们可以被缩放并组合起来对原始函数形成近似，这个过程称为重建(b)，决定每个基函数的缩放系数的过程被称为投影(a)。}
+	\caption{不同基函数$b_i(x)$对一个粗糙表面的GGX核函数的重建结果，这里对每个像素均使用8个样本进行重建，好的基函数能够大大减少需要的方向样本的数量，提高了精确度并加快了收敛速度（图片来自\cite{a:FastFilteringofReflectionProbes}）}
 	\label{f:pl-reconstruction-comparation}
 \end{fullwidth}
 \end{figure}
@@ -1097,22 +1106,107 @@ Our contribution is to show that you can do a better job by optimizing for the b
 
 
 
+\paragraph{第二通道：法线分布函数的近似}
+第二个通道的主要目的，是将从多级环境贴图中查询的多个三线性样本，与后面预计算的查询表中的系数进行组合，以对最终的预过滤结果进行近似。
+
+前面已经计算出了多级环境贴图中的颜色值，但是还不知道系数表格中的对每个样本到底存储了哪些参数值，以及每个参数的用途是什么，这就是接下来的内容。
+
+对于每一个GGX核函数，其预计算出并存储的系数表格为：
+
+\begin{equation*}
+	{\rm Table}=(N \text{个样本})\times(3\text{个坐标系})\times (5\text{个参数值})\times(3\text{个多项式系数})
+\end{equation*}
+
+其中$N$为每个GGX核函数使用的方向样本的数量，我们将在后面具体描述怎样确定这些样本的位置，这里先假设它已经被确定；3个坐标系用来进行混合以消除极点，这也会在后面介绍。
+
+其中的5个具体的参数值才是我们最终执行预过滤组合计算需要的参数值，它们分为以下三个数据类型：
+
+\begin{itemize}
+	\item \textbf{float3}：一个$<x,y,z>$坐标值，它表示的是样本的位置。
+	\item \textbf{float}：样本对应多级环境贴图的细节层级$l_i$。
+	\item \textbf{float}：样本的权重，即投影系数$c_i$。
+\end{itemize}
+
+样本的位置$<x,y,z>$是相对于一个待计算纹素坐标系$\hat{x},\hat{y},\hat{z}$的偏移值，这个纹素的坐标系定义于一个极坐标系（polar coordinate）中，其中$\hat{z}=\hat{n}$为纹素的方向，$\hat{a}$为极坐标的方向，纹素的正切空间定义为$\hat{x}=normalize(\hat{a}\times \hat{z})$，$\hat{y}=normalize(\hat{a}-\hat{z}(\hat{a}\cdot\hat{z}))$，如图\ref{f:pl-polar-frame}所示。
 
 \begin{figure}
-	\begin{subfigure}[b]{0.325\textwidth}
+	\sidecaption
+	\includegraphics[width=0.45\textwidth]{figures/pl/polar-frame}
+	\caption{使用极坐标系来定义样本的偏移位置，在快速预过滤方法中每个样本位置包含三个极坐标系，其极坐标分别对应三个主轴（图片来自\cite{a:FastFilteringofReflectionProbes}）}
+	\label{f:pl-polar-frame}
+\end{figure}
+
+在上述的极坐标系下定义的正切空间中，其在极点$\pm$处会存在奇异值，因此为了避免这种情况，\cite{a:FastFilteringofReflectionProbes}对每个样本位置使用了三个极坐标系，其每个极坐标的方向分别对应三个主坐标主轴，最终的参数值来源于这三个坐标系下参数值的混合，其混合的规则使得这些奇异值位置的混合系数为0，其它完全不与奇异值相交的位置混合系数为1，其它区域则平滑地过度，具体内容参见原文，我们关注于预过滤方法，这里不再对其详细讨论。
+
+现在总结一下以上内容，对于每一个GGX核函数，它有三个极坐标系，其中每个坐标系内有$N$个独立的方向样本，每个样本有5个参数：定义于坐标系$(x_i,y_i,z_i)$内的位置偏移，其使用的细分层级$l_i$，以及样本的权重值$w_i$（即投影系数$c_i$）。每个样本的位置$p$可表示为$p=x_i\hat{x}+y_i\hat{y}+z_i\hat{z}$。
+
+基于以上内容，一个环境贴图每个纹素的预过滤颜色值为：
+
+\begin{equation}
+	\cfrac{\sum^{2}_{frame=0}W_{frame}(n)\sum^{N-1}_{i=0}w_i sample(p,l_i)}{\sum^{2}_{frame=0}W_{frame}(n)\sum^{N-1}_{i=0}w_i}
+\end{equation}
+
+\noindent 其中，$W_{frame}$为每个极坐标系的加权值，$w_i$即为后面会介绍的法线分布函数的投影系数$w_i$，而函数$sample(p,l_i)$从多级环境贴图中执行三线性插值得到的光照值。
+
+从上式可以看出，实时预过滤方法的实时计算非常简单，它仅仅涉及对多级环境贴图的三线性采样，以及从系数表格中顺序读取各个参数值，所有关于样本位置的采样，以及投影系数的计算均被前置到后面会介绍的预计算阶段，这大大加速了对环境贴图的预过滤计算。
+
+最后，除了通过增加样本的数量，我们还可以根据纹素在立方体表面上的位置来调整这些采样参数的值，使得估计的误差进一步减小，这也是为了更好地考虑核函数由球面空间向立方体表面投影时的不均匀性。\cite{a:FastFilteringofReflectionProbes}简单地将这些采样参数表示为纹素位置的一个低阶的多项式，其中纹素的在立方体中的坐标定义如图\ref{f:pl-polynomials}所示，其中$\theta$为绕极点方向逆时针旋转的角度，它在每个面由-1到1之间线性变化，$\phi$则在每个侧面由下向上在-1到1之间线性变化，并在走向极点时变化至0。
+
+\begin{figure}
+	\sidecaption
+	\includegraphics[width=0.47\textwidth]{figures/pl/polynomials}
+	\caption{立方体的参数化，其坐标值在每个坐标轴线段上的变化是线性的，其中$\theta$在于垂直边线的交点处会存在不连续，但是$\phi$在底边从-到-1的变化是连续且变化为1，然后从下到上由-1到1的过程中连续变化至0（图片来自\cite{a:FastFilteringofReflectionProbes}）}
+	\label{f:pl-polynomials}
+\end{figure}
+
+基于上述的基础，每个样本的参数相对于纹素位置的函数为：
+
+\begin{equation}
+	P(\theta,\phi)=a+b\theta^{2}+c\phi^{2}
+\end{equation}
+
+当然处于计算效率的考虑，这只是一个经验上的近似，但是其能够一定程度上减少预过滤结果的误差。
+
+
+
+\paragraph{预计算：系数表的优化}
+
+
+着重于样本位置的生成和调整，以及拟合方法，以使得误差最低
+
+
+
+Our contribution is to show that you can do a better job by optimizing for the best sample positions, sizes, and weights.
+
+
+立方体贴图
+
+\cite{a:FastFilteringofReflectionProbes}
+
+
+
+
+
+
+
+
+\begin{figure}
+\begin{fullwidth}
+	\begin{subfigure}[b]{0.325\thewidth}
 		\includegraphics[width=\textwidth]{figures/pl/sampling-raster}
 		\caption{光栅化方法}
 	\end{subfigure}
-	\begin{subfigure}[b]{0.325\textwidth}
+	\begin{subfigure}[b]{0.325\thewidth}
 		\includegraphics[width=\textwidth]{figures/pl/sampling-importance}
 			\caption{重要性采样}
 	\end{subfigure}
-	\begin{subfigure}[b]{0.325\textwidth}
+	\begin{subfigure}[b]{0.325\thewidth}
 		\includegraphics[width=\textwidth]{figures/pl/sampling-optimized}
 			\caption{优化的重要性采样}
 	\end{subfigure}
-	\caption{一种特殊的由线性分段函数组成的函数基，其每个基函数是一小段信号，它们可以被缩放并组合起来对原始函数形成近似，这个过程称为重建(b)，决定每个基函数的缩放系数的过程被称为投影(a)。}
+	\caption{一种特殊的由线性分段函数组成的函数基，其每个基函数是一小段信号，它们可以被缩放并组合起来对原始函数形成近似，这个过程称为重建(b)，决定每个基函数的缩放系数的过程被称为投影(a)。（图片来自\cite{a:FastFilteringofReflectionProbes}）}
 	\label{f:pl-sampling-comparation}
+\end{fullwidth}
 \end{figure}
 
 
