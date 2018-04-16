@@ -1170,25 +1170,35 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 
 
 \paragraph{预计算：系数表的优化}
+系数查询表格中的参数是在预计算阶段计算的，前面已经介绍了这些参数怎样被用于实时阶段的预过滤计算，现在我们就要来介绍这些参数是怎样生成的。其中前面的内容已经介绍了细分层级$l_i$和多项式系数的计算方法，我们还剩下两个参数值的计算方法没有介绍：即投影系数$c_i$以及每个样本位置的确定。
 
+首先介绍的是投影系数的计算，由于它必须依赖于确定的样本位置，所以首先假设样本的位置已经确定，那么我们需要确保在这些已知的$N$个样本下使得最终预过滤的结果误差最小，本节前面的内容已经介绍过，这即是使得式\ref{e:pl-min-error}所示的积分值最小化，为了便于描述，这里将其公式重写如下：
 
-着重于样本位置的生成和调整，以及拟合方法，以使得误差最低
+\begin{equation}\label{e:pl-min-error-1}
+	\int \Biggl| B(x)- \sum_i c_i b_i(x)\Biggl| {\rm d}x \approx 0
+\end{equation}
 
+上式本质上是一个回归问题，本书在前面第\ref{chp:path-tracing}章第\ref{sec:pt-first-order-regression}节已经介绍过关于回归分析（regression analysis）\myindex{回归分析}{regression analysis}的知识，回归分析通常涉及用一些预测变量（这里是$b_i(x)$）和相应的参数（这里是$c_i$）来表述一个函数（这里是$B(x)$）的形式，通常已知要拟合的函数的形式，我们的目标是要得出相关的这些预测变量对应的参数。
 
+当进行回归计算时，我们首先需要选择相应的损失函数（loss function）\mathindex{损失函数}{loss function}，这有两种选择，即L1范数（L1-norm）\mathindex{L1范数}{L1-norm}或L2范数（L2-norm）\mathindex{L2范数}{L2-norm}。
 
-Our contribution is to show that you can do a better job by optimizing for the best sample positions, sizes, and weights.
+L1范数有称为最小绝对值导数（least absolute deviations，LAD）\mathindex{最小绝对值导数}{least absolute deviations}或者最小绝对值误差（least absolute errors，LAE）\mathindex{最小绝对值误差}{least absolute errors}，设目标函数值$y_i$与估计值$f(x_i)$的绝对值为$|y_i-f(x_i)|$，则最小绝对值导数发的目标是要使下述的$S$值最小化：
 
+\begin{equation}
+	S=\sum^{n}_{i=0}|y_i-f(x_i)|
+\end{equation}
 
-立方体贴图
+L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{least squares}，设目标函数值$y_i$与估计值$f(x_i)$的差异为$y_i-f(x_i)$，则最小二乘法的目标是要使得下述的$S$值最小化：
 
-\cite{a:FastFilteringofReflectionProbes}
+\begin{equation}
+	S=\sum^{n}_{i=1}(y_i-f(x_i))^{2}
+\end{equation}
 
+尽管最小二乘法是更简单也更常用的回归分析方法，但是\cite{a:FastFilteringofReflectionProbes}发现其对GGX“拖尾”部分的近似能力比较差，而L1范数则能取得更加满意的结果，虽然其计算成本更高，但是由于系数表参数的计算发生在预处理结算，所以这种成本是可接受和值得的。
 
+快速过滤方法的一个重要目标是对样本的位置进行调整，使其分布更加均匀来减少样本的随机性，进而减少估计的误差。然而，要对传统的重要性采样得到的样本的位置进行调整，并使得调整后的估计误差更小是很困难的，但是在\cite{a:FastFilteringofReflectionProbes}中，这里通过对调整后的样本位置来拟合相应的系数，所以它总是能够保证对于给定的样本位置，其估计的误差最小。
 
-
-
-
-
+快速预过滤方法首先通过传统的重要性采样\cite{a:Real-timeShadingwithFilteredImportanceSampling}方法来得到样本的初始位置，然后通过类似\cite{a:OnthelimitedmemoryBFGSmethodforlargescaleoptimization}的方法来对样本的位置进行调整，使其位置分布更加均匀，如图\ref{f:pl-sampling-comparation}所示。尽管这些位置调整的算法非常复杂，但是由于它们也是发生于预处理阶段，因此不会对实时的预过滤计算造成影响。
 
 \begin{figure}
 \begin{fullwidth}
@@ -1204,7 +1214,7 @@ Our contribution is to show that you can do a better job by optimizing for the b
 		\includegraphics[width=\textwidth]{figures/pl/sampling-optimized}
 			\caption{优化的重要性采样}
 	\end{subfigure}
-	\caption{一种特殊的由线性分段函数组成的函数基，其每个基函数是一小段信号，它们可以被缩放并组合起来对原始函数形成近似，这个过程称为重建(b)，决定每个基函数的缩放系数的过程被称为投影(a)。（图片来自\cite{a:FastFilteringofReflectionProbes}）}
+	\caption{三种不同采样方法，光栅化方法(a)对整个球面空间进行均匀采样，重要性采样方法(b)则根据法线分布函数进行重要性采样，快速预过滤方法(c)首先使用重要性采样方法生成初始位置，然后对这些样本的位置进行调整，使其分布更加均匀（图片来自\cite{a:FastFilteringofReflectionProbes}）}
 	\label{f:pl-sampling-comparation}
 \end{fullwidth}
 \end{figure}

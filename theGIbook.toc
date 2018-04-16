@@ -30,13 +30,13 @@
 \contentsline {paragraph}{第一通道：向下采样}{43}{paragraph*.28}
 \contentsline {paragraph}{第二通道：法线分布函数的近似}{45}{paragraph*.31}
 \contentsline {paragraph}{预计算：系数表的优化}{48}{paragraph*.34}
-\contentsline {chapter}{参\nobreakspace {}考\nobreakspace {}文\nobreakspace {}献}{52}{chapter*.36}
-\contentsline {xchapter}{}{52}{chapter*.36}
-\contentsline {chapter}{专有名词索引}{53}{chapter*.37}
-\contentsline {xchapter}{}{53}{chapter*.37}
-\contentsline {section}{中文索引}{53}{section*.38}
-\contentsline {section}{英文索引}{54}{section*.39}
-\contentsline {chapter}{数学概念索引}{56}{chapter*.40}
-\contentsline {xchapter}{}{56}{chapter*.40}
-\contentsline {section}{中文索引}{56}{section*.41}
-\contentsline {section}{英文索引}{56}{section*.42}
+\contentsline {chapter}{参\nobreakspace {}考\nobreakspace {}文\nobreakspace {}献}{54}{chapter*.36}
+\contentsline {xchapter}{}{54}{chapter*.36}
+\contentsline {chapter}{专有名词索引}{55}{chapter*.37}
+\contentsline {xchapter}{}{55}{chapter*.37}
+\contentsline {section}{中文索引}{55}{section*.38}
+\contentsline {section}{英文索引}{56}{section*.39}
+\contentsline {chapter}{数学概念索引}{58}{chapter*.40}
+\contentsline {xchapter}{}{58}{chapter*.40}
+\contentsline {section}{中文索引}{58}{section*.41}
+\contentsline {section}{英文索引}{58}{section*.42}
