@@ -19,11 +19,11 @@
 
 \begin{figure}
 	\begin{subfigure}[b]{0.49\textwidth}
-		\includegraphics[width=0.95\textwidth]{figures/prt/prt-1}
+		\includegraphics[width=\textwidth]{figures/prt/prt-1}
 		\caption{投影}
 	\end{subfigure}
 		\begin{subfigure}[b]{0.49\textwidth}
-		\includegraphics[width=0.9\textwidth]{figures/prt/prt-2}
+		\includegraphics[width=\textwidth]{figures/prt/prt-2}
 			\caption{重建}
 	\end{subfigure}
 	\caption{一种特殊的由线性分段函数组成的函数基，其每个基函数是一小段信号，它们可以被缩放并组合起来对原始函数形成近似，这个过程称为重建(b)，决定每个基函数的缩放系数的过程被称为投影(a)。}
@@ -174,7 +174,7 @@
 
 \begin{figure}
 \sidecaption
-	\includegraphics[width=0.65\textwidth]{graphics/prt/prt-4}
+	\includegraphics[width=0.65\textwidth]{figures/prt/prt-4}
 	\caption{头4个带的球谐函数可视化图，蓝色部分表示函数取正值，黄色部分则表示负值区域，表面上的点到原点的距离指示方向$(\theta ,\phi )$上的函数值$y_{\ell }^{m}(\theta ,\phi )$（图片来自Wikipedia，作者：Inigo.quilez）。}
 	\label{f:pl-sperical-harmonic}
 \end{figure}
@@ -201,7 +201,7 @@
 
 \begin{figure}
 \begin{fullwidth}
-	\includegraphics[width=1.0\thewidth]{graphics/prt/prt-6-2}
+	\includegraphics[width=1.0\thewidth]{figures/prt/prt-6-2}
 	\caption{函数在球谐函数上的投影近似，随着球谐函数次数（带）$l$的提高，其对原始函数近似度也逐渐提高。（图片来自\cite{a:SphericalHarmonicLightingTheGrittyDetails}。}
 	\label{f:pl-band-limited-approximation}
 \end{fullwidth}
@@ -1222,44 +1222,23 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 
 
 
-\begin{comment}
-
 
 \section{预计算辐射传输}\label{sec:pl-prt}
-在场景渲染的每一帧中，渲染方程都要计算光照传输，它是光子从光源发出通过场景中的表面到达摄像机的过程，如果场景是完全静止的，那么这样的计算过程对于每一帧是相同的，因此我们可以将这个“传输过程”提前计算并缓存起来，这样可以达到较高的实时性能。
+在场景渲染的每一帧中，渲染方程都要计算光照传输，它是光子从光源发出然后通过场景中的表面最后到达摄像机的过程，如果场景是完全静止的，那么这样的计算过程对于每一帧是相同的，因此我们可以将这个“传输过程”提前计算并缓存起来，这样可以达到较高的实时性能。
 
 预计算辐射（亮度）传输（precomputed radiance transfer，PRT）\myindex{
 预计算辐射传输}{precomputed radiance transfer}\cite{a:PrecomputedRadianceTransferforRealTimeRenderinginDynamicLowFrequencyLightingEnvironments}的主要原理，就是上述的光照积分可以被分离为一个包含自阴影和内部反射的预计算传输函数，以及运行时与之组合的一个实时动态改变的环境光照贴图，为了实现这个目标，传输函数和环境光照都被投影到一个正交基函数（例如球谐函数或小波函数），因此原始的光照积分被转化为这些基函数系数的内积，其中环境贴图的系数可以实时修改，而传输函数的系数则被存储于物体表面，因此光照传输只需要计算一次，大大提高了静态场景的渲染效率。
 
-不过，尽管预计算辐射传输方法比较高效，但是其仅限于静态场景，这大大限制了其运用与发展，所以本章仅对其做简要介绍（不过这并不意味着我们可以完全忽视它，作为一种重要的解决全局光照的思路，还是很有必要对其进行简单地了解，并且它所涉及的关于球谐函数的知识对于后面的辐射照度缓存也是想通的）。首先我们会简要复习一下相应的数学基础知识，然后介绍漫反射表面下的预计算辐射传输，最后将其扩展到一般（如光泽）表面情形，以及对高频函数的处理。
+另一方面，因为必须使用很少的系数来表述光源和预计算的数据（矢量或矩阵），所以预计算辐射传输方法的另一个假设是方向函数（光源和传输函数）是低频的，这可以减少内存的占用以及运行时的点积计算，但这也意味着预计算辐射传输仅能处理很柔和的阴影。不过，在该方法的演化中，其它一些方法（例如基于小波的方法）被引入使之能够处理全频率的方向函数。
+
+尽管预计算辐射传输方法比较高效，但是其仅限于静态场景，这大大限制了其运用与发展，所以本章仅对其做简要介绍（不过这并不意味着我们可以完全忽视它，作为一种重要的解决全局光照的思路，还是很有必要对其进行简单地了解，并且它所涉及的关于球谐函数的知识对于后面的辐射照度缓存也是想通的）。首先我们会简要复习一下相应的数学基础知识，然后介绍漫反射表面下的预计算辐射传输，最后将其扩展到一般（如光泽）表面情形，以及对高频函数的处理。
 
 
 
+\subsection{漫反射表面的PRT}
+为了更直观地理解预计算辐射传输方法的思路，本节我们先讨论最简单的漫反射表面的预计算辐射传输，然后在后续的内容中将其扩展至光泽表面以及全频率光源。
 
-
-
-
-
-
-更精确：
-2005 Fast and Detailed Approximate Global Illumination by Irradiance Decomposition
-
-2017 Real-time Global Illumination by Precomputed Local Reconstruction from Sparse Radiance Probes
-
-
-
-有了上述关于基函数投影以及函数近似的理论基础，假设场景是静态的，预计算辐射传输方法的核心思路就是为表面上的每个点预计算出一个传输矢量或矩阵并存储起来。
-
-在预计算辐射传输方法\cite{a:PrecomputedRadianceTransferforRealTimeRenderinginDynamicLowFrequencyLightingEnvironments}中，光源被近似为球谐函数，阴影和反射被视作一个传输矢量（对于漫反射表面）或矩阵（对于光泽表面），然后每个表面处的光照结果就是该矢量或矩阵与光源的球谐函数系数（矢量）的乘积，根据球谐函数的属性，这被转化为一个点积计算。
-
-所以预计算辐射传输方法的另一个假设是方向函数（光源和传输函数）是低频的，因为我们必须使用很少的系数来表述光源和预计算的数据（矢量或矩阵），这可以减少内存的占用以及运行时的点积计算。所以这也意味着预计算辐射传输仅能处理很柔和的阴影。不过，在该方法的演化中，其它一些方法（例如基于小波的方法）被引入使之能够处理全频率的方向函数。
-
-
-
-\subsection{光照传输问题}
-为了更直接地理解预计算辐射传输方法的思路，本节我们先讨论最简单的漫反射表面的预计算辐射传输，然后在后续的内容中将其扩展至光泽表面以及全频率光源。
-
-首先我们从光照方程的纽曼级数中的直接光照项开始，即：
+首先我们从光照方程的纽曼级数展开中的直接光照项开始，即：
 
 \begin{equation}
 \begin{aligned}
@@ -1268,224 +1247,160 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 \end{aligned}
 \end{equation}
 
-对于漫反射物体，向各个方向反射的光照是相同的，所以出射辐射亮度是一个与观察方向无关的，这也意味着BRDF函数是一个与方向无关的，因此它可以从积分中提取出来，上式中的直接光照项可以重写为：
+对于漫反射物体，向各个方向反射的光照是相同的，所以出射辐射亮度是与观察方向无关的，这也意味着BRDF函数是与方向无关的，因此它可以从积分中提取出来，上式中的直接光照项可以重写为：
 
 \begin{equation}\label{e:pl-diffuse}
 	L_0(p)=\frac{\rho_d}{\pi}\int L_{env}(\vec{s})V(p\to\vec{s})H_{N_p}(-\vec{s})d\vec{s}
 \end{equation} 
 
-这里$\rho_d$表示描边的漫反射系数，它的值介于$0$到$1$之间，分母$\pi$用于保证能量守恒。上式同时假设光源位于无限远处，因此入射辐射亮度与位置无关，而仅与方向$s$有关。
+\noindent 其中，$\rho_d$表示表面的漫反射系数，它的值介于$0$到$1$之间，分母$\pi$用于保证能量守恒。上式同时假设光源位于无限远处，因此入射辐射亮度与位置无关，而仅与方向$s$有关。
+
+图\ref{f:pl-diffuse}展示了预计算辐射传输的基本思路，左边一列包含了式\ref{e:pl-diffuse}中的三个方向函数，即光源，可见性以及余弦项，预计算辐射传输中的一个特殊处理就是将可见性和余弦项的卷积计算放在预处理过程中，由于卷积计算的结果仍然是一个方向函数，该方向函数被投影为由球谐函数系数构成的矢量并存储起来。最后，在运行时阶段，预存的光照传输矢量和光源的投影系数矢量进行点积计算得出最终的光照积分值。
 
 \begin{figure}
 	\sidecaption
-	\includegraphics[width=0.65\textwidth]{graphics/prt/prt-7}
-	\caption{The main tricky we are going to use for precomputed radiance transfer is to combine the visibility and the cosine into one function.}
+	\includegraphics[width=0.65\textwidth]{figures/prt/prt-7}
+	\caption{预计算辐射传输的一个主要技巧，就是将可见性和余弦项组合成一个方向函数，然后这个组合的方向函数与入射环境光照的卷积就可以转换为两个球谐函数系数的点击计算，而组合的方向函数则可以被预计算并存储在表面上的每一个位置处，而环境贴图可以动态改变}
 	\label{f:pl-diffuse}
 \end{figure}
 
-图\ref{f:pl-diffuse}预计算辐射传输的基本概念，图左边包含式\ref{e:pl-diffuse}中的三个方向函数，即光源，可见性以及余弦项，预计算辐射传输中的一个特殊处理将是将可见性和余弦项的卷积计算放在预处理过程中，由于卷积计算的结果仍然是一个方向函数，该方向函数被投影为由球谐函数系数构成的矢量中并存储起来。最后，在运行时阶段，预存的光照传输矢量和投影的光源系数矢量进行点积计算得出最终的光照积分值。
+在实时渲染阶段，光源$L_{env}$可以被看做一个未知函数，而余弦加权的可见性或者说传输函数则是已知的，首先我们将入射光照场$L_{env}$投影到球面上，即：
 
-
-
-
-\subsection{光源近似IrradianceEnvironmentMaps}
-The light source $L_{env}$ can be seen as an unknown function, and the combined cosine-weighted visibility or transfer function the known. According to the property of SH, we can use SH coefficients represent the light source, and the transfer function becomes a transfer vector (or matrix) which can be precomputed. 
- 
-Now we are going to approximate the source radiance function with its projection into a set of basis functions on the sphere:
-
-\begin{equation*}
+\begin{equation}
 	L_{env}(\vec{s})\approx\sum_{i}l_iy_i(\vec{s})
-\end{equation*}
+\end{equation}
 
-where $l_i$ are the projection coefficients of a particular lighting environment. 
+\noindent 这里$l_i$表示环境光照投影系数，$y_i$则为球谐基函数，根据前面的知识，该系数可以通过求环境光照与每个球谐基函数函数乘积的积分来计算。
 
+将上式直接代入到式\ref{e:pl-diffuse}中，由于被积函数是线性的，因此我们可以将加和与积分符号进行交互，这形成如下的形式：
 
-
-\subsection{传输矢量}
-We can plug this approximation directly into the reflected radiance equation. Since it's linear, sum of integrals = integral of sums, we can move sum outside integral. Everything within the integral can be precomputed (since it is independent of the actual lighting environment being used):
-
-\begin{equation*}
+\begin{equation}
 	L_0(p)=\frac{\rho_d}{\pi}\sum_i l_i\int_{\Omega}y_i(\vec{s})V(p\to\vec{s})H_{N_p}(-\vec{s})d\vec{s}
-\end{equation*}
+\end{equation}
 
-The integral represents a transfer coefficient -- it maps how direct lighting in basis function l becomes outgoing radiance at point p. The set of transfer coefficients is a transfer vector that maps lighting into outgoing radiance:
+在上式中，由于积分中的项均是独立于光源的，因此它们可以被预计算起来。其中的积分表示的是一个传输系数，它表述的是入射光照$l_i$怎样被映射为位置$p$处的一个出射辐射亮度值，因此所有传输系数就形成一个传输矢量，该矢量将入射光照映射为出射辐射亮度，即：
 
-\begin{equation*}
+\begin{equation}
 	L_0(p)=\frac{\rho_d}{\pi}\sum_i l_i t^{0}_{pi}
-\end{equation*}
+\end{equation}
 
-We can fold the diffuse reflectivity into the transfer vector as well:
+\noindent 在上式中，我们可以将漫反射系数合成进传输矢量中，即：
 
-\begin{equation*}
+\begin{equation}
 	L_0(p)=\sum_i l_i t^{0}_{pi}
-\end{equation*} 
+\end{equation} 
 
-A similar process can be used to model the other bounces, so that a final vector can be computed and used to map source radiance to outgoing radiance at every point on the object.
+与上述相似的过程可以被用于其它二次以上的光照反弹，所以表面上每个点处最终的传输矢量就是多个单次反射传输矢量的加和，它可以将任意入射光照映射为出射光照，所以最终的出射辐射亮度就是光源的投影系数与最终传输矢量的点积，即：
 
-\begin{equation*}
+\begin{equation}
 	\begin{aligned}
 		L(p)=&\sum_i l_i(t^{0}_{pi}+t^{1}_{pi}+\cdots)\\
-		    =&\sum_i l_i t_{pi}
+		    =&\sum_i l_i t_{p,i}
 	\end{aligned}
-\end{equation*}
+\end{equation}
 
-
-
-\subsection{Rendering}
-Outgoing radiance is then just the dot product of the lights projection coefficients with the transfer vector.
-
-\begin{equation*}
-	L(p)=\sum^{n}_{i}l_it_{p,i}
-\end{equation*}
-
-At run-time, we need to lookup the transfer vector at every pixel. A (vertex/pixel)-shader then computes the dot-product between the coefficient vectors. The result of this computation is the outgoing radiance at that point.
+在运行时，我们需要能够查询到表面上每一个像素位置处的传输矢量，然后在顶点/像素着色器执行点积计算，最终的结果就是该像素位置处的入射辐射亮度。
 
 
 
 
-\subsection{预计算}
-The main question is how to evaluate the integral. We will evaluate it numerically using Monte-Carlo integration. This basically means, that we generate a random (and uniform) set of directions $s_j$, which we use to sample the integrand. All the contributions are then summed up and weighted by $4\pi/(\#samples)$.
-
-The visibility $V(p\to \vec{s})$ needs to be computed at every point. The easiest way to do this, is to use ray-tracing.
+\subsection{一般表面的PRT}
+由于漫反射表面的出射光照是一个标量，因此传输函数可以被近似为一个矢量。然而光泽表面的出射光照却是与视觉相关的，即它的出射光照是另一个方向分布函数，这看起来就是两个不同坐标系之间的线性变换，因此我们可以寻找一个变换矩阵，它可以将某个点处的入射光照线性变换为出射光照。
 
 
 
+\subsubsection{传输函数}
+尽管正如上面的分析，我们可以为表面上的每个点计算一个传输矩阵，这就像对漫反射表面上的每个点计算一个传输矢量一样，然后在运行时对入射环境光照$L_{env}$执行这个传输矩阵的线性变换，最后获取观察方向的出射光照值即可，但是这样的方法有个很大的问题。
 
+对表面点计算传输矩阵的主要问题是，随着表面点空间位置的变化，入射光照场的变化通常很小，因为这些入射光照通常是受整个场景的影响；然而随着表面点位置的变化，像素的入射光照的变化频率则可能很大，比如在那些阴影边界附近的像素，以及那些物体边缘附近的像素，因为出射光照仅受物体自身或者局部的影响。
 
+因此，如果我们考虑的是入射光照与出射光照之间的传输矩阵，则这个传输矩阵的维度需要特别高，也即入射环境光照需要使用更高维度的球谐函数（更多数量的系数）来近似，因为出射光照需要很高的采样频率。尽管这是可行的，但是由于每个表面位置都需要存储整个传输矩阵，因此它不仅影响着内存的占用，还大大增加了着色时的矩阵元素计算量。
 
-\subsection{一般表面PRT}
-\begin{comment}
-	
-
-
-A transfer vector $(T_p)_i$ is useful for diffuse surfaces and represents a linear transformation on the lighting vector producing scalar exit radiance. In other words, each component of $(T_p)_i$ represents the linear influence that a lighting basis function $l_i$ on shading at $p$.
-
-In this section, we'll derive general case for glossy (view-dependent) reflection. As the previous section, we'll be looking at an object sitting in free space, distant from the lighting environment that illuminates it. "Distant" means that location on the object does not affect the directional distribution of incident light. In other words, in absence of occlusion, the direct light incident upon all points on the object is the same, i.e., $L_{env}(p,\omega)=L_{env}(\omega)$ for all $p$.
-
-As described in the earlier section, the environment map that we use for lighting the object is projected into a function basis $\{y_i\}$ with $i=1,\cdots,n$. This yields an approximation to the original environment map, and the approximation is fully defined by the vector $l$ of coefficients:
-
-\begin{equation*}
-	L_{env}(\omega)\approx\sum^{n}_{i=1}l_iy_i(\omega)
-\end{equation*} 
-
-
-
-
-\subsection{Goals -- What does $p$ look like, given $L_{env}$?}
-We have two goals in this section:
-
-\begin{enumerate}
-	\item Global illumination with glossy reflections and time-varying lighting. Shiny BRDFs mean that the appearance of a point changes depending on where it is looked at from.
-	\item We also want to approximate the lighting in \textit{free space} around the object. For example, if we can compute the lighting incident to points in free space in the landscape, we can shade moving objects (vehicles, characters, etc.) with lighting that is affected by the environment, and thus get color bleeding and soft shadowing effects onto the moving objects.
-\end{enumerate}
-
-\begin{figure}
-\sidecaption
-	\includegraphics[width=0.65\textwidth]{graphics/prt/pl-8-1}
-	\caption{Compute transfer matrices for many points and interpolate to get appearance of whole object.}
-	\label{f:pl-goal-1}
-\end{figure}
-
-So what we want to know is: given some projected environment map, what do points on the object look like? That is, what is the directional distribution of outgoing light from each point? See figure \ref{f:pl-goal-1}. If we know these values, we can directly assign to pixels in an image.
-
-The appearance of each point is linearly related to the distant lighting environment, so we are looking for some linear operator that takes as input the lighting environment, and produces the appearance of the point as output. In the end, we will represent this appearance in some linear basis, so the linear mapping will be, for each point, a matrix that maps the coefficients of incident, distant lighting environment into coefficients for outgoing radiance for the point $p$:
-
-\begin{equation*}
-	L_{env}(\omega)\to L_{out}(p\to\omega)
-\end{equation*}
-
-We'll compute this mapping for many points on the object, so that we can get a reasonable approximation for the appearance of the whole object by interpolating from these samples. See figure \ref{f:pl-goal-1}.
-
-The other question is: what do the points near but not on the object "see" when the object is illuminated using an environment map? In other words, how does the presence of the object affect the lighting that impinges upon these points in free space?
-
-Let's concentrate on a single point $p$ somewhere near the object, see figure \ref{f:pl-goal-2}. What does the point $p$ see can be decided by the following:
-
-\begin{figure}
-\sidecaption
-	\includegraphics[width=0.65\textwidth]{graphics/prt/pl-8-2}
-	\caption{What does a point $p$ near the object see?}
-	\label{f:pl-goal-2}
-\end{figure}
-
-\begin{itemize}
-	\item Some light proceeds directly from the lighting environment to point $p$. That happens in those directions where the object doesn't block the view from $p$.
-	\item Some light that leaves the distant environment will be blocked by the object. That happens in directions where the object blocks the view from $p$ to the environment. We denote that by cutting away a part of the environment here on the right.
-	\item Some light takes a bounce or multiple bounces off the object before impinging upon point $p$. In other words, $p$ sees an image of the what our object looks like when lit by the environment map.
-\end{itemize}
-
-The relationship between the lighting environment and what point $p$ sees is linear. We will in the following project the light impinging on $p$ in a finite space, and thus this relationship will be characterized by a matrix. This matrix will in general be different for each point:
-
-\begin{equation*}
-	L_{env}(\omega)\to L_{xfer}(p\leftarrow\omega)
-\end{equation*}
-
-
-
-\subsection{Transferred Incident Radiance}
-In this section we will derive the exact relationship of the distant lighting environment and the lighting after it has interacted with the scene.
-
-\begin{figure}
-\sidecaption
-	\includegraphics[width=0.65\textwidth]{graphics/prt/pl-9}
-	\caption{Define transfer incident radiance $L_{xfer}(p\leftarrow\omega)$ for point $p$ as all light arriving at $p$ that originated from $L_{env}$. The point either on surface or in free space are treated unified.}
-	\label{f:pl-matrix}
-\end{figure}
-
-We first define a quantity called \textit{transferred incident radiance} $L_{xfer}(p\leftarrow\omega)$, see figure \ref{f:pl-matrix}. For each point in the scene, be it on the surface of the object or in free space, we define it as the radiance incident onto that point from each direction. This is different from the distant environment, since the light is blocked and reflected by the object before impinging upon the point. In other words, it is a spherical function for each point in the scene, and it defines "what point $p$ sees", and it of course changes as the lighting environment changes.
-
-
-The basic idea is that we'll precompute the linear operators (that is, matrices) that map our distant lighting environment into transferred incident radiance for discrete set of points in the scene, and at runtime we'll use them for computing transferred incident radiance at those points, given the current lighting environment.
-
-Obviously, the light outgoing from a point on the object is the sum of emitted light and reflected light, and we get reflected light by computing the usual reflectance integral of the transferred incident lighting. This yields final reflected radiance towards the virtual camera.
-
-So the outline of the PRT process can be seen as following:
-
-\begin{enumerate}
-	\item precompute transfer matrices off-line
-	\item Use them at runtime to determine $L_{xfer}$ for surfaces to be shaded.
-	\item Then integrate $L_{xfer}$ with BRDF*cosine to get outgoing radiance (just evaluate the usual reflectance equation)
-\end{enumerate}
+所以，鉴于上述原因，考虑到入射光照与出射光照之间不同的变化频率，在实践中，我们将BRDF分布函数从传输函数中提取出来，使传输矩阵仅包含可见性部分，该传输矩阵将入射环境光照变换为表面像素处“看得见”的入射光照分布，最后在实时渲染时，首先将入射环境光照变换为表面像素处的局部入射光照，然后该局部入射光照与表面的BRDF分布函数进行点击计算，以计算最终的入射光照，此时BRDF分布函数可以选择使用更高的采样频率。
 
 \begin{myshaded}
-So why bother with transferred incident radiance and not compute outgoing radiance directly? For surfaces of the object, this is certainly possible. But it is also possible to decouple the sampling rates of transferred incident radiance and outgoing radiance. The rationale is that transferred incident radiance often (but not always) varies quite slowly over space, whereas the outgoing radiance from a surface often has high spatial frequencies. Thus, the transferred incident radiance can often be interpolated from sparser samples, and turned into higher-frequency outgoing radiance (bi-scale radiance transfer). Of course, we want to avoid as much work as possible, and computing the transfer is expensive.
+	读者可能会有这样的疑问：入射光照到出射光照之间的变换为什么是线性的呢？
+	
+	请特别注意，这里的变换其实不是针对空间方向的变换，而是对一个球谐函数的系数执行的变换，因此它实际上是针对每一个相同的球谐函数，将其系数由一个值变换为另一个值，本节的传输函数的线性变换是指这种意义上的线性变换，读者在理解后面的内容的时候尤其要注意。
 \end{myshaded}
 
 
-\subsection{Derivation of Transfer Matrices}
-To start the way towards deriving the transfer matrix that maps the distant illumination into transferred lighting, we project the transferred lighting into a finite, spherical function space spanned by functions $\{z\}$, see figure \ref{f:pl-tir-projection}. That is, we discretize transferred incident radiance and represent it using a finite number of basis coefficients that we denote by $l^{p}$:
+
+
+\subsubsection{转移入射辐射照度}
+什么是$p$点的局部入射光照呢？我们称这个量为转移入射辐射照度（transfer incident radiance）\myindex{转移入射辐射照度}{transfer incident radiance}$L_{xfer}(p\leftarrow \omega)$，它表示的是在给定的环境光照$L_{env}$的情况下，点$p$看到的入射光照分布是什么，这既包括直接来自环境光照$L_{env}$的光照（即直接光照），也包括来自其它物体表面反射过来的光照（即间接光照），如图\ref{f:pl-transfer-incident-radiance}(a)所示。
+
+\begin{figure}
+	\begin{subfigure}[b]{0.505\textwidth}
+		\includegraphics[width=\textwidth]{figures/prt/prt-8-2}
+		\caption{$L_{xfer}(p\leftarrow \omega)$的定义}
+	\end{subfigure}
+		\begin{subfigure}[b]{0.495\textwidth}
+		\includegraphics[width=\textwidth]{figures/prt/prt-9}
+			\caption{表面和空间位置的$L_{xfer}(p\leftarrow \omega)$}
+	\end{subfigure}
+	\caption{转移入射辐射照度的定义(a)，它表示在给定入射环境光照的情况下，在经历光与表面的反射之后，最终进入点$p$的入射光照分布，其中在PRT方法中，我们同时存储表面和空间位置处的转移入射辐射照度(b)，后者可以用于动态物体的光照计算（图片来自\cite{a:PrecomputedRadianceTransfer:TheoryandPractice}）}
+	\label{f:pl-transfer-incident-radiance}
+\end{figure}
+
+除了计算表面位置处的转移入射辐射照度，PRT方法还同时存储离表面很近的空白空间位置处的转移入射辐射照度，如图\ref{f:pl-transfer-incident-radiance}(b)所示，这些来自空间中的入射光照分布可以用于对动态物体执行全局光照技术。
+
+环境光照与转移入射辐射照度之间的关系是线性的，当然前面已经说明这种线性关系是指在相同结束的球谐函数空间下的，即环境光照和点$p$的转移入射辐射照度都被投影到相同阶数的球谐函数空间。因此，环境光照与转移入射辐射照度之间的关系就可以被表述为一个矩阵，这个矩阵一般随着$p$点位置的变化而变化，即：
+
+\begin{equation}
+	L_{env}(\omega)\to L_{xfer}(p\leftarrow\omega)
+\end{equation}
+
+本节后面，我们的主要目标就是要计算出这个环境光照到转移入射辐射照度之间的变换矩阵，这个变换矩阵可以被预计算并存储在每个点$p$处。
+
+有了关于传输矩阵的计算方法，PRT的算法过程可以总结如下：
+
+\begin{enumerate}
+	\item 首先，在离线阶段预计算表面各个点处的传输矩阵。
+	\item 然后，在运行时利用传输矩阵计算出$p$点的转移入射辐射亮度$L_{xfer}$。
+	\item 最后，计算$L_{xfer}$与余弦加权的BRDF分布函数乘积的积分，以计算出最终观察方向的出射辐射亮度。
+\end{enumerate}
+
+
+
+\subsubsection{传输矩阵的推导}
+为了推导出由环境光照向转移入射辐射照度的转移矩阵，我们首先将转移入射辐射照度投影到有限的球谐函数空间，为了与其它步骤的球谐函数命名冲突，记这里的球谐函数为$\{z\}$。这即是说我们将转移入射辐射照度离散化，并用一些有限个球谐函数的系数$l^{p}$来表述该转移入射辐射照度，如图\ref{f:pl-tir-projection}所示。
 
 \begin{figure}
 \sidecaption
-	\includegraphics[width=0.65\textwidth]{graphics/prt/pl-10}
-	\caption{Project transferred incident radiance at $p$ into a function space.}
+	\includegraphics[width=0.5\textwidth]{figures/prt/prt-10}
+	\caption{将$p$点的转移入射辐射照度投影到球谐函数空间，这形成一个离散的函数系数表述，注意这里并不是空间位置上的离散化，图示的空间分割仅是为了演示方便，这里每个离散化的片段表述的是一个特定阶数的球谐函数的近似（图片来自\cite{a:PrecomputedRadianceTransfer:TheoryandPractice}）}
 	\label{f:pl-tir-projection}
 \end{figure}
 
-\begin{equation*}
+因此$p$点的转移入射辐射照度可以表述为：
+
+\begin{equation}
 	L_{xfer}(p\leftarrow\omega)\approx\sum^{m}_{i=1}l^{p}_{i}z_i(\omega)
-\end{equation*}
+\end{equation}
 
-The coefficients $l^{p}$ are unknown, the coefficients $l$ that define the distant incident lighting we know. What we want to do is find their relationship. This relationship between the two vectors is linear, and thus it can be expressed using a matrix. We call this matrix the \textit{transfer matrix} for point $p$: It maps the distant, incident illumination to an approximation of the lighting that reaches $p$:
+上式说明，我们可以使用一个由各个球谐函数$\{z_j\}$的系数$l^{p}_j$构成的矢量$\mathbf{l}^{p}$来近似$p$点的转移入射辐射照度；同样，环境光照$L_{env}$也可以使用由球谐函数$\{y_i\}$的系数$l_i$构成的矢量$\mathbf{l}$来近似。
 
-\begin{equation*}
-	l^{p}=T^{p}l
-\end{equation*} 
+由于定义转移入射辐射照度的系数矢量$\mathbf{l}^{p}$是未知的，而定义环境光照的系数矢量$\mathbf{l}$则是已知的，我们需要做的事情就是找到它们两者之间的关系。由于它们两者之间的关系是线性的，因此可以被表述为一个矩阵，我们称之为$p$点的传输矩阵（transfer matrix）\myindex{传输矩阵}{transfer matrix}，即：
 
-Let's think about that for a while. What happens if the scene is lit by just a single lighting basis function $y_i$, i.e., there is just a single one in the emission vector $l$ and the rest is just zero? See figure \ref{f:pl-matrix}. That's marked there in the visual depiction as the white box in the gray vector. If we think of the matrix-vector product, in the end, it just copied the fourth column of the matrix over to the rest.
+\begin{equation}
+	\mathbf{l}^{p}=\mathbf{T}^{p}\mathbf{l}
+\end{equation}
+
+在具体推导这个传输矩阵之前，让我们来分析一下它的意义：假设环境光照只投影到其中一个球谐基函数$y_i$上，并且其系数$l_i=0$，这即是说在矢量$\mathbf{l}$中只有第$i$个元素的值为1，其它元素的值均为0，如图\ref{f:pl-matrix}右边灰色条中白色的小方块所示，考虑矩阵和矢量相乘的定义，它最终的结果就是将矩阵$\mathbf{T}^{p}$中的第$i$列复制出来，这形成图\ref{f:pl-matrix}左边的矢量$\mathbf{l}^{p}$。
 
 \begin{figure}
 \sidecaption
-	\includegraphics[width=0.65\textwidth]{graphics/prt/pl-11}
-	\caption{Consider light from a single lighting basis function at unit intensity.}
+	\includegraphics[width=0.5\textwidth]{figures/prt/prt-11}
+	\caption{考虑入射光照仅来自单个基函数的分量，并且其光照密度为1，则经过矩阵传输的结果就是，从传输矩阵中将这个分量的序号所在的列复制出来（图片来自\cite{a:PrecomputedRadianceTransfer:TheoryandPractice}）}
 	\label{f:pl-matrix}
 \end{figure}
 
-This leads us to conclude that the $i$-th column of the matrix is a \textit{basis appearance}: it describes the lighting at $p$ when the scene is lit using the $i$-th lighting basis function alone. And since the scene is lit by a linear combination of basis lights, getting the transferred incident radiance at $p$ just involves taking a linear combination of these basis appearances with weights taken from the emission vector $l$. That's just matrix-vector multiplication.
+由此可以得出，如果将传输入射辐射亮度看做$p$点看到的一副图像，则传输矩阵$\mathbf{T}^{p}$的第$i$列可以看做是一个基函数视觉（basis appearance），它描述的是从$p$点看到的来自环境光照的第$i$个基函数的光照。因为整个场景的环境光照是关于其各个基函数的线性组合，因此$p$点的入射光照的计算也仅仅是涉及对这些基函数视觉的线性组合，这即是矩阵和矢量相乘的原则。
 
 
 
-
-\subsection{Entries of the Transfer Matrix}
+\paragraph{传输矩阵的元素}
 We denote that $L^{i}_{xfer}(p\leftarrow\omega)$ is the light from basis function $y_i$ that reaches $p$ either directly or through any number of bounces off the object. Then $T^{p}_{ji}$ is the $j$-th projection coefficient of $L^{i}_{xfer}(p\leftarrow\omega)$:
 
 \begin{equation*}
@@ -1530,7 +1445,7 @@ The sum in the middle can be written in matrix form as given on the second line,
 
 
 
-\subsection{Accounting for Indirect Lighting}
+\subsubsection{考虑间接光照}
 This section derives a particular method for computing the transfer matrices that account for indirect lighting as well. It resembles a progressive gathering radiosity method, and bears a close resemblance to an early non-diffuse global illumination method.
 
 In what follows, we'll derive a recursive formula that computes the transfer matrices that correspond to $k+1$ bounces of light, given that we know the transfer matrices that account for $k$ bounces for light everywhere in the scene. As we already have a method for computing $T_0$, the transfer matrix for direct lighting, we are able to account for an arbitrary number of bounces this way. And as lighting is linear, the transfer matrix $T^{p}$ that accounts for all bounces is just the sum of the matrices $T^{p}_0,T^{p}_1,\cdots$ that each account for a particular number of bounces.
@@ -1539,7 +1454,7 @@ In order to derive the method, we'll use a "transposed" version of the rendering
 
 \begin{figure}
 \sidecaption
-	\includegraphics[width=0.65\textwidth]{graphics/prt/pl-12}
+	\includegraphics[width=0.5\textwidth]{figures/prt/prt-12}
 	\caption{$p^{'}$ is the point that the ray from $p$ towards $\omega$ intersects. Note that the usual reflectance integral is performed above the point $p^{'}$ here, not $p$ as in the usual version of the rendering equation.}
 	\label{f:pl-transposed-version}
 \end{figure}
@@ -1593,7 +1508,7 @@ Since the inner product is linear, the projection coefficients can be computed b
 
 
 
-\subsection{Transfer Matrix for Bounce $k+1$}
+\paragraph{第$k+1$次反弹的传输矩阵}
 So far, we've already derived per-point matrices $T^{p}_0$ that map coefficients of lighting environment to coefficients that represent direct lighting. We'll start the derivation of the matrices $T^{p}_{k+1}$ from the projection coefficients $l^{p}_k$.
 
 
@@ -1602,12 +1517,12 @@ So far, we've already derived per-point matrices $T^{p}_0$ that map coefficients
 In a non-scattering medium, points not on surfaces do not affect the appearance of the scene. So just compute solution with all bounces for surface points first, then gather all bounces at once for points in free space.
 
 
-\subsection{Outgoing Radiance}
+\subsubsection{出射辐射亮度}
 
 
-\end{comment}
+
 %\subsection{基于小波函数}
-\begin{comment}
+
 All-Frequency Relighting of Glossy Objects.pdf
 Our system approaches the sampling problem by choosing a high sampling rate for the lighting but a low sampling rate for the view. This is achieved by combining non-linear wavelet approximation for the lighting with low-order separable approximation for the BRDF. As a result, we have bandlimited high-frequency specularities; however, unlike the spherical harmonics based approach, our renderings preserve intricate all-frequency shadows while remain at interactive rates.
 
@@ -1642,7 +1557,8 @@ Fast Filtering of Reflection Probes
 
 
 
-	
+
+\begin{comment}
 
 
 \section{基于表面位置的缓存}\label{sec:pl-irradiance-caching}
