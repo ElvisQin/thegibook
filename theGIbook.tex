@@ -1,6 +1,7 @@
 \documentclass[10pt,fancyhdr,graybox, envcountchap,oribibl,twoside]{svmono}
 
-\usepackage[UTF8]{ctex}
+\usepackage[UTF8,fontset = my]{ctex}
+%\ctexset{fontset = my}
 
 \usepackage[centering,paperwidth=190mm,paperheight=235mm,left=25mm,top=20mm,marginparsep=3mm,marginparwidth=30mm,textwidth=120mm,height=200mm]{geometry}
 
@@ -75,8 +76,7 @@
 % see the list of further useful packages in the Reference Guide
 
 
-\titleformat*{\subsection}{\large\bfseries\fontfamily{Times New Roman}}
-\titleformat*{\paragraph}{\normalsize\bfseries\fontfamily{Times New Roman}}
+
 
 
 
@@ -237,6 +237,13 @@
 
 
 
+%\setCJKmainfont{SimSun}     % 语义和语法同fontspec
+%\setCJKsansfont{SimHei}
+%\setCJKmonofont{SimHei}
+
+
+\titleformat*{\subsection}{\large\bfseries\fontfamily{Times New Roman}}
+\titleformat*{\paragraph}{\normalsize\bfseries\fontfamily{Times New Roman}}
 
 
 
