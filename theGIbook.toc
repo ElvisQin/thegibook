@@ -37,16 +37,17 @@
 \contentsline {subsubsection}{\numberline {12.3.2.2}转移入射辐射照度}{53}{subsubsection.12.3.2.2}
 \contentsline {subsubsection}{\numberline {12.3.2.3}传输矩阵的推导}{55}{subsubsection.12.3.2.3}
 \contentsline {paragraph}{传输矩阵的元素}{56}{paragraph*.40}
-\contentsline {subsubsection}{\numberline {12.3.2.4}考虑间接光照}{57}{subsubsection.12.3.2.4}
-\contentsline {paragraph}{第$k+1$次反弹的传输矩阵}{59}{paragraph*.42}
-\contentsline {subsubsection}{\numberline {12.3.2.5}出射辐射亮度}{59}{subsubsection.12.3.2.5}
-\contentsline {chapter}{参\nobreakspace {}考\nobreakspace {}文\nobreakspace {}献}{64}{chapter*.43}
-\contentsline {xchapter}{}{64}{chapter*.43}
-\contentsline {chapter}{专有名词索引}{65}{chapter*.44}
-\contentsline {xchapter}{}{65}{chapter*.44}
-\contentsline {section}{中文索引}{65}{section*.45}
-\contentsline {section}{英文索引}{66}{section*.46}
-\contentsline {chapter}{数学概念索引}{68}{chapter*.47}
-\contentsline {xchapter}{}{68}{chapter*.47}
-\contentsline {section}{中文索引}{68}{section*.48}
+\contentsline {paragraph}{直接光照}{57}{paragraph*.41}
+\contentsline {paragraph}{考虑间接光照}{58}{paragraph*.43}
+\contentsline {paragraph}{第$k+1$次反弹的传输矩阵}{60}{paragraph*.45}
+\contentsline {subsubsection}{\numberline {12.3.2.4}出射辐射亮度}{60}{subsubsection.12.3.2.4}
+\contentsline {chapter}{参\nobreakspace {}考\nobreakspace {}文\nobreakspace {}献}{66}{chapter*.46}
+\contentsline {xchapter}{}{66}{chapter*.46}
+\contentsline {chapter}{专有名词索引}{67}{chapter*.47}
+\contentsline {xchapter}{}{67}{chapter*.47}
+\contentsline {section}{中文索引}{67}{section*.48}
 \contentsline {section}{英文索引}{68}{section*.49}
+\contentsline {chapter}{数学概念索引}{70}{chapter*.50}
+\contentsline {xchapter}{}{70}{chapter*.50}
+\contentsline {section}{中文索引}{70}{section*.51}
+\contentsline {section}{英文索引}{70}{section*.52}

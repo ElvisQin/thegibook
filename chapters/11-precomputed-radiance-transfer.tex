@@ -1328,7 +1328,7 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 
 
 \subsubsection{转移入射辐射照度}
-什么是$p$点的局部入射光照呢？我们称这个量为转移入射辐射照度（transfer incident radiance）\myindex{转移入射辐射照度}{transfer incident radiance}$L_{xfer}(p\leftarrow \omega)$，它表示的是在给定的环境光照$L_{env}$的情况下，点$p$看到的入射光照分布是什么，这既包括直接来自环境光照$L_{env}$的光照（即直接光照），也包括来自其它物体表面反射过来的光照（即间接光照），如图\ref{f:pl-transfer-incident-radiance}(a)所示。
+什么是$p$点的局部入射光照呢？我们称这个量为转移入射辐射照度（transferred incident radiance）\myindex{转移入射辐射照度}{transferred incident radiance}$L_{xfer}(p\leftarrow \omega)$，它表示的是在给定的环境光照$L_{env}$的情况下，点$p$看到的入射光照分布是什么，这既包括直接来自环境光照$L_{env}$的光照（即直接光照），也包括来自其它物体表面反射过来的光照（即间接光照），如图\ref{f:pl-transfer-incident-radiance}(a)所示。
 
 \begin{figure}
 	\begin{subfigure}[b]{0.505\textwidth}
@@ -1375,7 +1375,7 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 
 因此$p$点的转移入射辐射照度可以表述为：
 
-\begin{equation}
+\begin{equation}\label{e:pl-transfer-incident-radiance}
 	L_{xfer}(p\leftarrow\omega)\approx\sum^{m}_{i=1}l^{p}_{i}z_i(\omega)
 \end{equation}
 
@@ -1401,54 +1401,69 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 
 
 \paragraph{传输矩阵的元素}
-We denote that $L^{i}_{xfer}(p\leftarrow\omega)$ is the light from basis function $y_i$ that reaches $p$ either directly or through any number of bounces off the object. Then $T^{p}_{ji}$ is the $j$-th projection coefficient of $L^{i}_{xfer}(p\leftarrow\omega)$:
+根据上面的描述，定义$L^{i}_{xfer}(p\leftarrow\omega)$为从基函数$y_i$到达点$p$的光照，这可以是直接或者经过任意次反弹的间接光照，因此传输矩阵的元素$T^{p}_{ji}$ 就表述了$L^{i}_{xfer}(p\leftarrow\omega)$的第$j$个投影系数，即：
 
-\begin{equation*}
+\begin{equation}
 	T^{p}_{ji}=\langle L^{i}_{xfer}(p),\hat{z}_j\rangle =\int_\Omega L^{i}_{xfer}(p\leftarrow\omega)\hat{z}_j(\omega)d\omega
-\end{equation*}
+\end{equation}
 
-All we need is to be able to compute the radiance that is incident to the point $p$ when the scene is lit using the $i$-th light basis function alone. These algorithms include Monte Carlo path tracing, photon mapping and progressive radiosity, etc. 
+为了计算上式表述的矩阵的元素，我们唯一需要的就是能够计算由第$i$个光源的基函数到达$p$点的光照分布$L^{i}_{xfer}(p\leftarrow\omega)$，然后我们将该光照分布投影到基函数$\hat{z}_j$就得到了矩阵的元素$\mathbf{T}^{p}_{ji}$的值。其中这个光照分布函数$L^{i}_{xfer}(p\leftarrow\omega)$可以使用本书前面介绍的任意离线渲染的方法，例如蒙特卡洛路径追踪，光子映射算法等等。
 
-Next we'll consider the simple case of direct illumination only. That is, we consider only the light incident to the object that has been shadowed by the object, but has not bounced on the surface before impinging upon $p$. The direct lighting incident to $p$ (denote by $L_0$) is just the lighting environment modulated by the visibility from $p$:
+\begin{myshaded}
+	在理解上述概念时需要注意，环境光照$L_{env}$的一个基函数$y_i$的光照表述的是跟这个基函数成正比的一个光照分布，即$l_iy_i$，但是当这个光照分布到达$p$点时，它不再是跟这个阶数的基函数成正比的，而是一个全频率段的普通光照分布，即是说传输后的光照分布在各个阶数的基函数上都有投影，而矩阵的元素$\mathbf{T}_{ji}$表述的正式到第$j$个基函数的投影系数。
+\end{myshaded}
 
-\begin{equation*}
+
+
+
+\paragraph{直接光照}
+现在首先来考虑最简单的直接光照，即环境光照直接到达$p$点，中间可能会被其他物体遮挡，但是光照到达$p$点之前没有经过与其他任何表面的反射，我们记到达$p$点的直接光照为$L_0$，它可以表述为环境光照与$p$点可见性函数的乘积，即：
+
+\begin{equation}
 	L_0(p\leftarrow\omega)=L_{env}(\omega)V(p,\omega)
-\end{equation*}
+\end{equation}
 
-The direct lighting to $p$ due to basis function $y_i$ is then:
+上式表述的几何图示如图\ref{f:pl-direct-light}所示，由此也可以看出，光泽表面的传输矩阵仅考虑物体表面的可见性关系。
 
-\begin{equation*}
+\begin{figure}
+	\sidecaption
+	\includegraphics[width=0.45\textwidth]{figures/pl/direct-light}
+	\caption{在光泽表面的PRT算法中，传输函数仅考虑可见性函数，而不是像漫反射表面一样包含BRDF分布函数。}
+	\label{f:pl-direct-light}
+\end{figure}
+
+由此可知，来自基函数$y_i$并且达到$p$点的光照分布为：
+
+\begin{equation}
 	L^{i}_0(p\leftarrow\omega)=y_i(\omega)V(p,\omega)
-\end{equation*}
+\end{equation}
 
-and thus:
+\noindent 因此得出：
 
-\begin{equation*}
+\begin{equation}
 \begin{aligned}
 	T^{p}_{0,ji}=&\langle L^{i}_0(p\leftarrow\omega),\hat{z}_j\rangle \\
 	=&\int_\Omega y_i(\omega)\hat{z}_j(\omega)V(p,\omega)d\omega
 \end{aligned}
-\end{equation*}
+\end{equation}
 
-We call the direct-lighting-only matrix $T^{p}_0$. If we substitute the previous into the equation that gives the approximated transferred incident from the its basis coefficients, we get the following formula for the approximate lighting impinging on $p$ from the full lighting environment:
+我们称仅包含直接光照的传输矩阵为$\mathbf{T}^{p}_0$，如果将上式代入转移入射辐射照度的近似表达式中，即式\ref{e:pl-transfer-incident-radiance}，则得到下述关于$p$点的来自直接光照的全部光照分布：
 
-\begin{equation*}
+\begin{equation}
 \begin{aligned}
 	L(p\leftarrow\omega)\approx &\sum^{m}_{j=1}l^{p}_{j}z_j(\omega)\\
 	=&\sum^{m}_{j=1}z_j(\omega)\Biggr[ \sum^{n}_{i=1}l_iT^{p}_{ji}  \Biggr]
-	=z(\omega)^{T}T^{p}l
+	=\mathbf{z}(\omega)^{T}\mathbf{T}^{p}\mathbf{l}
 \end{aligned}
-\end{equation*} 
+\end{equation} 
 
-The sum in the middle can be written in matrix form as given on the second line, where we have stacked the values of all the basis functions $z_j$, evaluated in direction $\omega$, together to form the vector $z$.
-
-
+这里第二行中间的大括号被写成矩阵的形式，它对原始环境贴图的投影系数$l_i$执行变换，将其转换成转移入射辐射照度的投影系数。
 
 
-\subsubsection{考虑间接光照}
-This section derives a particular method for computing the transfer matrices that account for indirect lighting as well. It resembles a progressive gathering radiosity method, and bears a close resemblance to an early non-diffuse global illumination method.
 
-In what follows, we'll derive a recursive formula that computes the transfer matrices that correspond to $k+1$ bounces of light, given that we know the transfer matrices that account for $k$ bounces for light everywhere in the scene. As we already have a method for computing $T_0$, the transfer matrix for direct lighting, we are able to account for an arbitrary number of bounces this way. And as lighting is linear, the transfer matrix $T^{p}$ that accounts for all bounces is just the sum of the matrices $T^{p}_0,T^{p}_1,\cdots$ that each account for a particular number of bounces.
+\paragraph{考虑间接光照}
+接下来我们会推导出一个考虑间接光照的传输矩阵形式，它使用一种渐进式的方法，形成一个递归的公式，即给定光照的第$k$次反弹的传输矩阵，我们可以推导出第$k+1$次反弹的传输矩阵。因为已经计算出了直接光照的传输矩阵$\mathbf{T}^{p}_0$，因此我们就能够计算出任意反弹次数的传输矩阵。由于光照是线性的，因此能够考虑所有反弹的传输矩阵$\mathbf{T}^{p}$就只不过是这些单次反弹的传输矩阵$\mathbf{T}^{p}_0,\mathbf{T}^{p}_1,\cdots$的和。
+
 
 In order to derive the method, we'll use a "transposed" version of the rendering equation. One that we have specifically using transferred incident radiance as the unknown, not outgoing radiance as is usually done. These equations are equivalent, if we know the solution to the other, we get the other pretty easily from it (see figure \ref{f:pl-transposed-version}).
 
