@@ -1,0 +1,31 @@
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {4.1}着色技术概述}{\reset@font\mtcSfont 173}{section.4.1}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {4.1.1}着色技术基础}{\reset@font\mtcSSfont 174}{subsection.4.1.1}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {4.1.2}光栅化技术}{\reset@font\mtcSSfont 175}{subsection.4.1.2}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {4.2}延迟着色}{\reset@font\mtcSfont 178}{section.4.2}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {4.2.1}延迟光照计算}{\reset@font\mtcSSfont 182}{subsection.4.2.1}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {4.3}光源分配}{\reset@font\mtcSfont 185}{section.4.3}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {4.3.1}分块着色}{\reset@font\mtcSSfont 186}{subsection.4.3.1}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {4.3.2}分簇着色}{\reset@font\mtcSSfont 189}{subsection.4.3.2}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {4.3.2.1}簇分配}{\reset@font\mtcSSSfont 189}{subsubsection.4.3.2.1}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {4.3.2.2}找出唯一的簇集合}{\reset@font\mtcSSSfont 192}{subsubsection.4.3.2.2}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {4.3.2.3}分配光源到簇}{\reset@font\mtcSSSfont 193}{subsubsection.4.3.2.3}}
+{\reset@font\mtcPfont\mtc@string\contentsline{paragraph}{\noexpand \leavevmode 壳通道}{\reset@font\mtcPfont 194}{paragraph*.149}}
+{\reset@font\mtcPfont\mtc@string\contentsline{paragraph}{\noexpand \leavevmode 填充通道}{\reset@font\mtcPfont 197}{paragraph*.153}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {4.3.2.4}着色计算}{\reset@font\mtcSSSfont 197}{subsubsection.4.3.2.4}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {4.4}着色器管理}{\reset@font\mtcSfont 198}{section.4.4}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {4.5}延迟着色中的反走样技术}{\reset@font\mtcSfont 202}{section.4.5}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {4.5.1}形态反走样}{\reset@font\mtcSSfont 204}{subsection.4.5.1}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {4.5.1.1}子像素形态反走样}{\reset@font\mtcSSSfont 207}{subsubsection.4.5.1.1}}
+{\reset@font\mtcPfont\mtc@string\contentsline{paragraph}{\noexpand \leavevmode 边缘检测}{\reset@font\mtcPfont 208}{paragraph*.163}}
+{\reset@font\mtcPfont\mtc@string\contentsline{paragraph}{\noexpand \leavevmode 计算权重值}{\reset@font\mtcPfont 209}{paragraph*.165}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {4.5.2}时间反走样}{\reset@font\mtcSSfont 213}{subsection.4.5.2}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {4.5.2.1}静态场景}{\reset@font\mtcSSSfont 214}{subsubsection.4.5.2.1}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {4.5.2.2}动态场景}{\reset@font\mtcSSSfont 216}{subsubsection.4.5.2.2}}
+{\reset@font\mtcPfont\mtc@string\contentsline{paragraph}{\noexpand \leavevmode 重投影}{\reset@font\mtcPfont 217}{paragraph*.172}}
+{\reset@font\mtcPfont\mtc@string\contentsline{paragraph}{\noexpand \leavevmode 模糊处理}{\reset@font\mtcPfont 219}{paragraph*.174}}
+{\reset@font\mtcPfont\mtc@string\contentsline{paragraph}{\noexpand \leavevmode 重\nobreakspace {}\nobreakspace {}影}{\reset@font\mtcPfont 220}{paragraph*.177}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {4.5.3}聚集几何缓存反走样}{\reset@font\mtcSSfont 225}{subsection.4.5.3}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {4.5.3.1}高密度可见性采样}{\reset@font\mtcSSSfont 227}{subsubsection.4.5.3.1}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {4.5.3.2}聚集定义}{\reset@font\mtcSSSfont 227}{subsubsection.4.5.3.2}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {4.5.3.3}生成几何聚集缓存}{\reset@font\mtcSSSfont 229}{subsubsection.4.5.3.3}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {4.5.3.4}延迟着色计算}{\reset@font\mtcSSSfont 230}{subsubsection.4.5.3.4}}

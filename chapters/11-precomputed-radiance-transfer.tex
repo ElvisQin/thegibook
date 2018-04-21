@@ -1464,131 +1464,117 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 \paragraph{考虑间接光照}
 接下来我们会推导出一个考虑间接光照的传输矩阵形式，它使用一种渐进式的方法，形成一个递归的公式，即给定光照的第$k$次反弹的传输矩阵，我们可以推导出第$k+1$次反弹的传输矩阵。因为已经计算出了直接光照的传输矩阵$\mathbf{T}^{p}_0$，因此我们就能够计算出任意反弹次数的传输矩阵。由于光照是线性的，因此能够考虑所有反弹的传输矩阵$\mathbf{T}^{p}$就只不过是这些单次反弹的传输矩阵$\mathbf{T}^{p}_0,\mathbf{T}^{p}_1,\cdots$的和。
 
+为了推导出包含间接光照的传输矩阵，这里首先使用迭代形式的渲染方程，即方程两边同时包含未知的变量$L_{xfer}$，需要注意的是，与传统的渲染方程坐左边表示的是出射辐射亮度不同，这里方程的左边表示的是$p$点的入射辐射亮度：
 
-In order to derive the method, we'll use a "transposed" version of the rendering equation. One that we have specifically using transferred incident radiance as the unknown, not outgoing radiance as is usually done. These equations are equivalent, if we know the solution to the other, we get the other pretty easily from it (see figure \ref{f:pl-transposed-version}).
-
-\begin{figure}
-\sidecaption
-	\includegraphics[width=0.5\textwidth]{figures/prt/prt-12}
-	\caption{$p^{'}$ is the point that the ray from $p$ towards $\omega$ intersects. Note that the usual reflectance integral is performed above the point $p^{'}$ here, not $p$ as in the usual version of the rendering equation.}
-	\label{f:pl-transposed-version}
-\end{figure}
-
-\begin{equation*}
+\begin{equation}\label{e:pl-recursion}
 \begin{aligned}
 	L_{xfer}(p\leftarrow\omega)=&L_{env}(\omega)V(p,\omega)\\
 	&+\int_{\Omega (p^{'})}L_{xfer}(p^{'}\leftarrow\omega^{'})f_r(p^{'},\omega^{'}\to -\omega)cos\theta^{'}d\omega^{'}
 \end{aligned}
-\end{equation*}
+\end{equation}
 
-This equation says that the lighting incident to $p$ is the sum of:
+上式说明，点$p$处的入射光照由两部分组成：
 
 \begin{itemize}
-	\item Direct lighting from the lighting environment, shadowed by the object.
-	\item Lighting reflected by the scene towards $p$.
+	\item 来自于环境贴图的直接光照，其中某些方向可能会被其他物体遮挡。
+	\item 来自其他物体表面反射的光照。
 \end{itemize}
 
-The incident version of the rendering equation can be solved using Neumann series just as well as the outgoing version: the lighting upon $p$ is the sum of direct light, light that has taken one, two, three, etc. bounces.
+式\ref{e:pl-recursion}可以使用纽曼级数（Neumann series）\mathindex{纽曼级数}{Neumann series}展开，即：
 
-Given that we know the lighting in the scene that has taken $k$ bounces, then the Neumann series gives the relationship of this known $k$-times reflected light and $k+1$-times reflected light, i.e., if we know the incident radiance from the previous bounce, the next one is obtained from the reflectance equation:
-
-\begin{equation*}
+\begin{equation}
 	L_{k+1}(p\leftarrow\omega)=\int_{\Omega (p^{'})}L_k(p^{'}\leftarrow\omega^{'})f_r(p^{'},\omega^{'}\to -\omega)cos\theta^{'}d\omega^{'}
-\end{equation*}
+\end{equation}
 
-To derive transfer matrices for all bounces, we'll start from the projection equation: we want to express $L_{xfer}$ at $p$ in terms of the basis functions $z$. In the end this will yield the transfer matrices for all bounces:
+上式说明，只要求出了第$k$次反弹的结果，则可以由此推断出第$k+1$次反弹的结果。通过递归地将方程的左边代入右边，则$p$点的转移入射辐射照度可以写为：
 
-\begin{equation*}
-	L_{xfer}(p\leftarrow\omega)\approx\sum^{m}_{j=1}l^{p}_jz_j(\omega)
-\end{equation*}
-
-As we saw earlier, in order to get the $j$-th projection coefficients, we have to integrate the function against the dual basis function $\tilde{z}$:
-
-\begin{equation*}
-	l_j^{p}=\int_\Omega L_{xfer}(p\leftarrow\omega)\tilde{z}_j(\omega)d\omega=:\langle L_{xfer}(p),\tilde{z}_j\rangle
-\end{equation*}
-
-By the Neumann series:
-
-\begin{equation*}
+\begin{equation}
 	L_{xfer}(p\leftarrow\omega)=L_{0}(p\leftarrow\omega)+L_{1}(p\leftarrow\omega)+L_{2}(p\leftarrow\omega)+\cdots
-\end{equation*}
+\end{equation}
 
-Since the inner product is linear, the projection coefficients can be computed by projecting each bounce of light separately and adding the results together:
+根据前面的讨论，由于转移入射辐射照度可以被近似为球谐函数的线性组合，即：
 
-\begin{equation*}
+\begin{equation}
+	L_{xfer}(p\leftarrow\omega)\approx\sum^{m}_{j=1}l^{p}_jz_j(\omega)
+\end{equation}
+
+\noindent 并且上式中的系数$l^{p}_j$可以下述的积分求得：
+
+\begin{equation}
+	l_j^{p}=\int_\Omega L_{xfer}(p\leftarrow\omega)\tilde{z}_j(\omega)d\omega=:\langle L_{xfer}(p),\tilde{z}_j\rangle
+\end{equation}
+
+
+\noindent 因此我们可以得出$p$点处总的投影系数可以由各个反弹下的投影系数相加而得，即：
+
+\begin{equation}\label{e:pl-all-l}
 	l^{p}_j=\langle L_0(p),\tilde{z}_j\rangle+\langle L_1(p),\tilde{z}_j\rangle+\langle L_2(p),\tilde{z}_j\rangle+\cdots
-\end{equation*}
-
+\end{equation}
 
 
 
 \paragraph{第$k+1$次反弹的传输矩阵}
-So far, we've already derived per-point matrices $T^{p}_0$ that map coefficients of lighting environment to coefficients that represent direct lighting. We'll start the derivation of the matrices $T^{p}_{k+1}$ from the projection coefficients $l^{p}_k$.
+首先来总结一下到目前为止我们已经掌握了那些信息，式\ref{e:pl-all-l}已经说明$p$点关于所有次反弹光照的投影系数，分别等于每一次反弹对应入射辐射亮度的投影系数之和，而对于每一次单次反弹，我们可以将它看做直接关照的形式处理，只不过这里的入射光照来自于其它表面的点而不是环境光照，这可以通过将每个表面点上一次反弹的转移入射辐射亮度值与其表面的BRDF乘积的积分计算而来。这里不再对其进行详述，请读者参考\cite{a:PrecomputedRadianceTransfer:TheoryandPractice}。
 
 
-
-
-In a non-scattering medium, points not on surfaces do not affect the appearance of the scene. So just compute solution with all bounces for surface points first, then gather all bounces at once for points in free space.
 
 
 \subsubsection{出射辐射亮度}
+当计算出表面每个点处的传输矩阵之后，在运行时就可以直接对环境光照执行该矩阵变换，从而得到每个像素的入射辐射亮度分布，然后我们需要将此入射光照与表面的BRDF分布函数的乘积进行积分，以计算最终观察方向的出射辐射亮度。
 
+将一个入射光照分布映射到另一个出射辐射照度分布，这又是另一个线性操作，设$L_{out}$为出射光照分布，则有：
 
+\begin{equation}
+	L_{out}(p\to\omega_{out})=\int_{\Omega}L_{xfer}(p\leftarrow\omega_{in})f_r(p,\omega_{in}\to\omega_{out})\max(\cos \theta,0){\rm d}\omega_{in}
+\end{equation}
 
-%\subsection{基于小波函数}
-
-All-Frequency Relighting of Glossy Objects.pdf
-Our system approaches the sampling problem by choosing a high sampling rate for the lighting but a low sampling rate for the view. This is achieved by combining non-linear wavelet approximation for the lighting with low-order separable approximation for the BRDF. As a result, we have bandlimited high-frequency specularities; however, unlike the spherical harmonics based approach, our renderings preserve intricate all-frequency shadows while remain at interactive rates.
-
-
-
-Ng et al. [129] introduce the use of wavelets for high-frequency illumination. Wavelet coefficients are selected on-the-fly to achieve a nonlinear approximation of high quality. This system demonstrates interactive performance for fixed viewing of nondiffuse scenes and arbitrary viewing of diffuse scenes. Figure 8.19 compares spherical harmonics with wavelets.
-
-High-frequency illumination effects, such as sharp shadows, cannot be rep- resented with great fidelity using a small number of coefficients in the spher- ical harmonics basis functions. The next major set of innovations in PRT aim at supporting both all-frequency illumination effects and generalized BRDFs.
+对于上述的线性操作，我们需要一个矩阵或矢量来实现，在矩阵的情况下，入射光照分布完全被变换到一个球面上的出射光照分布，然后对给定观察方向进行取值即可；在矢量的情况下，我们可以为每个方向单独存储一个与方向有关的矢量，然后所有方向的矢量可以存储在一个类似“环境贴图”的球面纹理中，这样最后实时渲染时就用一个观察方向从这个纹理直接查询一个矢量值即可，这个矢量直接被用于入射光照的计算。这里不再对其进行详述，更详细的内容请读者参考\cite{a:PrecomputedRadianceTransfer:TheoryandPractice}。
 
 
 
 
+\section{基于辐射照度的预计算}\label{sec:pl-irradiance-caching}
+前面介绍的方法是对光照传输的过程进行预计算，因此光源在实时阶段是可以修改的。在接下来的两节，我们将介绍两种直接缓存光照的方法，使这些缓存的某种光照结果可以直接作用于物体表面，而不需要另外考虑光源的问题，它们就像光照计算中的一些中间结果。由此也可以推断，这两种技术无法适应光源的动态调整，除非我们可以实时动态地生成这些中间结果。
+
+我们要介绍的第一种方法是一种基于辐射照度（irradiance）的预计算方法，辐射照度是指有一个单位面积内所有入射辐射能量的总和，它是对法线方向半球空间内入射辐射亮度的积分。很显然，根据入射照度的定义，它只与漫反射表面有关，因为只有漫反射表面的出射辐射亮度才与其入射方向无关，因此各个入射方向的光照可以被加和。
+
+对于静态场景，由于漫反射表面的光照是与观察方向无关的，因此我们可以将其辐射照度缓存起来，然后在实时渲染时将其与漫反射系数相乘的结果就可以作为表面的漫反射光照。
+
+本节我们首先介绍现代实时渲染中辐射照度预计算方法的一般表现形式，即光照贴图，然后介绍一种生成光照贴图的方法。
 
 
 
-
-
-
-
-PRT缓存的是transfer函数，因此允许光源动态改变，而场景只能是静态的，但是irradiance caching则相反，它缓存lighting，而允许物体时可移动的。
-
-
-Precomputed transfer using light-field remapping [18] and dynamic ray tracing [16] has been used to achieve highly specular reflections and refractions. We apply a similar precomputed, per- object decomposition but designed instead for soft shadows and caustics on nearly diffuse objects in low-frequency lighting. Irradiance volumes [15] allow movement of diffuse receivers in precomputed lighting. Unlike our approach, lighting is static and the receiver’s effect on itself and its environment is ignored.
-
-
-http://www.ludicon.com/castano/blog/2014/07/irradiance-caching-continued/
-
-
-Fast Filtering of Reflection Probes
-
-
-
-
-
-
-\begin{comment}
-
-
-\section{基于表面位置的缓存}\label{sec:pl-irradiance-caching}
 \subsection{光照贴图}
+由于漫反射表面的颜色可以由单个RGB颜色值描述，其记载的是辐射照度值，如果光源和整个几何场景是静态的，则这个辐射照度值为一个常数，因此可以被预存起来，我们称记录辐射照度值的纹理为一个辐射照度贴图（irradiance maps）\myindex{辐射照度贴图}{irradiance maps}或光照贴图（light maps）\myindex{光照贴图}{light maps}，由于光照传输是线性的，因此其它动态光源所形成的光照可以在这个辐射照度值上进行累加。光照贴图仍然是现阶段实时渲染中漫反射间接光照的主流解决方案\cite{m:LightmappingQuickstart,m:LightmassGlobalIllumination,a:PrecomputedLightinginCallofDuty}，它最早被用于\cite{a:QuakesLightingModel:SurfaceCaching}中。
 
+在像素着色器中，每个像素都需要读取光照贴图中的一个辐射照度值，我们已经说明它是一个常数颜色值；而另一方面，漫反射表面的每个像素还存储了一个漫反射系数值，它也是一个常数值。直观上思考，我们希望将这两个值预乘起来，形成一个直接的出射辐射亮度值，这样便可以使用一个单独的纹理来同时存储漫反射颜色和光照贴图中的数据，然而有几个原因使得我们通常不会这么做。
 
+首先，漫反射颜色除了用于静态的光照计算，这里即是光照贴图中的这部分光照，它还可能会被用于动态光源的光照计算，例如下一节介绍的环境探针，所以表面的漫反射颜色是必须单独存储的，除非场景完全由静态光源组成。
 
+其次，对所有表面存储每像素的辐射照度值会占据很大的存储空间，所以在实践中光照贴图的分辨率会远远小于漫反射颜色的分辨率，因此它们必须单独存储。由于这种较低的分辨率特征，它不能很好地近似高频的直接光照分布，光照贴图通常只存储间接光照，因为表面间接光照分布会更加平滑，而直接光照仍然交由光栅化处理。也正是因为光照贴图的分辨率很低，所以我们通常不需要对每个物体表面单独存储一个纹理，而是对整个或部分场景存储一个光照贴图，如图\ref{f:pl-lightmap}所示。
 
+\begin{figure}
+\begin{fullwidth}
+	\includegraphics[width=\thewidth]{figures/pl/pl-lightmap}
+	\caption{一个简单的场景（左）及其光照贴图（右），由此可以看出光照贴图的分辨率很低，因此它通常仅用来存储间接光照（图片来自Wikipedia）}
+	\label{f:pl-lightmap}
+\end{fullwidth}
+\end{figure}
 
+光照贴图本身只是存储辐射照度值的一个数据结构，它并不包含产生辐射照度值的方法。由于光照贴图仅针对漫反射表面，所以本书前面介绍的两种辐射度设置方法（即辐射度方法和即时辐射度方法）都可以用于生产光照贴图的辐射照度颜色值。除此之外，另一种常用于生成光照贴图的技术是辐射照度缓存，我们将在下一节介绍该种技术。
 
 
 
 
 
 \subsection{辐射照度缓存}
+
+http://www.ludicon.com/castano/blog/2014/07/irradiance-caching-continued/
+
+辐射照度缓存可以用来生成光照贴图
+
+
+
 因为插值计算不需要考虑法线，在辐射照度中，法线已经被集成进辐射照度的计算中，辐射照度已经是一个考虑法线的结果，因此对辐射照度插值无法考虑法线，但是辐射亮度缓存仍然需要考虑法线去计算方向，所可以计算几何法线细节
 
 
@@ -1642,20 +1628,20 @@ Radiance Caching
 Radiance caching [Kˇriva ́nek et al. 2005; Kˇriva ́nek 2005] general- izes Ward et al.’s [1988] irradiance caching algorithm for the use on glossy surfaces.1 It accelerates indirect illumination computa- tion by reusing previously computed and cached incoming radiance values through interpolation over glossy surfaces.
 
 
-%Several researchers have investigated how to reduce the noise by distributing rays more carefully and for example, by using bidirectional Monte Carlo ray tracing, in which rays are traced simultaneously from the light and the eye. However, these pure unbiased Monte Carlo-based ray tracing methods are still very time-consuming. An alternative is biased Monte Carlo ray tracing, in which other convergence properties are accepted. One example is irradiance caching which stores and re-uses indirect illumination on diffuse surfaces via an interpolation scheme.
+Several researchers have investigated how to reduce the noise by distributing rays more carefully and for example, by using bidirectional Monte Carlo ray tracing, in which rays are traced simultaneously from the light and the eye. However, these pure unbiased Monte Carlo-based ray tracing methods are still very time-consuming. An alternative is biased Monte Carlo ray tracing, in which other convergence properties are accepted. One example is irradiance caching which stores and re-uses indirect illumination on diffuse surfaces via an interpolation scheme.
 
-%Caching in the context of GI means to compute results sparsely and interpolated in-between. Caching is mostly orthogonal to the particular GI method used and should be compatible to many of the before mentioned approaches. Pre- viously it was mainly used in combination with Monte Carlo ray tracing however (Sec. 3.2).
+Caching in the context of GI means to compute results sparsely and interpolated in-between. Caching is mostly orthogonal to the particular GI method used and should be compatible to many of the before mentioned approaches. Pre- viously it was mainly used in combination with Monte Carlo ray tracing however (Sec. 3.2).
 %
-%Similar ideas are used in interactive GI, e. g., when combining screen space-illumination for nearby and other approaches for far fields [KD10,REH⇤11].
+Similar ideas are used in interactive GI, e. g., when combining screen space-illumination for nearby and other approaches for far fields [KD10,REH⇤11].
 %
-%As other schemes that use interpolation to reconstruct illumination from a sparse set of samples, the irradiance cache is a biased algorithm (see section 2.1.9).
+As other schemes that use interpolation to reconstruct illumination from a sparse set of samples, the irradiance cache is a biased algorithm (see section 2.1.9).
 
-%The irradiance cache, in its initial form, suffers from a number of problems:
-%• The range calculation for a sample involves a stochastic process, which may occasionally result in a density that is too sparse, leading to leaks and other artifacts.
-%• Adding samples on-the-fly may lead to new samples that would have affected the estimated radiance arriving at pixels that already have been finalized.
-%• In a multi-threaded environment, adding samples from several rendering threads simultaneously requires extensive synchronization.
-%• For dynamic light sources, the samples need to be recreated for each frame, leading to temporal noise.
-%Most of these have been addressed in more recent work. Krˇivánek et al. propose to use neighbor clamping to prevent leaks [141]. Progressive refinement or an irradiance gathering pass can be used to prevent samples from affecting already rendered pixels [142]. Several methods have been proposed to make the irradiance cache more suitable for a multi-threaded environment [232, 64]. In an off-line environment, temporal noise is solved by refining the irradiance cache until a predefined maximum error is guaranteed to be not exceeded. This illustrates an important design constraint of the irradiance cache: where necessary, it trades rendering time for image fidelity.
+The irradiance cache, in its initial form, suffers from a number of problems:
+ The range calculation for a sample involves a stochastic process, which may occasionally result in a density that is too sparse, leading to leaks and other artifacts.
+ Adding samples on-the-fly may lead to new samples that would have affected the estimated radiance arriving at pixels that already have been finalized.
+ In a multi-threaded environment, adding samples from several rendering threads simultaneously requires extensive synchronization.
+ For dynamic light sources, the samples need to be recreated for each frame, leading to temporal noise.
+Most of these have been addressed in more recent work. Krˇivánek et al. propose to use neighbor clamping to prevent leaks [141]. Progressive refinement or an irradiance gathering pass can be used to prevent samples from affecting already rendered pixels [142]. Several methods have been proposed to make the irradiance cache more suitable for a multi-threaded environment [232, 64]. In an off-line environment, temporal noise is solved by refining the irradiance cache until a predefined maximum error is guaranteed to be not exceeded. This illustrates an important design constraint of the irradiance cache: where necessary, it trades rendering time for image fidelity.
 
 传统的插值不考虑遮挡，因此光照比较平坦，2017 Precomputed Lighting IN CoD
 Now, this is what the typical probe lighting usually looks like. And by „typical” i mean that you sample lighting in one location and use it for the whole object, it’s usually encoded as 3rd order spherical harmonics, it’s looked up by the normal, you do the convolution with the cosine on the fly and voila. And this of course gives you some directional variation, but in general looks fairly flat and uninteresting
@@ -1664,17 +1650,14 @@ What we really want is something like that – so with spatial variation over th
 
 
 
-\subsection{环境探针的预过滤}
-针对specular BRDF的pre-convolution，或者称为pre-filtering
-
-2012 Pre-convolved Radiance Caching
-
-
-2016 Fast Filtering of Reflection Probes
 
 
 
-\section{基于空间位置的缓存}\label{sec:pl-irradiance-volume}
+
+
+
+
+\section{基于辐射亮度的预计算}\label{sec:pl-irradiance-volume}
 \subsection{光场}
 Light fields. The light field (or plenoptic function) describes the spatial-angular distribution of radiance in free space for an envi- ronment, dating back to models proposed in physics literature in the early 1930’s. The first works to use light fields in graphics in- troduced the concept of a light slab, encoding a rectangular subset of the light field [Levoy and Hanrahan 1996; Gortler et al. 1996]. This light slab has been employed in many products and produc- tions, and methods exist for reconstructing it in real-time with the slab region. However, ours is the first method to encode and ap- ply to real-time rendering a light field parameterization that can be evaluated at any point in space, with correct occlusion.
 
@@ -1756,6 +1739,11 @@ A Reflection Probe is rather like a camera that captures a spherical view of its
 \subsubsection{可见性}
 
 
+\subsection{VolumetricLightmaps}
+2016 Volumetric Global Illumination at Treyarch.key
+	
+
+https://docs.unrealengine.com/en-us/Engine/Rendering/LightingAndShadows/VolumetricLightmaps
 
 
 \subsection{实时生成光照探针}
@@ -1763,4 +1751,3 @@ A Reflection Probe is rather like a camera that captures a spherical view of its
 
 Systems such as Geomerics re-render radiance probes and light maps in real-time using complex schedul- ing and threading. Our input data are similar, so a similar software engineering approach may be applicable to the light field probe rep- resentation to enable real-time updates of the global illumination
 solution.
-\end{comment}

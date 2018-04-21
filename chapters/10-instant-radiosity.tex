@@ -1003,7 +1003,7 @@ Nothing is made to ensure temporal coherency→ if one sample changes, the whol
 
 
 
-\section{避免奇异值--光泽表面的处理}
+\section{避免奇异值——光泽表面的处理}
 通过前面的内容可知，即时辐射度使用了远少于路径追踪算法的路径样本。虽然较少的路径样本意味着较高的估计方差，但是即时辐射度方法通过将每个光源子路径重用于所有着色点，这样每个虚拟点光源都能够对整个场景形成贡献，使得图像分布更加平滑，不会像路径追踪那样表现为刺眼的噪点，达到交互式的能力。
 
 \begin{figure}
@@ -1416,7 +1416,7 @@ Nothing is made to ensure temporal coherency→ if one sample changes, the whol
 
 对于上述高维积分，传统的方法（如路径追踪等）是对上述的高维作用域进行点采样，然后通过计算这些样本贡献值的加和来近似该积分计算，然而这种计算的成本非常高。受光源切口方法的启发，高维光源切口方法将阶层式的方法引入用于解决式\ref{e:ir-multi-integrals}的高维积分。
 
-与式\ref{e:ir-linear}不同的是，式\ref{e:ir-multi-integrals}中每个像素的值是由多个像素值“混合”而来的，例如对于运动模糊，每个像素看到的是一段时间内多个着色点混合而成的模糊效果；对于反走样，它也是由一定区域内多个着色点的光照混合而成的结果；对于景深效果，它对处于焦点外的像素混合周围更大面积的像素值来形成模糊效果。因此对于式\ref{e:ir-multi-integrals}，我们可以表述为对每个像素发射多个着色点光线，然后分别对每个着色点光线的光照按照某种权重进行加和以得出该像素的最终光照值。假设所有虚拟点光源的集合为$\mathds{L}$，每个像素发出的多个称为收集点（gather points）\myindex{收集点}{gather points}的集合为$\mathds{G}$，则式\ref{e:ir-multi-integrals}可以转换为多个收集点-光源对光照加和的形式：
+与式\ref{e:ir-linear}不同的是，式\ref{e:ir-multi-integrals}中每个像素的值是由多个像素值“混合”而来的，例如对于运动模糊，每个像素看到的是一段时间内多个着色点混合而成的模糊效果；对于反走样，它也是由一定区域内多个着色点的光照混合而成的结果；对于景深效果，它对处于焦点外的像素混合周围更大面积的像素值来形成模糊效果。因此对于式\ref{e:ir-multi-integrals}，我们可以表述为对每个像素发射多个着色点光线，然后分别对每个着色点光线的光照按照某种权重进行加和以得出该像素的最终光照值。假设所有虚拟点光源的集合为$\mathds{L}$，每个像素发出的多个称为收集点（gather points）\myindex{收集点}{gather points}的集合为$\mathds{G}$，则式\ref{e:ir-multi-integrals}可以转换为多个收集点—光源对光照加和的形式：
 
 \begin{equation}\label{e:ir-gather-light-integral}
 \begin{aligned}
@@ -1425,15 +1425,15 @@ Nothing is made to ensure temporal coherency→ if one sample changes, the whol
 \end{aligned}
 \end{equation}
 
-\noindent 这里$M,G,V$和$I$项与式\ref{e:ir-linear}中的意义是相同的，而$S_j$表示每个收集点的权重值，它是各种模糊效果的权重系数的乘积，其总和$\sum S_j\leq 1$。$\uptau_{ji}$表示一个二进制变量，用于限定每个收集点-光源对处于同于时刻，我们将在后面看到它的意义。
+\noindent 这里$M,G,V$和$I$项与式\ref{e:ir-linear}中的意义是相同的，而$S_j$表示每个收集点的权重值，它是各种模糊效果的权重系数的乘积，其总和$\sum S_j\leq 1$。$\uptau_{ji}$表示一个二进制变量，用于限定每个收集点—光源对处于同于时刻，我们将在后面看到它的意义。
 
-直接对式\ref{e:ir-gather-light-integral}计算所有的收集点-光源对（gather-light pair）$(g,l)$需要$\mathcal{O}(|\mathds{G}||\mathds{L}|)$的计算复杂度，高维光源切口方法通过建立一个收集点和光源的乘积图，并使用阶层式的方式对式\ref{e:ir-gather-light-integral}进行近似计算。
+直接对式\ref{e:ir-gather-light-integral}计算所有的收集点—光源对（gather-light pair）$(g,l)$需要$\mathcal{O}(|\mathds{G}||\mathds{L}|)$的计算复杂度，高维光源切口方法通过建立一个收集点和光源的乘积图，并使用阶层式的方式对式\ref{e:ir-gather-light-integral}进行近似计算。
 
 
 
 
 \paragraph{乘积图及切口}
-我们的目标是要对收集点-光源对建立一个阶层式结构，就像光源切口方法中的光源树一样，然而很遗憾的是我们并不能简单地推导出这样一个阶层结构。为此，高维光源切口方法使用一个隐式方法来构造这样一个阶层结构，首先，我们分别对虚拟点光源和收集点建立一个二叉树，分别称为收集点树（gather tree）和光源树，如图\ref{f:ir-product-graph}(b)和(c)所示，这里的构造方法和前面介绍的光源切口方法中的构造方法是一样的，这些树中的每一个节点都表示该节点所有子节点（收集点或者光源）的集合，这就形成了一个隐式的关于收集点-光源对的阶层结构：$\mathds{P}=Tree(\mathds{G})\times Tree(\mathds{L})$，我们称该结构为一个乘积图（product graph）\myindex{乘积图}{product graph}。
+我们的目标是要对收集点—光源对建立一个阶层式结构，就像光源切口方法中的光源树一样，然而很遗憾的是我们并不能简单地推导出这样一个阶层结构。为此，高维光源切口方法使用一个隐式方法来构造这样一个阶层结构，首先，我们分别对虚拟点光源和收集点建立一个二叉树，分别称为收集点树（gather tree）和光源树，如图\ref{f:ir-product-graph}(b)和(c)所示，这里的构造方法和前面介绍的光源切口方法中的构造方法是一样的，这些树中的每一个节点都表示该节点所有子节点（收集点或者光源）的集合，这就形成了一个隐式的关于收集点—光源对的阶层结构：$\mathds{P}=Tree(\mathds{G})\times Tree(\mathds{L})$，我们称该结构为一个乘积图（product graph）\myindex{乘积图}{product graph}。
 
 \begin{figure}
 \begin{fullwidth}
@@ -1443,17 +1443,17 @@ Nothing is made to ensure temporal coherency→ if one sample changes, the whol
 \end{fullwidth}
 \end{figure}
 
-如图\ref{f:ir-product-graph}(c)所示，乘积图并不是一棵树，而是类似于一个二维表格，它的每个节点表示收集点树中某个节点和光源树中某个节点的乘积，它的这种独特的构造方式使得我们可以隐式地得到一个收集点-光源对的阶层结构，它只需要使用两个体积更小的，阶层式的光源树和收集点树就可以得到，我们定义乘积图中每个节点表示的收集点-光源对集合为$\mathds{C}$。
+如图\ref{f:ir-product-graph}(c)所示，乘积图并不是一棵树，而是类似于一个二维表格，它的每个节点表示收集点树中某个节点和光源树中某个节点的乘积，它的这种独特的构造方式使得我们可以隐式地得到一个收集点—光源对的阶层结构，它只需要使用两个体积更小的，阶层式的光源树和收集点树就可以得到，我们定义乘积图中每个节点表示的收集点—光源对集合为$\mathds{C}$。
 
-接下来我们需要把切口的概念运用于上述的乘积图，由于乘积图已经隐式地建立起了所有收集点-光源对的阶层结构，我们的目标便是要适应性地选择一个“切口”并使得像素的光照近似足够精确。与光源切口方法类似，我们定义乘积图中的一个切口为乘积图中一些节点的集合，并使得对于每个叶子节点（如图\ref{f:ir-product-graph}(c)中的蓝色节点），每个由乘积图根节点（如图\ref{f:ir-product-graph}(c)中的灰色节点）向所有这些叶子节点形成的路径当中有且仅有一个节点位于切口当中，因此每个收集点-光源对仅仅可能唯一位于一个切口中的某个集合（非叶结点，或簇）当中。
+接下来我们需要把切口的概念运用于上述的乘积图，由于乘积图已经隐式地建立起了所有收集点—光源对的阶层结构，我们的目标便是要适应性地选择一个“切口”并使得像素的光照近似足够精确。与光源切口方法类似，我们定义乘积图中的一个切口为乘积图中一些节点的集合，并使得对于每个叶子节点（如图\ref{f:ir-product-graph}(c)中的蓝色节点），每个由乘积图根节点（如图\ref{f:ir-product-graph}(c)中的灰色节点）向所有这些叶子节点形成的路径当中有且仅有一个节点位于切口当中，因此每个收集点—光源对仅仅可能唯一位于一个切口中的某个集合（非叶结点，或簇）当中。
 
-有了收集点-光源对的阶层结构，与光源切口类似，我们同样使用一个代理收集点-光源对$(g,l)$来近似一个簇$\mathds{C}$的光照贡献，即有：
+有了收集点—光源对的阶层结构，与光源切口类似，我们同样使用一个代理收集点—光源对$(g,l)$来近似一个簇$\mathds{C}$的光照贡献，即有：
 
 \begin{equation}\label{e:ir-multi-sublinear}
 	\tilde{L}_{\mathds{C}}=M_{gl}G_{gl}V_{gl}\sum_{(j,i)\in\mathds{C}}S_j\uptau_{ji}I_i
 \end{equation}
 
-\noindent 上式中的材质项，几何项以及可见性项均发生于代理收集点-光源对$(g,l)$中，需要注意的是，上式右边的和式中包含$\uptau_{ji}$项，即是要求每个参与计算的收集点$g$和光源$l$必须处于同一时刻，否则估计可能会出现一些预期之外的结果，这同时也要求代理的选择满足这样的限制。
+\noindent 上式中的材质项，几何项以及可见性项均发生于代理收集点—光源对$(g,l)$中，需要注意的是，上式右边的和式中包含$\uptau_{ji}$项，即是要求每个参与计算的收集点$g$和光源$l$必须处于同一时刻，否则估计可能会出现一些预期之外的结果，这同时也要求代理的选择满足这样的限制。
 
 那么何为同一时刻呢？在式\ref{e:ir-multi-integrals}表示的这些效果中，每个像素的值其实是多个像素值混合的结果，然而这些参与混合的像素值并不是普通的像素值，它们是一些“不同时刻”下的“静态”像素值，例如对于运动模糊，这些混合的像素值都是不同时间下对应位置处真实的像素值，$\uptau$的限制即是要保证收集点和光源处理同一绝对时刻，这样的概念也可以推广到景深，反走样等效果，这里的时刻可以理解为一个完全静态的渲染场景，其包含特定的虚拟点光源集合以及单个收集点。
 
@@ -1463,13 +1463,13 @@ Nothing is made to ensure temporal coherency→ if one sample changes, the whol
 	\tilde{L}_{\mathds{C}}=M_{gl}G_{gl}V_{gl}(\vec{S}_{\mathds{C}}\cdot \vec{I}_{\mathds{C}})
 \end{equation}
 
-\noindent 在上式中，$\vec{S}_{\mathds{C}}$表示所有的收集点权重值，它可以像$\vec{I}_{\mathds{C}}$一样被缓存在收集点树的每个节点处，代理收集点-光源对$(g,l)$是满足同一时刻要求的，那么剩下的问题就是需要保证乘积图中的每个代理收集点-光源对满足同一时刻要求。
+\noindent 在上式中，$\vec{S}_{\mathds{C}}$表示所有的收集点权重值，它可以像$\vec{I}_{\mathds{C}}$一样被缓存在收集点树的每个节点处，代理收集点—光源对$(g,l)$是满足同一时刻要求的，那么剩下的问题就是需要保证乘积图中的每个代理收集点—光源对满足同一时刻要求。
 
 
 
 
-\paragraph{代理收集点-光源对的选择}
-为了估计一个乘积图中一个节点的光照，根据式\ref{e:ir-multi-lightcuts}，我们需要对该簇选择一个代理收集点-光源对$(g,l)\in\mathds{C}$，为了使估计无偏，其代理选择的概率为：
+\paragraph{代理收集点—光源对的选择}
+为了估计一个乘积图中一个节点的光照，根据式\ref{e:ir-multi-lightcuts}，我们需要对该簇选择一个代理收集点—光源对$(g,l)\in\mathds{C}$，为了使估计无偏，其代理选择的概率为：
 
 \begin{equation}
 	p_{\mathds{C}}(g,l)= \cfrac{(\vec{S}_g \cdot \vec{I}_l)}{(\vec{S}_{\mathds{C}}\cdot \vec{I}_{\mathds{C}})}
@@ -1477,7 +1477,7 @@ Nothing is made to ensure temporal coherency→ if one sample changes, the whol
 
 \noindent 上式中要求收集点$g$和光源是$l$是处于同一时刻的，其中$\vec{S}_g$和$\vec{I}_l$表示选定时刻$t$下代理收集点$g$的权重和代理光源$l$的辐射强度，根据上面的矢量定义可知这两个矢量仅在选定的时刻分量上具有非零值。$\vec{S}_{\mathds{C}}$和$\vec{I}_{\mathds{C}}$则分别表示该簇内所有收集点的权重加和，以及所有光源的辐射强度加和。
 
-为了提高代理收集点-光源对查找的效率，\cite{a:MultidimensionalLightcuts}将式\ref{e:ir-multi-lightcuts}拆分成三个部分，即$p_{\mathds{C}}(g,l)=p_{\mathds{C}}(t)p_{\mathds{C}}(g|t)p_{\mathds{C}}(l|t)$，其中$p_{\mathds{C}}(t)$表示选择一个时刻$t$的概率，它等于该节点对应时刻$t$下所有子节点权重和强度的乘积站所有时刻下所有权重和强度乘积的和，即：
+为了提高代理收集点—光源对查找的效率，\cite{a:MultidimensionalLightcuts}将式\ref{e:ir-multi-lightcuts}拆分成三个部分，即$p_{\mathds{C}}(g,l)=p_{\mathds{C}}(t)p_{\mathds{C}}(g|t)p_{\mathds{C}}(l|t)$，其中$p_{\mathds{C}}(t)$表示选择一个时刻$t$的概率，它等于该节点对应时刻$t$下所有子节点权重和强度的乘积站所有时刻下所有权重和强度乘积的和，即：
 
 \begin{equation}\label{e:ir-representative-t}
 	p_{\mathds{C}}(t)=( \cfrac{\vec{S}_{\mathds{C}}\cdot\hat{e}_t)( \vec{I}_{\mathds{C}}\cdot\hat{e}_t}{\vec{S}_{\mathds{C}}\cdot\vec{I}_{\mathds{C}}}
@@ -1495,12 +1495,12 @@ Nothing is made to ensure temporal coherency→ if one sample changes, the whol
 	p_{\mathds{C}}(l|t)= \cfrac{\vec{I}_l\cdot\hat{e}_t}{\vec{I}_{\mathds{C}}\cdot\hat{e}_t}
 \end{equation}
 
-\noindent 上述的划分简化了概率计算，并且保证每个选择出来的代理收集点-光源对总是处于同一时刻；并且，由于$p_{\mathds{C}}(g|t)$仅仅依赖于收集点，所以每个时刻的代理收集点可以在建立收集点树的时候选择并缓存起来供快速查询，与之相似，$p_{\mathds{C}}(l|t)$仅仅依赖于光源，所以也可以在建立光源树的时候被计算并缓存起来。
+\noindent 上述的划分简化了概率计算，并且保证每个选择出来的代理收集点—光源对总是处于同一时刻；并且，由于$p_{\mathds{C}}(g|t)$仅仅依赖于收集点，所以每个时刻的代理收集点可以在建立收集点树的时候选择并缓存起来供快速查询，与之相似，$p_{\mathds{C}}(l|t)$仅仅依赖于光源，所以也可以在建立光源树的时候被计算并缓存起来。
 
 \begin{figure}
 \begin{fullwidth}
 	\includegraphics[width=1.0\thewidth]{figures/ir/multiple-representatives}
-	\caption{多代理点表述：为了使乘积图中的节点能够选择任意时刻下的代理收集点-光源对，我们需要对收集点树和光源树存储多个时刻下的代理点，这些代理点在构建这些树的时候选择并存储起来，然后被用于式\ref{e:ir-representative-t},\ref{e:ir-representative-g}和\ref{e:ir-representative-l}的快速计算}
+	\caption{多代理点表述：为了使乘积图中的节点能够选择任意时刻下的代理收集点—光源对，我们需要对收集点树和光源树存储多个时刻下的代理点，这些代理点在构建这些树的时候选择并存储起来，然后被用于式\ref{e:ir-representative-t},\ref{e:ir-representative-g}和\ref{e:ir-representative-l}的快速计算}
 	\label{f:ir-multiple-representatives}
 \end{fullwidth}
 \end{figure}
@@ -1603,9 +1603,11 @@ Nothing is made to ensure temporal coherency→ if one sample changes, the whol
 \noindent 这里的矩阵列分簇算法是该问题的一个特殊情况，其中$k:=c,x_i:=\bar{\rho}_i$，以及$w_i:=||\rho_i||$。为了对应上述的问题，我们将缩减矩阵转换为一个图，其包括每个列的“权重”以及“位置”，如图\ref{f:ir-reduced-columns}(a)和(b)所示，其中图中每个顶点的半径（或面积）正比于对应列的范数$||\rho_j||$，其位置分布对应于这些列的归一化矢量（如$\bar{\rho}_j$），例如在图\ref{f:ir-reduced-columns}中，相互靠近的圆意味着彼此的光源贡献比较相似。
 
 \begin{figure}
-	\includegraphics[width=1.0\textwidth]{figures/ir/reduced-columns}
+\begin{fullwidth}
+	\includegraphics[width=1.0\thewidth]{figures/ir/reduced-columns}
 	\caption{缩减矩阵的列(a)可以被虚拟化为一个由圆构成的图(b)，其圆的半径表示列的范数，而圆之间的位置表示列之间光照贡献的差异；(c)展示了一个符合误差最小化要求的分簇}
 	\label{f:ir-reduced-columns}
+\end{fullwidth}
 \end{figure}
 
 针对式\ref{e:ir-reduced-estimator-error}的要求，图\ref{f:ir-reduced-columns}(c)展示了一个列分簇的示例，例如光照贡献较小的圆往往相对没有那么重要，因为式\ref{e:ir-reduced-estimator-error}中$||\rho_i||\cdot||\rho_j||$项比较小，所以更多的光源可以被聚集到一起；光照贡献较强的光源虽然$||\rho_i||\cdot||\rho_j||$项比较大，但是如果彼此非常靠近（相似），即$||\bar{\rho}_i-\bar{\rho}_j||^{2}$项很小，则它们聚集在一起也能够产生较小的误差；此外，在相互靠近的情况下，不同强度的光源也可以聚集在一起。
@@ -1618,7 +1620,7 @@ Nothing is made to ensure temporal coherency→ if one sample changes, the whol
 
 \noindent 有了上述定义之后，我们让每个种子顶点$i$被选择的概率$p_i$正比于$a_i$，直观上看，这使得相互距离更远的顶点更容易被选择，从而保证每个簇之间的差异更大，而相似顶点更容易（在第二个步骤中）被划分到附近的簇中，而不是形成独立的簇。在实际操作中，为了产生$c$个簇，我们设置一个长度为$c$的集合，其中每个元素包含权重信息，当第$i$个顶点被选择时，我们将其添加到集合中并设置其权重为$1/p_i$，如果一个元素已经存在于集合中，则将其权重增加$1/p_i$，上述过程迭代执行直到集合中包含$c$个元素。最终，上述这些选择出来的顶点被当做$c$个簇的中心点，并且它们的权重被按照集合中的权重值缩放，然后遍历其他顶点，将其添加到与其连接成本（即$d$）最低的簇当中。
 
-这就面临一个重要问题，在传输矩阵$\mathbf{A}$未知的情况下，怎样计算每个列（光源）的光照$\rho_i$，因为这正是我们需要求解的问题。为了解决这个问题，\cite{a:MatrixRow-ColumnSamplingfortheMany-LightProblem}对原书传输矩阵的行进行下采样，即本质上是用一个低分辨率的图像来近似光源的光照贡献计算，这可以直接通过将光源放置于摄像机处，渲染一个低分辨率的阴影图来实现。这一步称为行采样（row sampling）\myindex{行采样}{row sampling}，它可以使用简单的均匀或分层采样，这是因为传输矩阵的行分布通常是均匀的，如图\ref{f:ir-low-rank-matrix}所示。所以这一一个行-列采样的组合就称为矩阵行-列采样（matrix row-column sampling）\myindex{矩阵行-列采样}{matrix row-column sampling}方法。
+这就面临一个重要问题，在传输矩阵$\mathbf{A}$未知的情况下，怎样计算每个列（光源）的光照$\rho_i$，因为这正是我们需要求解的问题。为了解决这个问题，\cite{a:MatrixRow-ColumnSamplingfortheMany-LightProblem}对原书传输矩阵的行进行下采样，即本质上是用一个低分辨率的图像来近似光源的光照贡献计算，这可以直接通过将光源放置于摄像机处，渲染一个低分辨率的阴影图来实现。这一步称为行采样（row sampling）\myindex{行采样}{row sampling}，它可以使用简单的均匀或分层采样，这是因为传输矩阵的行分布通常是均匀的，如图\ref{f:ir-low-rank-matrix}所示。所以这一个行—列采样的组合就称为矩阵行-列采样（matrix row-column sampling）\myindex{矩阵行-列采样}{matrix row-column sampling}方法。
 
 尽管上述的采样方法非常高效，但是由于随机事件的原因，并且簇的数量$c$非常低，所以它容易产生采样不足或者过度采样的情况。对于这种随机采样的问题，往往需要确定性的方法才能解决，一种比较简单的方法就是直接对顶点（按照成本$d$）进行空间划分，例如类似于k-d树，但需要注意的是，这里的顶点之间没有实际意义上的位置和距离，我们仅能通过顶点之间的连接成本来进行度量。为了对顶点进行划分，我们可以首先将所有顶点当做一个大簇，然后对其进行分割直到达到$c$个簇。这里分离的算法很重要，\cite{a:MatrixRow-ColumnSamplingfortheMany-LightProblem}提供一种简单的方法：首先将簇$C$内的所有顶点投影到一个随机的直线上（注意每个顶点，即传输矩阵的一个列，是一个$r\times 1$的矢量，这里$r$为上面行采样的结果数量），然后在直线上找到一个最好的位置将该直线划分为两端。
 
