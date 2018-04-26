@@ -1536,22 +1536,16 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 \section{基于辐射照度的预计算}\label{sec:pl-irradiance-caching}
 前面介绍的方法是对光照传输的过程进行预计算，因此光源在实时阶段是可以修改的。在接下来的两节，我们将介绍两种直接缓存光照的方法，使这些缓存的某种光照结果可以直接作用于物体表面，而不需要另外考虑光源的问题，它们就像光照计算中的一些中间结果。由此也可以推断，这两种技术无法适应光源的动态调整，除非我们可以实时动态地生成这些中间结果。
 
-我们要介绍的第一种方法是一种基于辐射照度（irradiance）的预计算方法，辐射照度是指有一个单位面积内所有入射辐射能量的总和，它是对法线方向半球空间内入射辐射亮度的积分。很显然，根据入射照度的定义，它只与漫反射表面有关，因为只有漫反射表面的出射辐射亮度才与其入射方向无关，因此各个入射方向的光照可以被加和。
+我们要介绍的第一种方法是一种基于辐射照度（irradiance）的预计算方法，辐射照度是指一个单位面积内所有入射辐射能量的总和，它是对法线方向半球空间内入射辐射亮度的积分。很显然，根据入射照度的定义，它只与漫反射表面有关，因为只有漫反射表面的出射辐射亮度才与其入射方向无关，因此各个入射方向的光照可以被加和。
 
 对于静态场景，由于漫反射表面的光照是与观察方向无关的，因此我们可以将其辐射照度缓存起来，然后在实时渲染时将其与漫反射系数相乘的结果就可以作为表面的漫反射光照。
 
-本节我们首先介绍现代实时渲染中辐射照度预计算方法的一般表现形式，即光照贴图，然后介绍一种生成光照贴图的方法。
+现代实时渲染中使用的辐射照度预计算的技术主要是光照贴图。
 
 
 
 \subsection{光照贴图}
-由于漫反射表面的颜色可以由单个RGB颜色值描述，其记载的是辐射照度值，如果光源和整个几何场景是静态的，则这个辐射照度值为一个常数，因此可以被预存起来，我们称记录辐射照度值的纹理为一个辐射照度贴图（irradiance maps）\myindex{辐射照度贴图}{irradiance maps}或光照贴图（light maps）\myindex{光照贴图}{light maps}，由于光照传输是线性的，因此其它动态光源所形成的光照可以在这个辐射照度值上进行累加。光照贴图仍然是现阶段实时渲染中漫反射间接光照的主流解决方案\cite{m:LightmappingQuickstart,m:LightmassGlobalIllumination,a:PrecomputedLightinginCallofDuty}，它最早被用于\cite{a:QuakesLightingModel:SurfaceCaching}中。
-
-在像素着色器中，每个像素都需要读取光照贴图中的一个辐射照度值，我们已经说明它是一个常数颜色值；而另一方面，漫反射表面的每个像素还存储了一个漫反射系数值，它也是一个常数值。直观上思考，我们希望将这两个值预乘起来，形成一个直接的出射辐射亮度值，这样便可以使用一个单独的纹理来同时存储漫反射颜色和光照贴图中的数据，然而有几个原因使得我们通常不会这么做。
-
-首先，漫反射颜色除了用于静态的光照计算，这里即是光照贴图中的这部分光照，它还可能会被用于动态光源的光照计算，例如下一节介绍的环境探针，所以表面的漫反射颜色是必须单独存储的，除非场景完全由静态光源组成。
-
-其次，对所有表面存储每像素的辐射照度值会占据很大的存储空间，所以在实践中光照贴图的分辨率会远远小于漫反射颜色的分辨率，因此它们必须单独存储。由于这种较低的分辨率特征，它不能很好地近似高频的直接光照分布，光照贴图通常只存储间接光照，因为表面间接光照分布会更加平滑，而直接光照仍然交由光栅化处理。也正是因为光照贴图的分辨率很低，所以我们通常不需要对每个物体表面单独存储一个纹理，而是对整个或部分场景存储一个光照贴图，如图\ref{f:pl-lightmap}所示。
+由于漫反射表面的颜色可以由单个RGB颜色值描述，其记载的是辐射照度值，如果光源和整个几何场景是静态的，则这个辐射照度值为一个常数，因此可以被预存起来，我们称记录辐射照度值的纹理为一个辐射照度贴图（irradiance maps）\myindex{辐射照度贴图}{irradiance maps}或光照贴图（light maps）\myindex{光照贴图}{light maps}，由于光照传输是线性的，因此其它动态光源所形成的光照可以在这个辐射照度值上进行累加。光照贴图仍然是现阶段实时渲染中漫反射间接光照的主流解决方案\cite{m:LightmappingQuickstart,m:LightmassGlobalIllumination,a:PrecomputedLightinginCallofDuty}，它最早被用于\cite{a:QuakesLightingModel:SurfaceCaching}中，光照贴图的概念如图\ref{f:pl-lightmap}所示。
 
 \begin{figure}
 \begin{fullwidth}
@@ -1561,125 +1555,138 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 \end{fullwidth}
 \end{figure}
 
-光照贴图本身只是存储辐射照度值的一个数据结构，它并不包含产生辐射照度值的方法。由于光照贴图仅针对漫反射表面，所以本书前面介绍的两种辐射度设置方法（即辐射度方法和即时辐射度方法）都可以用于生产光照贴图的辐射照度颜色值。除此之外，另一种常用于生成光照贴图的技术是辐射照度缓存，我们将在下一节介绍该种技术。
+在像素着色器中，每个像素都需要读取光照贴图中的一个辐射照度值，我们已经说明它是一个常数颜色值；而另一方面，漫反射表面的每个像素还存储了一个漫反射系数值，它也是一个常数值。直观上思考，我们希望将这两个值预乘起来，形成一个直接的出射辐射亮度值，这样便可以使用一个单独的纹理来同时存储漫反射颜色和光照贴图中的数据，然而有几个原因使得我们通常不会这么做。
 
+首先，漫反射颜色除了用于静态的光照计算，这里即是光照贴图中的这部分光照，它还可能会被用于动态光源的光照计算，例如下一节介绍的环境探针，所以表面的漫反射颜色是必须单独存储的，除非场景完全由静态光源组成。
 
+其次，对所有表面存储每像素的辐射照度值会占据很大的存储空间，所以在实践中光照贴图的分辨率会远远小于漫反射颜色的分辨率，因此它们必须单独存储。由于这种较低的分辨率特征，它不能很好地近似高频的直接光照分布，光照贴图通常只存储间接光照，因为表面间接光照分布会更加平滑，而直接光照仍然交由光栅化处理。也正是因为光照贴图的分辨率很低，所以我们通常不需要对每个物体表面单独存储一个纹理，而是对整个或部分场景存储一个光照贴图，如图\ref{f:pl-lightmap}所示。
 
 
 
-\subsection{辐射照度缓存}
+光照贴图本身只是存储辐射照度值的一个数据结构，它并不包含产生辐射照度值的方法。由于光照贴图仅针对漫反射表面，所以本书前面介绍的两种辐射度设置方法（即辐射度方法和即时辐射度方法）都可以用于生产光照贴图的辐射照度颜色值，当然原始的光线追踪方法也可以用于生成光照贴图，只是这种方法的收敛速度回非常慢。除此之外，另一种常用于生成光照贴图的技术是辐射照度缓存，由于其并不涉及太多复杂算法，这里并不对其进行详细介绍，感兴趣的读者可以参考\cite{b:pbrt2}第15.5节的内容。
 
-http://www.ludicon.com/castano/blog/2014/07/irradiance-caching-continued/
+\begin{myshaded}
+	这里对辐射照度缓存做一个简要介绍，辐射照度缓存（irradiance caching）\myindex{辐射照度缓存}{irradiance caching}是一种有偏估计（biased estimator）\myindex{有偏估计}{biased estimator}，由于无偏方法需要依赖于大量的相互之间独立的随机样本，才能生成噪点比较低的图像，因此为了提高计算效率，有偏的方法通常通过重用一些中间或部分结果，来避免使用距离的随机样本，这种重用通常涉及对已有某种中间或部分结果的线性插值，所以这就依赖于某个量具有比较平滑的分布。在渲染算法中，只有漫反射表面的分布具备这种特征，因为漫反射与观察方向无关，漫反射表面的出射辐射亮度相当于混合了所有方向的入射光照，因此它才能够具备这种平滑分布的特征。
 
-辐射照度缓存可以用来生成光照贴图
+	所以离线渲染中两大（注意，即时辐射度也是一种有偏方法，但是它的有偏性并不来源于对已有样本的线性插值，因为已有的样本只是作为直接光源被使用，即时辐射度的有偏性来源于对被积函数取值的限定，这方面的内容可以参见第\ref{chp:ir}章第\ref{sec:bias-compensation}节关于其有偏性的描述。）有偏估计都是和漫反射有关的，即光子映射和这里的辐射照度缓存，光子映射通过对分布于漫反射表面的辐射能量样本进行回归拟合，以期找出漫反射表面各个位置处的辐射能量分布，使得任意的摄像机子路径都可以与某些光源子路径“相连”；而本节介绍的辐射照度缓存的主要思路，则是对表面的辐射照度进行稀疏采样，然后任意其它位置的辐射照度则通过对这些稀疏样本的线性插值计算而来。
+\end{myshaded}
 
 
 
-因为插值计算不需要考虑法线，在辐射照度中，法线已经被集成进辐射照度的计算中，辐射照度已经是一个考虑法线的结果，因此对辐射照度插值无法考虑法线，但是辐射亮度缓存仍然需要考虑法线去计算方向，所可以计算几何法线细节
 
 
-重要：是因为插值的原因，只能存储在顶点或者很稀疏的位置，因为存储太大？所以导致不能标准detailed geometry？COD中也有这种区分
-lightmap：Can have issues with complex or intersecting geometry.
-https://docs.unity3d.com/Manual/GlobalIllumination.html
+\subsection{辐射照度体积}\label{sec:pl-irradiance-volume}
+上面介绍的光照贴图只能计算静态物体的间接漫反射光照，但是，场景中的一些动态物体（如角色）同样也需要一种方法来计算间接光照；另一方面，由于光照贴图直接将辐射照度值存储于表面上，因此它使用非常低的分辨率以节省存储开支，这使得它无法应对一些具有非常精细局部结构的表面，例如那些法线分布频率非常高的表面。
 
+为了解决上述关于光照贴图的问题，\cite{a:TheIrradianceVolume}首先提出了称为辐射照度体积的概念，该技术随机被运用在离线的电影工业当中，例如\cite{a:RenderinginCars2}，随后\cite{a:IrradianceVolumesforGames}将其引入到实时渲染当中，如今，主流的游戏引擎基本上都在使用该种技术，例如\cite{a:VolumetricGlobalIlluminationAtTreyarch,m:VolumetricLightmaps,m:LightProbes}等。
 
+与光照贴图不一样，辐射照度体积（irradiance volume）\myindex{辐射照度体积}{irradiance volume}将辐射照度值稀疏地存储在场景中的空白位置处，例如图\ref{f:pl-irradiance-volume}(a)所示，然后场景中位于辐射照度体积内任意一点的辐射照度值，可以通过对附近的样本执行某种插值计算而来，我们将在后面介绍两种常用的插值方法。辐射照度体积在\cite{m:VolumetricLightmaps}中又被称为体积光照贴图（volumetric lightmaps）\myindex{体积光照贴图}{volumetric lightmaps}，在\cite{m:LightProbes}中则被称为光照探针（light probes）\myindex{光照探针}{light probes}，为了便于更好地对比概念，本书后面将称使用体积光照贴图这个称谓，并称空间中的每个样本为体积光照样本。
 
+\begin{figure}
+	\begin{subfigure}[b]{0.5265\textwidth}
+		\includegraphics[width=\textwidth]{figures/pl/VLM_Placement}
+		\caption{}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.4735\textwidth}
+		\includegraphics[width=\textwidth]{figures/pl/VolumeLightmap}
+			\caption{}
+	\end{subfigure}
+	\caption{辐射照度体积把辐射照度值稀疏地存储在空白空间处(a)，然后通过插值来计算体积内任意位置处的辐射照度值，由于空白空间位置并不存储某个法线方向，因此辐射照度体积中的样本存储的是一个辐射照度的方向分布函数(b)，在Unreal Engine 4中是一个3阶的球谐函数投影，其中每个方向存储一个辐射照度值（图片来自Unreal Engine 4官方文档）}
+	\label{f:pl-irradiance-volume}
+\end{figure}
 
-irradiance cachingyulightmap的主要区别是前者适应性地放置缓存点，而后者是一个存储irradiance值的贴图，前者可以用来计算后者或者直接用于实时的插值计算。I have developed some interesting technology to compute automatic paramaterizations, to formulate the lighting computations in a way that can be easily mapped to the GPU, and to speed them up performing them at a lower frequency by using irradiance caching. http://the-witness.net/news/2010/03/graphics-tech-texture-parameterization/
+在光照贴图中，给定表面及其法线方向，表面上每个位置处的辐射照度就是一个标量值，然而将这个概念推广到空白空间却会发生变化，因为空白空间中的位置并不包含任何法线方向，而我们要计算的表面位置的法线方向可能是任意的。因此，为了满足这个需求，体积光照贴图中每个样本中存储的就不能是（针对某个法线方向的）单个辐射照度值，而是应该所有的法线方向，这就形成了一个辐射照度方向分布函数，如图\ref{f:pl-irradiance-volume}(b)所示。由于辐射照度分布是一个方向函数，因此在它可以被存储在一个立方体贴图或类似的方向贴图中，但是这会占用较多的存储空间，因为场景中可能存在大量的体积光照样本。由于辐射照度函数值是低频的，因此我们也可以使用前面介绍的低阶球谐函数来近似这个方向分布函数，例如Unreal Engine 4中使用3阶球谐函数来近似一个体积光照样本，这样每个体积光照样本就只需要存储少数几个系数值即可。
 
-In my previous post I mentioned the need to find an algorithm that would allow us to extrapolate the irradiance to fill lightmap texels with invalid samples, to smooth the resulting lightmaps to reduce noise, and to sample the irradiance at a lower frequency to improve performance. 
+为了生成体积光照样本，在预处理阶段\footnote{需要注意的时，体积环境贴图也可以实时生成，只要相应的方法能够满足实时需求，例如在Enlighten中，由于整个漫反射的传输过程被转换为针对一些细分曲面的矩阵变换，所以它能够较快地实时生成光照探针，因此在Unity中光照探针也能够捕捉动态光源的光照。}，我们首先将摄像机置于样本位置处，然后渲染一个标准的环境贴图，由于环境贴图记录的是反射光照，因此我们需要使用余弦函数作为核函数对环境贴图执行过滤操作，以将其中的入射辐射亮度值转换为辐射照度值（可以参考本章前面的内容），这得到一个辐射照度贴图（irradiance map）\myindex{辐射照度贴图}{irradiance map}，最后我们将该立方体贴图投影到球谐函数表述上。
 
+读者会发现，上述的整个过程是和前面的环境辐射照度贴图是类似的，其唯一的区别是，环境辐射照度贴图是记录的是整个场景，它适用于反射来自较远位置的间接光照，例如来自天空环境的间接光照；而体积光照样本记录的只是局部位置的环境光照，例如室内或者一个很小区域内的环境光照，因为当一个角色移动到室内时，其显然不能再接受来自天空的环境，而是应该反射室内的局部环境，所以我们需要注意这种全局和局部的区别，也正是因此，局部的体积光照样本通常会被限制于一定的局部范围，例如图\ref{f:pl-irradiance-volume}(a)中的立方体包围盒区域，这在Unreal Engine中称为一个重要性体积（importance volume）\myindex{重要性体积}{importance volume}。
 
 
 
+\subsubsection{插值计算}
+在全局的环境照度贴图，只需要使用一个像素的法线方向即可以查询到来自环境的间接光照，而对于局部的体积光照样本，它们是与位置有关的，因此我们需要对来自着色像素附近的体积光照样本的光照值进行插值计算，因此对于每个着色像素，我们需要决定哪些体积光照样本被用于插值计算，以及每个被选择的体积光照样本被赋予多少权重。
 
+对体积光照样本进行插值计算的方式主要取决于体积样本的数据结构，例如体积光照样本可能采样八叉树结构，规则的网格结果或者其它细分结构，我们将在下一节介绍常用的几种细分结构。对于给定某种结构，体积样本插值算法首先会找到一些最近邻样本形成一个包围着色像素的体积结构，然后在这些样本之间进行插值计算。
 
+\begin{myshaded}
+	这里可能会产生一点疑问：着色像素一定会位于某几个体积光照样本包围的体积之内吗？这样的说法通常是正确的，尽管体积光照样本通常是位于空白空间，如图\ref{f:pl-irradiance-volume}(a)所示，但是使用体积光照贴图进行间接光照计算的通常是动态物体，相对于静态场景，这些动态物体其实也是位于空白空间当中，而且体积光照样本的放置通常会覆盖到动态物体可能会占据的范围，所以这里可以假设着色像素始终是位于体积光照样本构成的某个体积之内。
+	
+	退一步讲，即使着色像素不是位于体积光照样本体积之内，而是位于某三个或更少体积光照样本的附近，这个时候仍然是可以进行插值计算的，因为插值方法的核心是怎样分配给各个样本一个权重值，只要最后参与插值计算的各个样本的权重值能够被归一化即可。例如由于光照贴图的分别率极低，其间接光照不容易很好的处理比较精细的表面，所以除了针对动态物体，在\cite{a:PrecomputedLightinginCallofDuty}中同时也会使用体积光照贴图来对具有精细结构或者光照质量要求比较高的表面进行间接光照的计算，因为体积光照贴图可以逐像素计算，它能够使用表面的精细结构，例如表面具有高频的法线分布函数。
+\end{myshaded}
 
-The incident indirect light over a range of image pixels is often coherent. Two common approaches to exploit this inter-pixel coherence to improve rendering performance are Irradiance Caching and Radiance Caching. Both compute incident indirect light only for a small subset of pixels (the cache), and later interpolate between pixels. Irradiance Caching uses scalar values that can be interpolated efficiently, but cannot account for shading variations caused by normal and reflectance variation between cache items. Radiance Caching maintains directional information, e. g., to allow highlights between cache items, but at the cost of storing and evaluating a Spherical Harmonics (SH) function per pixel. The arithmetic and bandwidth cost for this evaluation is linear in the number of coefficients and can be substantial. In this paper, we propose a method to replace it by an efficient per-cache item pre-filtering based on MIP maps — such as previously done for environment maps — leading to a single constant-time lookup per pixel. Additionally, per-cache item geometry statistics stored in distance-MIP maps are used to improve the quality of each pixel’s lookup. Our approximate interactive global illumination approach is an order of magnitude faster than Radiance Caching with Phong BRDFs and can be combined with Monte Carlo-raytracing, Point-based Global Illumination or Instant Radiosity.
+最简单也是最常用的体积光照样本数据结构是规则网格（regular grid）结构，在这种结构中，样本在各个坐标轴方向上以相同的间距均匀分布，在这种结构中，任意一个待着色计算的像素位置始终位于由相邻的8个体积光照样本构成的正立方体中，因此可以使用三线性插值（trilinear interpolation）\myindex{三线性插值}{trilinear interpolation}来计算该像素的辐射照度值，如图\ref{f:pl-trilinear-interpolation}所示。
 
-2012 Pre-convolved Radiance Caching.pdf
+\begin{figure}
+	\sidecaption
+	\includegraphics[width=0.3\textwidth]{figures/pl/trilinear-interpolation}
+	\caption{对规则网格结构的体积光照贴图使用三线性插值计算着色像素的辐射照度值}
+	\label{f:pl-trilinear-interpolation}
+\end{figure}
 
+尽管规则网格结构的生成和插值计算都比较简单，但是它用在体积光照贴图中却存在一些问题，首先是规则网格结构容易导致欠采样（undersampling）和过采样（oversampling），前者存在于那些需要使用更高采样密度的区域，而后者存在于那些可以使用更稀疏采样的区域。针对此一些改进方法是使用多种分辨率的规则网格，例如在Unreal Engine 4中，靠近物体表面的规则网格具有更高的采样密度，而随着距离表面的距离增加，其规则网格的分辨率会降低，如图\ref{f:pl-VLMDensity}所示。尽管这种多分辨率的结构能够更好地适应采样密度的需求，但是这种分辨率之间的跳跃并不能很好地近似实际的光照变化情况，我们将在下一节介绍一些更具适应性的细分方法。
 
+\begin{figure}
+\begin{fullwidth}
+	\includegraphics[width=\thewidth]{figures/pl/VLMDensity}
+	\caption{从左到右：每个物体包含一个重要性体积，该体积用于存储规则结构的体积光照样本，围绕几何表面的区域拥有更高的采样密度；一个分辨率为$4\times 4\times 4$的网格侧面；在几何体附近的区域拥有更高的采样密度（图片来自Unreal Engine 4官方文档）}
+	\label{f:pl-VLMDensity}
+\end{fullwidth}
+\end{figure}
 
+规则网格结构的另一个是涉及到可见性的问题\cite{a:VolumetricGlobalIlluminationAtTreyarch}，由于体积光照样本是均匀分布的，它在生成的时候通常并不考虑实际的几何表面分布，这就会导致一些体积光照样本出现在物体内部或者场景之外的区域，而这些样本并不包含颜色值或者包含错误的颜色值，如果一些运动物体进入到这些包含错误样本的区域，就会出现错误的光照结果。例如图\ref{f:pl-cars2}展示了轨道外部一些非法的样本，当汽车靠近通道的墙面时，其间接光照就可能与墙外错误的光照进行混合。\cite{a:RenderinginCars2}使用了一种特殊而简单的方法来处理这个问题，即当样本位于非法区域时，直接对其复制附近合法的体积光照样本值。另一些方法则尝试计算着色像素和体积光照样本之间的可见性，我们将在后面介绍一些这样的方法。
 
+\begin{figure}
+	\includegraphics[width=\textwidth]{figures/pl/cars2}
+	\caption{使用规则结构的体积光照样本，则可能导致一些样本出现于非法的区域，例如那些超出场景之外区域，即本图中赛车通道之外（右边）的那些区域（图片来自\cite{a:RenderinginCars2}）}
+	\label{f:pl-cars2}
+\end{figure}
 
-I didn’t coin the term “irradiance caching” -- that was someone else’s good idea. I just called it “lazy evaluation,” being too lazy myself to think up a good name.
 
 
 
-\subsubsection{梯度}
+\paragraph{四面体插值}
+为了避免体积光照样本出现于非法区域，我们希望样本能够位于任意位置，这种情况下就需要能够对任意分布的体积光照样本执行插值计算的能力，同时可以在任意位置摆放的体积光照样本也使得我们可以使用更好的适应性细分方法，这将在下一节讨论。
 
-\subsection{辐射亮度缓存}
+重心坐标系（barycentric coordinate system）
 
-Radiance Caching represents incoming radiance $L_i(\mathbf{x},\omega_i)$ using the spherical harmonics basis:
+单纯形（simplex）
 
-\begin{equation}
-	L_i(\mathbf{x},\omega_i)\approx\sum^{n_d}_{k=1}c_k(\mathbf{x})B_k(\omega_i)
-\end{equation}
 
+triangular interpolation
 
-Radiance Caching [KGPB05] overcomes the limitation to diffuse reflectance by storing incoming radiance as a direc- tional function, interpolating it between pixels and convolving with the BRDF for every pixel. For highly specular surfaces, however, a high number of SH coefficients have to be stored and evaluated per pixel i. e., a simple dot-product, but on a high-dimensional vector.
 
+a:Lightprobeinterpolationusingtetrahedraltessellations
 
 
-Radiance Caching
 
 
-Radiance caching [Kˇriva ́nek et al. 2005; Kˇriva ́nek 2005] general- izes Ward et al.’s [1988] irradiance caching algorithm for the use on glossy surfaces.1 It accelerates indirect illumination computa- tion by reusing previously computed and cached incoming radiance values through interpolation over glossy surfaces.
+Unlike the Indirect Lighting Cache where interpolation between a lighting sample happens once for the whole component, the Volumetric Lightmap allows for more detail by interpolating to each pixel instead. This leads to a reliable distribution of detail that results in fewer cases of light leaking.
 
-
-Several researchers have investigated how to reduce the noise by distributing rays more carefully and for example, by using bidirectional Monte Carlo ray tracing, in which rays are traced simultaneously from the light and the eye. However, these pure unbiased Monte Carlo-based ray tracing methods are still very time-consuming. An alternative is biased Monte Carlo ray tracing, in which other convergence properties are accepted. One example is irradiance caching which stores and re-uses indirect illumination on diffuse surfaces via an interpolation scheme.
-
-Caching in the context of GI means to compute results sparsely and interpolated in-between. Caching is mostly orthogonal to the particular GI method used and should be compatible to many of the before mentioned approaches. Pre- viously it was mainly used in combination with Monte Carlo ray tracing however (Sec. 3.2).
-%
-Similar ideas are used in interactive GI, e. g., when combining screen space-illumination for nearby and other approaches for far fields [KD10,REH⇤11].
-%
-As other schemes that use interpolation to reconstruct illumination from a sparse set of samples, the irradiance cache is a biased algorithm (see section 2.1.9).
-
-The irradiance cache, in its initial form, suffers from a number of problems:
- The range calculation for a sample involves a stochastic process, which may occasionally result in a density that is too sparse, leading to leaks and other artifacts.
- Adding samples on-the-fly may lead to new samples that would have affected the estimated radiance arriving at pixels that already have been finalized.
- In a multi-threaded environment, adding samples from several rendering threads simultaneously requires extensive synchronization.
- For dynamic light sources, the samples need to be recreated for each frame, leading to temporal noise.
-Most of these have been addressed in more recent work. Krˇivánek et al. propose to use neighbor clamping to prevent leaks [141]. Progressive refinement or an irradiance gathering pass can be used to prevent samples from affecting already rendered pixels [142]. Several methods have been proposed to make the irradiance cache more suitable for a multi-threaded environment [232, 64]. In an off-line environment, temporal noise is solved by refining the irradiance cache until a predefined maximum error is guaranteed to be not exceeded. This illustrates an important design constraint of the irradiance cache: where necessary, it trades rendering time for image fidelity.
-
-传统的插值不考虑遮挡，因此光照比较平坦，2017 Precomputed Lighting IN CoD
-Now, this is what the typical probe lighting usually looks like. And by „typical” i mean that you sample lighting in one location and use it for the whole object, it’s usually encoded as 3rd order spherical harmonics, it’s looked up by the normal, you do the convolution with the cosine on the fly and voila. And this of course gives you some directional variation, but in general looks fairly flat and uninteresting
-
-What we really want is something like that – so with spatial variation over the object, with proper account for occlusion – something that would be comparable in quality with baking lighting per vertex.
-
-
-
-
-
-
-
-
-
-
-\section{基于辐射亮度的预计算}\label{sec:pl-irradiance-volume}
-\subsection{光场}
-Light fields. The light field (or plenoptic function) describes the spatial-angular distribution of radiance in free space for an envi- ronment, dating back to models proposed in physics literature in the early 1930’s. The first works to use light fields in graphics in- troduced the concept of a light slab, encoding a rectangular subset of the light field [Levoy and Hanrahan 1996; Gortler et al. 1996]. This light slab has been employed in many products and produc- tions, and methods exist for reconstructing it in real-time with the slab region. However, ours is the first method to encode and ap- ply to real-time rendering a light field parameterization that can be evaluated at any point in space, with correct occlusion.
-
-
-将不规则空间分布的真实摄像机拍摄的probe序列重采样成规则的3D计算机友好的数据结构
-2009 HDR light probe sequence resampling for realtime incident light field rendering
-
-
-
-
-\subsection{辐射照度体积}
-
-使用适应性方法减少存储内存
-2007 View-independent irradiance map generation
-
-
-
-\subsection{光照探针}
-Unity’s realtime GI allows moving lights to cast dynamic bounced light against your static scenery. However, you can also receive dynamic bounced light from moving lights on moving GameObjects when you are using llight probes.
 
 非常重要
 Since a probe is reconstructed by a linear combination of coe cients and basis functions, interpolating two probes can be done just by interpolating their coe cients.
+
+
+
+Can have issues with complex or intersecting geometry.
+
+
+
+
+
+
+\subsubsection{适应性细分}
+
+
+
+
+
+adaptive subdivision
+
+
+
+
+
 
 
 From a high-level, the Volumetric Lightmaps system works in the following manner:
@@ -1715,15 +1722,6 @@ The volume lighting samples store directional indirect lighting which allows nor
 
 
 
-2005 Irradiance Volumes for Games.pdf
-
-
-Volumetric Lightmaps
-
-https://docs.unrealengine.com/latest/INT/Engine/Rendering/LightingAndShadows/VolumetricLightmaps/index.html
-
-
-
 
 
 
@@ -1739,14 +1737,95 @@ A Reflection Probe is rather like a camera that captures a spherical view of its
 \subsubsection{可见性}
 
 
-\subsection{VolumetricLightmaps}
+When probes are arranged in regular grids, that inevitably puts some of them within obstacles.
+The result is characters becoming dark as they approach walls with black probes baked inside.
+A related issue is that potentially completely differently coloured probes from a different lighting environment on the other side of the wall will start interpolating in when the character stands too close to the wall.
+Milo and Kate solves it by baking per-probe explicit visibility information, which limits each probe’s influence up to the nearest obstacle. This seems to be what most games do nowadays.
+Cars 2 uses a simple hack: since the cars always stay on the track side of any wall, any probes outside of the track can be overwritten with the outmost probe that’s still on the track. Even if they get interpolated in, they still have the same value.
+Some engines sample n nearest probes, raycast to test visibility and fade over time to avoid popping. This is wrong on so many levels, we don’t have time to discuss it now ;)
+
+
+
 2016 Volumetric Global Illumination at Treyarch.key
 	
+a:Real-TimeGlobalIlluminationusingPrecomputedLightFieldProbes
+
+
+
+
+\begin{figure}
+\begin{fullwidth}
+	\begin{subfigure}[b]{\thewidth}
+		\includegraphics[width=\textwidth]{figures/pl/light-leaks-1}
+		\caption{参考}
+	\end{subfigure}
+	\begin{subfigure}[b]{\thewidth}
+		\includegraphics[width=\textwidth]{figures/pl/light-leaks-2}
+			\caption{盒过滤器}
+	\end{subfigure}
+	\begin{subfigure}[b]{\thewidth}
+		\includegraphics[width=\textwidth]{figures/pl/light-leaks-3}
+			\caption{为加权}
+	\end{subfigure}
+	\caption{不同基函数$b_i(x)$对一个粗糙表面的GGX核函数的重建结果，这里对每个像素均使用8个样本进行重建，好的基函数能够大大减少需要的方向样本的数量，提高了精确度并加快了收敛速度（图片来自\cite{a:FastFilteringofReflectionProbes}）}
+	\label{f:pl-reconstruction-comparation}
+\end{fullwidth}
+\end{figure}
+
+
+
+
+
 
 https://docs.unrealengine.com/en-us/Engine/Rendering/LightingAndShadows/VolumetricLightmaps
 
 
-\subsection{实时生成光照探针}
+
+\section{基于辐射亮度的预计算}
+
+考虑环境遮挡与probe的可见性的关键区别在于，环境遮挡一般不考虑可见性的方向，它只使用一个遮挡比例值，而probe需要考虑方向，例如使用一个cone，其包含遮挡比例和方向
+
+
+
+
+
+Traditionally, games have used a technique called reflection mapping to simulate reflections from objects while keeping the processing overhead to an acceptable level. This technique assumes that all reflective objects in the scene can “see” (and therefore reflect) the exact same surroundings. This works quite well for the game’s main character (a shiny car, say) if it is in open space but is unconvincing when the character passes into different surroundings; it looks strange if a car drives into a tunnel but the sky is still visibly reflected in its windows.
+
+Unity improves on basic reflection mapping through the use of Reflection Probes, which allow the visual environment to be sampled at strategic points in the scene. You should generally place them at every point where the appearance of a reflective object would change noticeably (eg, tunnels, areas near buildings and places where the ground colour changes). When a reflective object passes near to a probe, the reflection sampled by the probe can be used for the object’s reflection map. Furthermore, when several probes are nearby, Unity can interpolate between them to allow for gradual changes in reflections. Thus, the use of reflection probes can create quite convincing reflections with an acceptable processing overhead.
+
+Unity improves on basic reflection mapping through the use of Reflection Probes, which allow the visual environment to be sampled at strategic points in the scene. You should generally place them at every point where the appearance of a reflective object would change noticeably (eg, tunnels, areas near buildings and places where the ground colour changes). When a reflective object passes near to a probe, the reflection sampled by the probe can be used for the object’s reflection map. Furthermore, when several probes are nearby, Unity can interpolate between them to allow for gradual changes in reflections. Thus, the use of reflection probes can create quite convincing reflections with an acceptable processing overhead.
+
+
+
+
+关于插值，计算出结果之后插值，几多个probe之间的混合
+可见性：完全不考虑可见性，在顶点或像素存储可见性分布，例如cone；第三种是光线追踪
+
+
+
+
+
+局部
+漫反射
+
+
+
+单个，例如室内，这种和环境贴图类似，更注重局部细节
+多个，不能插值，需要光线追踪
+
+
+
+Each pixel blends between multiple cubemaps to get the final result. Smaller ReflectionCapture Actors override larger ones, so you can refine reflection parallax accuracy in areas as needed. For example, you might place a capture at the center of a room and then refine the reflection by placing smaller captures at the corners of the room.
+
+只捕捉来自漫反射表面的间接光照，例如来自lightmap，因此必须先烘焙lightmap
+
+是对全局环境贴图关于局部细节的补充，但是其通常很难处理可见性，例如在UE4中只是对于粗糙的表面将其与lightmap进行混合，但是这种方法对于较光滑的表面无效
+
+
+
+
+
+\subsubsection{实时生成光照探针}
 2017 Real-time Global Illumination by Precomputed Local Reconstruction from Sparse Radiance Probes
 
 Systems such as Geomerics re-render radiance probes and light maps in real-time using complex schedul- ing and threading. Our input data are similar, so a similar software engineering approach may be applicable to the light field probe rep- resentation to enable real-time updates of the global illumination
