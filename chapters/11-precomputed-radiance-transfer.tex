@@ -1647,83 +1647,132 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 \paragraph{四面体插值}
 为了避免体积光照样本出现于非法区域，我们希望样本能够位于任意位置，这种情况下就需要能够对任意分布的体积光照样本执行插值计算的能力，同时可以在任意位置摆放的体积光照样本也使得我们可以使用更好的适应性细分方法，这将在下一节讨论。
 
-重心坐标系（barycentric coordinate system）
+针对此目标，\cite{a:Lightprobeinterpolationusingtetrahedraltessellations}提出了一种四面体插值方法，在该方法中，体积光照样本被按照三角化的方式构建，其中每个样本可能出现在任意位置，然后一个给定的着色像素则会位于某个由4个相邻样本构成的四面体中，最后像素的颜色值由这四个样本插值计算而来，其中样本位置的三角化细分，以及搜索着色像素所在四面体的顶点样本位置将在下一节介绍。
 
-单纯形（simplex）
+给定一个四面体，我们可以使用重心坐标系（barycentric coordinate system）\mathindex{使用重心坐标系}{barycentric coordinate system}来将四面体内的任意顶点的位置表述成四面体四个顶点位置的线性组合，如图\ref{f:pl-barycentric-coordinates}所示，而这个线性组合的各个系数，就可以作为每个顶点样本的权重值，这跟二维的三角形插值是类似的方法，我们称之为四面体插值。
 
+\begin{figure}
+	\sidecaption
+	\includegraphics[width=0.4\textwidth]{figures/pl/barycentric-coordinates}
+	\caption{一个四面体，在重心坐标系下，四面体内的任意一点$\mathbf{p}$的位置可以表述为四个顶点$\mathbf{p}_0,\mathbf{p}_1,\mathbf{p}_2$和$\mathbf{p}_3$的线性组合}
+	\label{f:pl-barycentric-coordinates}
+\end{figure}
 
-triangular interpolation
+对于一个四面体，设重心坐标系为$(\lambda_0, \lambda_1,\lambda_2,\lambda_3)$，它表示的是一个点在朝着各个顶点的方向上距离四面体重心的距离，其中重心的坐标为$(0,0,0,0)$，在规则化的重心坐标系下，满足$\lambda_0+ \lambda_1+\lambda_2+\lambda_3=1$，因此四个顶点在重心坐标系下的坐标值分别为$(1,0,0,0),(0,1,0,0),(0,0,1,0)$和$(0,0,0,1)$。
 
+如图\ref{f:pl-barycentric-coordinates}所示，设四面体四个顶点在笛卡尔坐标系下的坐标分别为：$\mathbf{p}_0=(x_0,y_0,z_0),\mathbf{p}_1=(x_1,y_1,z_1),\mathbf{p}_2=(x_2,y_2,z_2),\mathbf{p}_3=(x_3,y_3,z_3)$，点$\mathbf{p}=(x,y,z)$位于该四面体内部，顶点$\mathbf{p}$的重心坐标值可以由下式求得：
 
-a:Lightprobeinterpolationusingtetrahedraltessellations
+\begin{equation}
+\begin{aligned}
+	\begin{bmatrix}
+		\lambda_0 \\ \lambda_1 \\\lambda_2
+	\end{bmatrix}=&\mathbf{T}^{-1}\bigg[ \mathbf{p}-\mathbf{p}_3\bigg]\\
+	\lambda_3=&1-\lambda_0-\lambda_1-\lambda_2
+\end{aligned}
+\end{equation}
 
+\noindent 这里$\mathbf{T}$表示一个由笛卡尔坐标系向重心坐标系的变换矩阵：
 
+\begin{equation}
+	\begin{bmatrix}
+		x_0-x_3 & x_1-x_3 & x_2-x_3 \\
+		y_0-y_3 & y_1-y_3 & y_2-y_3 \\
+		z_0-z_3 & z_1-z_0 & z_2-z_3
+	\end{bmatrix}
+\end{equation}
 
+由此可以看出，坐标变换矩阵$\mathbf{T}$与着色点坐标$\mathbf{p}$无关，我们可以简单地通过笛卡尔坐标系的坐标值求出其在重心坐标系下的坐标值，这些坐标值反映了四面体内各个顶点相对于重心的位置关系，因此可以被用来作为插值计算的权重系数。
 
-Unlike the Indirect Lighting Cache where interpolation between a lighting sample happens once for the whole component, the Volumetric Lightmap allows for more detail by interpolating to each pixel instead. This leads to a reliable distribution of detail that results in fewer cases of light leaking.
-
-
-非常重要
-Since a probe is reconstructed by a linear combination of coe cients and basis functions, interpolating two probes can be done just by interpolating their coe cients.
-
-
-
-Can have issues with complex or intersecting geometry.
-
-
+重心坐标系不仅能够用于计算某个点的重心坐标值，还能够用于判断一个点是否位于四面体内部，下一节将使用这种方法来辅助对体积光照样本的位置执行细分操作。
 
 
 
 
 \subsubsection{适应性细分}
+从上面的内容可以看出，四面体插值比三线性插值要复杂得多，但是它的好处是可以在场景中任意放置体积光照样本的位置，因此我们能够根据场景的光照分布来调整体积光照样本的密度，从而形成更好地适应性细分结构。尽管一些其它的数据结构（例如八叉树结构）也能很好地调整体积样本的采样密度，但是这里我们只讨论\cite{a:Lightprobeinterpolationusingtetrahedraltessellations}介绍的四面体细分方法。
+
+那么怎么生成体积光照样本的四面体网格结构呢？我们的主要目标是要能够随意放置体积光照样本的位置，有了这种能力，首先算法会标记出一些关键的位置以防止样本落入物体内部或者其它非法区域，如图\ref{f:pl-key-points}中墙面附近的关键位置，这样能够保证空白空间的位置始终位于4个合法的样本构成的四面体内部，因此避免了对体积光照样本和着色像素之间的可见性判断；其次，除了这些具有非连续性的关键位置，其它一些光照场分布变化比较大的区域也应该放置更多的样本，这可以通过在预计算阶段计算空白空间光照场的梯度来实现，这种梯度考量的结果是样本的密度能够与光照场的分布相适应。
+
+\begin{figure}
+	\sidecaption
+	\includegraphics[width=0.45\textwidth]{figures/pl/key-points}
+	\caption{由于能够任意放置体积光照样本的位置，因此这里首先在物体表面那些非连续区域放置一些关键位置，这就保证了空白空间中的像素始终会处于某4个合法体积光照样本构成的四面体内部（图片来自\cite{a:Lightprobeinterpolationusingtetrahedraltessellations}）}
+	\label{f:pl-key-points}
+\end{figure}
+
+在设置了这些关键位置之后，我们需要将这些样本位置连接起来形成一个由四面体构成的网格结构，这可以通过对网格执行约束德劳内四面体化（constrained Delaunay tetrahedralization）\mathindex{约束德劳内四面体化}{constrained Delaunay tetrahedralization}来实现。本书在前面第\ref{chp:rad}第\ref{sec:rad-triangulation}节介绍过约束德劳内三角化的知识，它通过对一个点集执行细分操作以形成一个三角形网格，并能够保证每个三角形的最小角最大化，因为最小角最大化能够使三角化的误差最小，这里的约束德劳内四面体化是类似的原理，它通过对已经标出重要性位置的点击执行四面体细分，并使得每个四面体内最小的固体角最大化。德劳内四面体化的场景如图\ref{f:pl-delaunay-tetrahedralisation}所示。
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{figures/pl/delaunay-tetrahedralisation}
+	\caption{使用德劳内四面体化对场景的体积光照样本执行细分操作，这种细分的结果使体积光照样本的密度分布能够更好地适应场景的光照场变化（图片来自\cite{a:Lightprobeinterpolationusingtetrahedraltessellations}）}
+	\label{f:pl-delaunay-tetrahedralisation}
+\end{figure}
+
+尽管上述的过程看起来非常复杂，但是由于这些体积光照样本位置的构建是发生于预计算阶段，因此体积光照贴图的构建并不会给实时渲染带来压力。然而与样本结构的细分不同的是，查询一个像素位置位于哪个四面体的操作则是实时发生的，对四面体网格执行搜索相对于规则网格结构要复杂得多（例如规则网格可以通过简单的偏移来遍历所有的网格空间），在四面体网格中，四面体之间并不存在直接简单的空间关系，所以我们只有通过遍历所有四面体来搜索包含着色像素的四面体，但是为了减少重复的计算量，\cite{a:Leastsquaresconformalmapsforautomatictextureatlasgeneration}会保存动态物体上一帧所处的四面体索引，并通过存储四面体之间的相邻关系来减少对全局四面体网格的遍历，这里本书不在深入讨论，感兴趣的读者请前往原始论文。
+
+
+
+
+\subsubsection{可见性}
+尽管上面介绍的四面体插值方法避免了对非法体积光照样本的插值计算，但是它的代价也是非常高的，例如每个像素都要搜索整个四面体网格来寻找像素所在的四面体，尽管\cite{a:Lightprobeinterpolationusingtetrahedraltessellations}使用了一些缓存来避免了部分重复计算，但是相对于简单的规则网格，其每像素的计算还是相对比较复杂，本节我们将会讨论在传统的规则网格结构下对着色像素和体积光照样本之间的可见性进行判断，一次来间接避免规则网格结构中非法体积光照样本的情况。
+
+在基于图像的光照技术中，我们假设入射环境光照与表面的位置无关，因此环境光照变成一个全局的数据，它只需要存储一份即可。然而在反射方程中，物体的遮挡关系确是一个局部的数据，它随着物体的变化而变化，因此如果我们要存储这样的信息，它将会占据非常可观的存储空间，所以在基于图像的光照技术中，我们通常直接忽略反射方程中的可见性分布，这样着色的时候环境贴图只需要与表面的BRDF分布函数进行相乘即可。这带来的后果就是由于缺乏对遮挡的考虑，物体表面的光照会显得平坦而没有立体感，因此环境遮挡通常被用于辅助基于图像的光照技术，环境遮挡通常只在屏幕空间（而不是物体空间）被考虑，我们将在后面的章节中介绍更多关于环境遮挡的内容。
+
+当这种环境光照由全局转换到局部区域时，可见性的判断就变得更加重要，因为局部区域的环境光照变化会非常大，例如在图\ref{f:pl-reconstruction-comparation}中，隔着墙面的两个相邻体积光照样本之间的光照差异非常大，如果不进行可见性判断就会导致光照泄露，其中一个室内的光照泄露到另一个完全不同光照条件的室内环境去。除此之外，有前面的内容可知，如果采样的是规则的网格结构，则某些体积光照样本很可能位于物体内部或者场景之外，这形成包含非法颜色的体积光照样本，例如当角色靠近墙面时会变得非常暗，因为它混合了一个来自物体内部不含任何光照信息的体积光照样本。
+
+\begin{figure}
+\begin{fullwidth}
+	\begin{subfigure}[b]{\thewidth}
+		\includegraphics[width=\textwidth]{figures/pl/light-leaks-1}
+		\caption{只包含直接光照的场景}
+	\end{subfigure}
+	\begin{subfigure}[b]{\thewidth}
+		\includegraphics[width=\textwidth]{figures/pl/light-leaks-2}
+			\caption{体积光照贴图的光照泄露}
+	\end{subfigure}
+	\begin{subfigure}[b]{\thewidth}
+		\includegraphics[width=\textwidth]{figures/pl/light-leaks-3}
+			\caption{执行可见性判断的体积光照贴图效果}
+	\end{subfigure}
+	\caption{图中展示了三个简单的场景，其中(a)仅包含直接光照，由于直接光照包含可见性测试所以其结果是正确的，然而当使用体积光照贴图来计算间接光照时，由于缺乏可见性测试，两个相邻但是光照条件完全不同的场景之间就会出现光照泄露(b)，在(c)中，通过简单地在体积光照样本和着色像素之间添加可见性测试，这种光照泄露可以被很好地控制（图片来自\cite{a:Lightprobeinterpolationusingtetrahedraltessellations}）}
+	\label{f:pl-reconstruction-comparation}
+\end{fullwidth}
+\end{figure}
+
+本节我们将介绍一种来自\cite{a:Lightprobeinterpolationusingtetrahedraltessellations}的简单的可见性方法，该方法对每个体积光照样本存储一个深度图（实际上是使用一个双通道的纹理同时存储一个深度值，以及一个深度的平方值，我们将在后面介绍它们的用途），然后在实时渲染是通过对比着色像素到体积光照样本中心的距离与该方向的深度值来执行可见性判断，这个过程也即是一般阴影贴图的思路。
+
+在实时渲染的时候，对每个体积光照样本除了考虑来自三线性插值得到的几何权重，还需要组合另外两个额外的权重值，其中第一个权重值是着色像素法线与着色像素至每个体积光照样本方向的点积，其结果会被限定为正。这个权重值的结果是产生一个平滑的背面剔除权重，例如如果着色像素的法线方向与该像素到体积光照样本的方向完全重合，这种情况就具有最大的权重系数1，随着这两个方向夹角的增加至$90^{\circ}$，其权重系数逐渐减小到0，当夹角大于$90^{\circ}$时，即表示光源位于物体背部，则其贡献值为0。
+
+\begin{myshaded}
+	使用一个平滑的余弦函数，而不仅仅是一个普通的背面剔除方法（例如0或者1）能够更好地近似辐射照度贴图对着色像素的光照贡献。思考传统漫反射表面的辐射亮度，它的光照是随着光线与法线夹角的变化而变化的，然而在对体积光照样本近似采样时，我只获取样本中一个确定方向的值，它并没有考虑这种着色像素的法线与两者之间光线的几何关系，所以这里的余弦函数正好是一个弥补。
+\end{myshaded}
+
+另一个额外的权重系数来源于着色像素与体积光照样本之间的可见性，这里仍然不是一个离散的可见性值，而是使用\cite{a:VarianceShadowMaps}提出的一个切比雪夫可见性测试结果，由于阴影贴图的频率变化非常大，传统的纹理过滤技术并不适合于对阴影贴图执行过滤，所以方差阴影贴图通过记录阴影贴图中每个像素局部区域的方差变化，来近似可见性测试，这里不再对其进行详述，感兴趣的读者请参考原文。
+
+除此之外，在上述的方法中，体积光照样本的阴影贴图只记录了静态场景的深度值，因此它不能反映动态物体表面之间的自我遮挡关系，\cite{a:PrecomputedLightinginCallofDuty}提出了一种计算自我遮挡的可见性方法，这里也不再深入介绍。
+
+
+
+
+\section{基于辐射亮度的预计算}
+Glossy Indirect Specular
+In technical terms, the Reflection Environment provides indirect specular. We get direct specular through analytical lights, but that only provides reflections in a few bright directions. We also get specular from the sky through a Sky Light, but that does not provide local reflections since the Sky Light cubemap is infinitely far away. Indirect specular allows all parts of the level to reflect on all other parts, which is especially important for Materials like metal which have no diffuse response.
+
+
+
+Each pixel blends between multiple cubemaps to get the final result. Smaller ReflectionCapture Actors override larger ones, so you can refine reflection parallax accuracy in areas as needed. For example, you might place a capture at the center of a room and then refine the reflection by placing smaller captures at the corners of the room.
+
+Materials with varying glossiness are supported by generating blurry mipmaps from the captured cubemaps.
 
 
 
 
 
-adaptive subdivision
+It is also extremely important to setup your level's Materials to work well with the Reflection Environment by keeping the following in mind.
 
-
-
-
-
-
-
-From a high-level, the Volumetric Lightmaps system works in the following manner:
-
-Lightmass places lighting samples throughout the level and computes indirect lighting for them during the lighting build.
-When it comes time to render a dynamic object, the Volumetric Lightmap is interpolated to each pixel being shaded, providing precomputed indirect lighting.
-If no built lighting is available (meaning the object is new or has moved too much), lighting is interpolated to each pixel from the Volumetric Lightmap for Static objects until lighting is rebuilt.
-When a Lightmass Importance Volume is placed, the Volumetric Lightmap builds bricks that are made up of 4x4x4 cells (lighting samples). When lightmass is run, the cells are placed over the whole Lightmass Importance Volume and then it uses more cells around static geometry in the scene to capture better indirect lighting results.
-
-Each of these points (or spheres) is a Volumetric Lightmap lighting sample, which uses a Third Order Spherical Harmonic to store the incoming lighting in all directions.
-
-
-
-Lightmass creates lightmaps with complex light interactions like area shadowing and diffuse interreflection. It is used to precompute portions of the lighting contribution of lights with stationary and static mobility.
-
-
-Character lighting
-
-Lightmass places samples in a uniform 3d grid inside the Lightmass Importance Volume at a low resolution, and also on top of upward facing surfaces that characters are likely to walk on, at a higher resolution. Each lighting sample captures indirect lighting from all directions, but not direct lighting.
-
-The Indirect Lighting Cache then interpolates the indirect lighting for a movable object using these lighting samples. The indirect lighting affects the color of the light environment shadow, but not the direction. Use Show->Visualize->Volume Lighting Samples to preview these in your viewport.
-
-The volume lighting samples store directional indirect lighting which allows normal maps to work.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+A flat, mirror surface will reveal the inaccuracies of combining cubemaps projected onto simple shapes.
+Curvy geometry or rough surfaces can both obscure these artifacts and provide convincing results.
+It is important to use detail Normal maps and specify some degree of roughness on Materials that will be used in flat areas as this will help them better show off reflections.
 
 
 
@@ -1734,54 +1783,28 @@ A Reflection Probe is rather like a camera that captures a spherical view of its
 
 
 
-\subsubsection{可见性}
-
-
-When probes are arranged in regular grids, that inevitably puts some of them within obstacles.
-The result is characters becoming dark as they approach walls with black probes baked inside.
-A related issue is that potentially completely differently coloured probes from a different lighting environment on the other side of the wall will start interpolating in when the character stands too close to the wall.
-Milo and Kate solves it by baking per-probe explicit visibility information, which limits each probe’s influence up to the nearest obstacle. This seems to be what most games do nowadays.
-Cars 2 uses a simple hack: since the cars always stay on the track side of any wall, any probes outside of the track can be overwritten with the outmost probe that’s still on the track. Even if they get interpolated in, they still have the same value.
-Some engines sample n nearest probes, raycast to test visibility and fade over time to avoid popping. This is wrong on so many levels, we don’t have time to discuss it now ;)
-
-
-
-2016 Volumetric Global Illumination at Treyarch.key
-	
-a:Real-TimeGlobalIlluminationusingPrecomputedLightFieldProbes
-
-
-
 
 \begin{figure}
 \begin{fullwidth}
-	\begin{subfigure}[b]{\thewidth}
-		\includegraphics[width=\textwidth]{figures/pl/light-leaks-1}
-		\caption{参考}
+	\begin{subfigure}[b]{0.33\thewidth}
+		\includegraphics[width=\textwidth]{figures/pl/reflection-1}
+		\caption{只包含直接光照的场景}
 	\end{subfigure}
-	\begin{subfigure}[b]{\thewidth}
-		\includegraphics[width=\textwidth]{figures/pl/light-leaks-2}
-			\caption{盒过滤器}
+	\begin{subfigure}[b]{0.33\thewidth}
+		\includegraphics[width=\textwidth]{figures/pl/reflection-2}
+			\caption{体积光照贴图的光照泄露}
 	\end{subfigure}
-	\begin{subfigure}[b]{\thewidth}
-		\includegraphics[width=\textwidth]{figures/pl/light-leaks-3}
-			\caption{为加权}
+	\begin{subfigure}[b]{0.33\thewidth}
+		\includegraphics[width=\textwidth]{figures/pl/reflection-3}
+			\caption{执行可见性判断的体积光照贴图效果}
 	\end{subfigure}
-	\caption{不同基函数$b_i(x)$对一个粗糙表面的GGX核函数的重建结果，这里对每个像素均使用8个样本进行重建，好的基函数能够大大减少需要的方向样本的数量，提高了精确度并加快了收敛速度（图片来自\cite{a:FastFilteringofReflectionProbes}）}
+	\caption{图中展示了三个简单的场景，其中(a)仅包含直接光照，由于直接光照包含可见性测试所以其结果是正确的，然而当使用体积光照贴图来计算间接光照时，由于缺乏可见性测试，两个相邻但是光照条件完全不同的场景之间就会出现光照泄露(b)，在(c)中，通过简单地在体积光照样本和着色像素之间添加可见性测试，这种光照泄露可以被很好地控制（图片来自\cite{a:Lightprobeinterpolationusingtetrahedraltessellations}）}
 	\label{f:pl-reconstruction-comparation}
 \end{fullwidth}
 \end{figure}
 
 
 
-
-
-
-https://docs.unrealengine.com/en-us/Engine/Rendering/LightingAndShadows/VolumetricLightmaps
-
-
-
-\section{基于辐射亮度的预计算}
 
 考虑环境遮挡与probe的可见性的关键区别在于，环境遮挡一般不考虑可见性的方向，它只使用一个遮挡比例值，而probe需要考虑方向，例如使用一个cone，其包含遮挡比例和方向
 
@@ -1825,8 +1848,13 @@ Each pixel blends between multiple cubemaps to get the final result. Smaller Ref
 
 
 
-\subsubsection{实时生成光照探针}
-2017 Real-time Global Illumination by Precomputed Local Reconstruction from Sparse Radiance Probes
+\subsection{基于光线追踪的方法}
+However, just using the cubemap reflections on a very rough surface results in an overly bright reflection that has significant leaking due to lack of local occlusion. This is solved by reusing the lightmap data generated by Lightmass. The cubemap reflection is mixed together with the lightmap indirect specular based on how rough the material is. A very rough material (fully diffuse) will converge on the lightmap result. This mixing is essentially combining the high detail part of one set of lighting data (cubemaps) with the low-frequency part of another set of lighting data (lightmaps). For this to work correctly, though, only indirect lighting can be in the lightmap. This means that only the indirect lighting from Stationary lights can improve the quality of reflections on rough surfaces. Static light types should not be used together with the Reflection Environment as they will put direct lighting in the lightmap. Note that this mixing with the lightmap also means that the map must have meaningful indirect diffuse lighting and that lighting must already be built to see results.
 
-Systems such as Geomerics re-render radiance probes and light maps in real-time using complex schedul- ing and threading. Our input data are similar, so a similar software engineering approach may be applicable to the light field probe rep- resentation to enable real-time updates of the global illumination
-solution.
+
+
+
+When you use Reflection Capture Actors, UE4 mixes the indirect Specular from the Reflection Capture with the indirect Diffuse lighting from lightmaps. This helps to reduce leaking since the reflection cubemap was only captured at one point in space, but the lightmaps were computed on all the receiver surfaces and contain local shadowing information.
+
+
+While lightmap mixing works well for rough surfaces, this method breaks down on smooth surfaces as reflections from Reflection Capture Actors no longer match reflections from other methods like Screen Space Reflections or Planar Reflections. Because of this, lightmap mixing is no longer applied to very smooth surfaces. A surface with Roughness value of 0.3 will get full lightmap mixing, fading out to no lightmap mixing by Roughness 0.1 and below. This also allows Reflection Captures and Screen Space Reflections to match better and make it harder to spot transitions between the two.
