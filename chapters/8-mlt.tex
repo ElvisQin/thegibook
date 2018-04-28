@@ -79,7 +79,7 @@
 
 
 \subsection{MLT基本算法}\label{sec:mlt-algorithm}
-路径积分形式的光照方程给出了计算像素值的简单形式，设图像空间的每条路径$\bar{\mathbf{x}}$的光照贡献值为$f(\bar{\mathbf{x}})$，通过对每个像素$j$使用一个像素过滤器$\omega_j$使穿过该像素的所有路径形成对该像素值光照的估计，则该像素的值可以通过下式计算：
+路径积分形式的渲染方程给出了计算像素值的简单形式，设图像空间的每条路径$\bar{\mathbf{x}}$的光照贡献值为$f(\bar{\mathbf{x}})$，通过对每个像素$j$使用一个像素过滤器$\omega_j$使穿过该像素的所有路径形成对该像素值光照的估计，则该像素的值可以通过下式计算：
 
 \begin{equation}
 	I_j={\rm \int}_{\mathcal{P}}\omega_j(\bar{\mathbf{x}})f(\bar{\mathbf{x}}){\rm d}\mu(\bar{\mathbf{x}})
@@ -658,7 +658,7 @@ MMLT算法\footnote{原论文还提供了MMLT的简单实现，参见：\url{htt
 
 \noindent 在上式中，针对镜面顶点$\mathbf{x}_3$的积分消失了，贡献函数$f$仍然具有和原始路径空间的贡献函数相同的形式，即路径中每个顶点及边对应的相应项的乘积，但是对于每个镜面顶点一个具体的反射系数$R$代替了该点出对BRDF函数的计算，并且镜面反射处两个几何系数被合并为一个泛化几何系数$G(\mathbf{x}_2\leftrightarrow\mathbf{x}_3\leftrightarrow\mathbf{x}_4)$。
 
-在光照公式由基于方向的积分向基于路径的积分形式的转换过程中，几何项$G$充当了变量替换的系数，即对于一个非镜面顶点，标准的几何项表示的是光线其中一个顶点的固体角，与该固体角投影到另一个顶点（面）处面积的比值，即是固体角相对于面积的导数，如图\ref{f:mlt-generalized-geometry-factor}(a)所示；泛化几何项（generalized geometry factor）\myindex{泛化几何项}{generalized geometry factor}可以通过类似的方式定义：即一条光泽路径其中一端顶点的固体角相对于另一端投影面积的导数，图\ref{f:mlt-generalized-geometry-factor}(b)显式了一个更复杂的例子。我们将在后面介绍怎样利用镜面流形的微分几何计算该泛华几何项。
+在光照公式由基于方向的积分向基于路径的积分形式的转换过程中，几何项$G$充当了变量替换的系数，即对于一个非镜面顶点，标准的几何项表示的是光线其中一个顶点的立体角，与该立体角投影到另一个顶点（面）处面积的比值，即是立体角相对于面积的导数，如图\ref{f:mlt-generalized-geometry-factor}(a)所示；泛化几何项（generalized geometry factor）\myindex{泛化几何项}{generalized geometry factor}可以通过类似的方式定义：即一条光泽路径其中一端顶点的立体角相对于另一端投影面积的导数，图\ref{f:mlt-generalized-geometry-factor}(b)显式了一个更复杂的例子。我们将在后面介绍怎样利用镜面流形的微分几何计算该泛华几何项。
 
 \begin{figure}
 \sidecaption
@@ -831,7 +831,7 @@ MMLT算法\footnote{原论文还提供了MMLT的简单实现，参见：\url{htt
 
 
 \paragraph{求解泛化几何项}
-关于泛化几何项，如图\ref{f:mlt-generalized-geometry-factor}(b)所示，它表示路径一段的固体角与另一端的投影面积的比值。而观察上述的正切空间$T_{\mathcal{S}}(\bar{\mathbf{x}})$，它的最右上角或者左下角项正好可以用来计算泛化几何项。
+关于泛化几何项，如图\ref{f:mlt-generalized-geometry-factor}(b)所示，它表示路径一段的立体角与另一端的投影面积的比值。而观察上述的正切空间$T_{\mathcal{S}}(\bar{\mathbf{x}})$，它的最右上角或者左下角项正好可以用来计算泛化几何项。
 
 以右上角项为例，即$\frac{{\rm \partial} \mathbf{x}_2}{{\rm \partial} \mathbf{x}_7}$，如图\ref{f:mlt-manifold-constraint}(d)所示，它的行列式正好表示从$\mathbf{x}_1$点观察，其$\mathbf{x}_k$点投影面积和$\mathbf{x}_2$点投影面积的比值，因此再乘以$\mathbf{x}_1$到$\mathbf{x}_2$的几何项$G(\mathbf{x}_1\leftrightarrow\mathbf{x}_2)$，即可以得到点$\mathbf{x}_1$到$\mathbf{x}_7$之间的泛化几何项：
 
@@ -1128,7 +1128,7 @@ $\beta$是一个用来调整牛顿迭代步幅的参数，它可以被动态的�
 	a(\bar{\mathbf{x}},\bar{\mathbf{x}}^{'})=\min\bigg\{1,\frac{f_i(\bar{\mathbf{x}}^{'})T(\bar{\mathbf{x}}^{'},\bar{\mathbf{x}})}{f_i(\bar{\mathbf{x}})T(\bar{\mathbf{x}},\bar{\mathbf{x}}^{'})}\bigg\}
 \end{equation}
 
-\noindent 这里$T(\mathbf{x},\mathbf{x}^{'})$和$T(\mathbf{x}^{'},\mathbf{x})$表示正向和反向流形探索的转移概率，它们主要涉及对$\mathbf{x}_a$的突变方向$\omega^{'}_o$的采样概率。与传统的基于方向的光照积分方程到基于路径的光照积分方程的转变相似，由于对$D(\omega^{'}_o)$的采样结果是一个方向，这里需要执行一个方向到面积的变量替换，即固体角与该固体角到面积的投影的比值，所以最终的转移概率为$D^{\perp}(\omega^{'}_o)F(\mathbf{x}_a)\leftrightarrow\cdots\leftrightarrow\mathbf{x}^{'}_b$，这里第二项为泛化几何项，因为它可能涉及镜面路径的传播，它们可以通过约束函数的雅可比矩阵求得。
+\noindent 这里$T(\mathbf{x},\mathbf{x}^{'})$和$T(\mathbf{x}^{'},\mathbf{x})$表示正向和反向流形探索的转移概率，它们主要涉及对$\mathbf{x}_a$的突变方向$\omega^{'}_o$的采样概率。与传统的基于方向的光照积分方程到基于路径的光照积分方程的转变相似，由于对$D(\omega^{'}_o)$的采样结果是一个方向，这里需要执行一个方向到面积的变量替换，即立体角与该立体角到面积的投影的比值，所以最终的转移概率为$D^{\perp}(\omega^{'}_o)F(\mathbf{x}_a)\leftrightarrow\cdots\leftrightarrow\mathbf{x}^{'}_b$，这里第二项为泛化几何项，因为它可能涉及镜面路径的传播，它们可以通过约束函数的雅可比矩阵求得。
 
 
 
@@ -1188,11 +1188,11 @@ $\beta$是一个用来调整牛顿迭代步幅的参数，它可以被动态的�
 
 \noindent 我们称该变量替换的雅可比行列式为一个几何项（geometric term）\myindex{几何项}{geometric term}，所有顶点$\mathbf{x}_i$向$\mathbf{x}_{i+1}$的传输形成的几何项的乘积，以及所有顶点BRDF系数等构成了上述的测量贡献函数$f(\mathbf{X})$，它也是我们需要对一条路径计算的光照贡献值，不管使用什么样的空间对路径进行采样（例如上一节在流形上对路径进行采样），最终都需要变换到路径空间进行光照贡献值的计算。
 
-以上，我们已经介绍了路径的两种不同的空间及其变换，大多数的路径采样都是通过光线追踪的方式对固体角空间采样\footnote{注意，原采样空间也是基于固体角的空间，因此继承相同的缺点。}，然后变换到路径空间，这种方式的缺点是光线投射无法控制和预测后续顶点的位置，因此不适合用于MLT算法进行路径突变。此外，由固体角向面积变量替换形成的几何项包含奇点值，即当两相邻顶点距离很小时，贡献值函数的值将无限大，使得被积函数的频率变化很大，我们将在后面看到半矢量空间的表述使得被积函数非常平滑。
+以上，我们已经介绍了路径的两种不同的空间及其变换，大多数的路径采样都是通过光线追踪的方式对立体角空间采样\footnote{注意，原采样空间也是基于立体角的空间，因此继承相同的缺点。}，然后变换到路径空间，这种方式的缺点是光线投射无法控制和预测后续顶点的位置，因此不适合用于MLT算法进行路径突变。此外，由立体角向面积变量替换形成的几何项包含奇点值，即当两相邻顶点距离很小时，贡献值函数的值将无限大，使得被积函数的频率变化很大，我们将在后面看到半矢量空间的表述使得被积函数非常平滑。
 
 上一节由费马定理出发推导出路径的局部约束，这使得我们可以很轻易地探索一条已知路径的局部区域，以寻找一条“相似”路径，然而它仅适用于镜面流形，\cite{a:TheNaturalConstraintRepresentationofthePathSpaceforEfficientLightTransportSimulation}首次启发提出能够有效处理光泽表面的半矢量空间光照传输。
 
-在流形探索中，一个局部的镜面反射可以建立一个满足反射或折射定理的局部约束函数，这通过使入射光和出射光构成的半矢量与该顶点的法线重合来实现。为了处理光泽表面，考虑在微面元BRDF理论中，每个微面元可以被看做是绝对光滑的，因此我们可以在微面元上建立起上述类似的约束，然而与镜面流形不同的是，微面元使用的半矢量并不与宏观表面顶点的法线重合，但是微面元和宏观顶点之间通过微面元BRDF理论建立起了联系，因此这种微面元的约束被作用域宏观顶点之上，这样顶点$\mathbf{x}_i$处的半矢量$\mathbf{h}_i$能够充当任意一个光泽顶点的约束，我们称这样的约束为自然约束（natural constraint）\myindex{自然约束}{natural constraint}，因此一条路径可以表述为：
+在流形探索中，一个局部的镜面反射可以建立一个满足反射或折射定理的局部约束函数，这通过使入射光和出射光构成的半矢量与该顶点的法线重合来实现。为了处理光泽表面，考虑在微面元BRDF理论中，每个微面元可以被看做是绝对光滑的，因此我们可以在微面元上建立起上述类似的约束，然而与镜面流形不同的是，微面元使用的半矢量并不与宏观表面顶点的法线重合，但是微面元和宏观顶点之间通过微面元BRDF理论建立起了联系，因此这种微面元的约束被作用于宏观顶点之上，这样顶点$\mathbf{x}_i$处的半矢量$\mathbf{h}_i$能够充当任意一个光泽顶点的约束，我们称这样的约束为自然约束（natural constraint）\myindex{自然约束}{natural constraint}，因此一条路径可以表述为：
 
 \begin{equation}\label{e:mlt-half-vector-space}
 	\mathbf{H}^{\perp}=(\mathbf{x}_0,\mathbf{h}^{\perp}_1,\mathbf{h}^{\perp}_2,\cdots,\mathbf{h}^{\perp}_{k-1},\mathbf{x}_k)\in\Omega(\mathbf{h}^{\perp})\subset\Omega
@@ -1217,7 +1217,7 @@ $\beta$是一个用来调整牛顿迭代步幅的参数，它可以被动态的�
 
 \noindent 这里$\Omega(\mathbf{x}_0)$和$\Omega(\mathbf{H}^{\perp}_{0})$表示路径空间中位于路径$\mathbf{X}_0$附近的一个子空间（对于半矢量空间是一个流形），并使得半矢量空间中子流形（每个顶点对应的半矢量约束描述的流形）中的半矢量满足顶点的局部参数化表述，因为半矢量表述的自然约束仅针对局部区域有效，这与镜面流形类似。
 
-对于原始路径空间的被积函数$f(\mathbf{X})$，它实际上已经包含固体角向面积变换的雅可比行列式，即几何项$G$，所以上式中基于半矢量空间的被积函数可以写为：
+对于原始路径空间的被积函数$f(\mathbf{X})$，它实际上已经包含立体角向面积变换的雅可比行列式，即几何项$G$，所以上式中基于半矢量空间的被积函数可以写为：
 
 \begin{equation}\label{e:mlt-change-of-variables}
 	f(\mathbf{X})\Bigg|\frac{{\rm d}\mathbf{X}}{{\rm d}\mathbf{H}^{\perp}}\Bigg|=\rho(\mathbf{X})\Biggl(\prod^{k-1}_{i=0}G(\mathbf{x}_i,\mathbf{x}_{i+1})\Biggl)\Bigg|\frac{d(\mathbf{x}_1\cdots\mathbf{x}_{k-1})}{d(\mathbf{h}^{\perp}_1\cdots\mathbf{h}^{\perp}_{k-1})}\Bigg|
@@ -1246,11 +1246,11 @@ $\beta$是一个用来调整牛顿迭代步幅的参数，它可以被动态的�
 \begin{figure}
 	\sidecaption
 	\includegraphics[width=0.65\textwidth]{figures/mlt/half-vector}
-	\caption{在微面元BRDF理论中，半矢量相对于出射方向固体角的雅可比行列式可以通过图示的几何关系求得：即出射方向固体角的增量引起的半矢量方向的增量在单位圆形上的投影面积}
+	\caption{在微面元BRDF理论中，半矢量相对于出射方向立体角的雅可比行列式可以通过图示的几何关系求得：即出射方向立体角的增量引起的半矢量方向的增量在单位圆形上的投影面积}
 	\label{f:mlt-half-vector}
 \end{figure}
 
-而式\ref{e:mlt-half-vector-jacobians}中的第二项，即顶点出射固体角相对于顶点半矢量的雅可比行列式，可以通过微面元BRDF理论\cite{a:RobustMonteCarloMethodsforLightTransportSimulation}计算而出，为了理解的连贯性，我们这里给予简单说明。如图\ref{f:mlt-half-vector}所示（这里仅针对镜面反射给予说明，镜面折射请参考原论文中的描述）镜面反射几何关系，这里半矢量$\vec{\mathbf{h}}_r = \mathbf{i} + \mathbf{o}$， 而$\mathbf{h}_r = \vec{\mathbf{h}}_r / ||\vec{\mathbf{h}}_r||$表示归一化的半矢量，为了计算雅可比行列式，我们对出射方向使用一个增量${\rm d}\omega_o$，它将导致半矢量方向的一个增量${\rm d}\omega_h$，该增量的大小等于其在单元圆上的投影面积。
+而式\ref{e:mlt-half-vector-jacobians}中的第二项，即顶点出射立体角相对于顶点半矢量的雅可比行列式，可以通过微面元BRDF理论\cite{a:RobustMonteCarloMethodsforLightTransportSimulation}计算而出，为了理解的连贯性，我们这里给予简单说明。如图\ref{f:mlt-half-vector}所示（这里仅针对镜面反射给予说明，镜面折射请参考原论文中的描述）镜面反射几何关系，这里半矢量$\vec{\mathbf{h}}_r = \mathbf{i} + \mathbf{o}$， 而$\mathbf{h}_r = \vec{\mathbf{h}}_r / ||\vec{\mathbf{h}}_r||$表示归一化的半矢量，为了计算雅可比行列式，我们对出射方向使用一个增量${\rm d}\omega_o$，它将导致半矢量方向的一个增量${\rm d}\omega_h$，该增量的大小等于其在单元圆上的投影面积。
 
 所以很容易计算出将半矢量密度转换为出射方向的雅可比行列式为：
 
@@ -1264,7 +1264,7 @@ $\beta$是一个用来调整牛顿迭代步幅的参数，它可以被动态的�
 	=\Biggl|\frac{{\rm d}\mathbf{o}^{\perp}_0}{{\rm d}\mathbf{x}_k}\Biggl|\prod^{k-1}_{i=1}\frac{(\langle\mathbf{h},\mathbf{i}\rangle+\eta\langle\mathbf{h},\mathbf{o}\rangle)^{2}}{\eta^{2}|\langle\mathbf{h},\mathbf{o}\rangle|}
 \end{equation}
 
-\noindent 因此，式\ref{e:mlt-half-vector-jacobians}可以看做首先将$\mathbf{x}_0$的出射固体角转换为$\mathbf{x}_k$上的面积密度，这是一个泛化几何项，这一步将整个路径看做一个镜面链，因此这个泛化几何项表现为镜面流形上的一个转移矩阵（见第\ref{sec:mlt-me}节的内容）；然后再对每个顶点执行半矢量向出射方向的变换以考虑顶点的光泽度，如图\ref{f:mlt-half-vector-space-jacobians}所示。
+\noindent 因此，式\ref{e:mlt-half-vector-jacobians}可以看做首先将$\mathbf{x}_0$的出射立体角转换为$\mathbf{x}_k$上的面积密度，这是一个泛化几何项，这一步将整个路径看做一个镜面链，因此这个泛化几何项表现为镜面流形上的一个转移矩阵（见第\ref{sec:mlt-me}节的内容）；然后再对每个顶点执行半矢量向出射方向的变换以考虑顶点的光泽度，如图\ref{f:mlt-half-vector-space-jacobians}所示。
 
 \begin{figure}
 	\sidecaption
@@ -1472,7 +1472,7 @@ $\beta$是一个用来调整牛顿迭代步幅的参数，它可以被动态的�
 
 \begin{itemize}
 	\item \textbf{多链子路径}$\mathbf{x}_k,\cdots,\mathbf{x}_b$：这部分子路径的目标是实现图像平面的均匀突变，以及在不同子流形之间跳跃，这里使用一种类似传统MLT算法中的多链突变策略（以下会讨论），因此采样的是基于出射方向的突变策略，它在$\mathbf{x}_b$处产生一个不同于当前位置的顶点$\mathbf{x}^{'}_b$（因为基于出射方向突变的路径总是无法预测顶点位置）,如图\ref{f:mlt-breakup}所示。
-	\item \textbf{半矢量空间子路径 }$\mathbf{x}_{b-1},\cdots,\mathbf{x}_{c+1}$：首先连接前一步产生的$\mathbf{x}^{'}_b$点和$\mathbf{x}_{b-1}$点（需要执行可见性判断），形成对子路径$\mathbf{x}^{'}_b,\mathbf{h}^{\perp}_{b-1},\cdots,\mathbf{h}^{\perp}_{c+1},\mathbf{x}_c$，如图\ref{f:mlt-breakup}所示，然后固定该子路径的两端，对其执行半矢量空间的突变，参加第\ref{sec:mlt-BSDF-perturbation}节的内容。
+	\item \textbf{半矢量空间子路径 }$\mathbf{x}_{b-1},\cdots,\mathbf{x}_{c+1}$：首先连接前一步产生的$\mathbf{x}^{'}_b$点和$\mathbf{x}_{b-1}$点（需要执行可见性判断），形成对子路径$\mathbf{x}^{'}_b,\mathbf{h}^{\perp}_{b-1},\cdots,\mathbf{h}^{\perp}_{c+1},\mathbf{x}_c$，如图\ref{f:mlt-breakup}所示，然后固定该子路径的两端，对其执行半矢量空间的突变，参见第\ref{sec:mlt-BSDF-perturbation}节的内容。
 	\item \textbf{固定子路径 }$\mathbf{x}_c,\cdots,\mathbf{x}_1,\mathbf{x}_0$：这部分子路径保持不变。
 \end{itemize}
 
