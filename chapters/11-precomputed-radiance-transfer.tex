@@ -822,7 +822,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 
 
 
-\subsection{预过滤}
+\subsection{预过滤}\label{sec:pl-pre-filtering}
 对于一个给定位置处的入射光照场$L(l)$，例如本节介绍的环境贴图，给定观察方向$v$上的出射辐射亮度 $R(v)$可由下述反射方程计算得出：
 
 \begin{equation}\label{e:pl-prefiltering-1}
@@ -1755,8 +1755,70 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 
 
 \section{基于辐射亮度的预计算}
-Glossy Indirect Specular
-In technical terms, the Reflection Environment provides indirect specular. We get direct specular through analytical lights, but that only provides reflections in a few bright directions. We also get specular from the sky through a Sky Light, but that does not provide local reflections since the Sky Light cubemap is infinitely far away. Indirect specular allows all parts of the level to reflect on all other parts, which is especially important for Materials like metal which have no diffuse response.
+同局部的间接漫反射光照一样的道理，场景也需要局部的间接光泽反射光照，由于光泽反射是与观察方向有关的，因此它不能像辐射照度一样存储一个标量值，而是需要存储一个光照场，即空间中各个位置处的辐射亮度分布。
+
+光照场（light field）\myindex{光照场}{light field}，又称为全光函数（plenoptic function）\myindex{全光函数}{plenoptic function}，它描述的是场景中空白空间中辐射亮度的空间和方向分布，它是一个5D的函数，其中三个维度用于表述空间的位置，另外两个维度用于表述辐射亮度的方向，它的概念最早出现于物理学文献中，最早于\cite{a:LightFieldRendering,a:Thelumigraph}中被引入到计算机图形学中，在这些方法中，光照场被使用一些离散空间样本表述，其中每个样本是一个辐射亮度的方向分布函数，我们称这个样本为一个光照场探针（light field probe）\myindex{光照场探针}{light field probe}。
+
+光照场探针是和环境贴图类似的概念，即它收集来自环境各个方向的入射辐射亮度，因此光照场探针也可以使用立方体贴图，球谐函数等方向函数进行表述。光照场探针和环境贴图的主要区别是其接受来自周围环境入射光照的范围，环境贴图接受来自整个场景的反射光照，而光照场探针则主要收集来自某个局部空间的反射光照，通常我们需要对一个光照场探针指定一个几何包围盒，例如一个立方体或者球体。
+
+在渲染的时候，对于光照场探针覆盖范围内的每一个着色点，我们假设它的入射光照分布都是相同的，即与位置无关的，因此该光照场探针作为表面着色点的入射光照分布，然后我们对表面执行一般的反射方程进行着色计算。
+
+从上面的分析可以看出，光照场探针具有两个不足，首先它的光照分布与位置无关，这种假设对于全局的环境光照是比较精确的，因为着色像素通常离周围的环境很远，然而将这种概念放到局部时，着色像素离周围环境通常很近，因此这种假设带来的误差很大；其次环境光照通常是不考虑可见性的，然后使用一个全局的环境遮挡（ambient occlusion）来近似这种遮挡关系，然而在局部的区间内，我们需要更精确的可见性方法，我们将在本节后面讨论光照场探针的可见性测试。
+
+针对第一个问题，它在光滑且平坦的表面上表现得特别明显，因为这些表面更能较清晰的呈现反射物体原有的形状，而这种形状由于与位置无关的假设而发生了形变，如图\ref{f:pl-reflection-issues}(c)所示；而这个问题在弯曲或者粗糙的表面上表现就会好得多，我们能够观察到来自环境的粗略反射光照，又不会受困于具体的反射光照的精度，如图\ref{f:pl-reflection-issues}(a)和(b)所示。所以在使用光照场探针的时候，为了得到更好的效果，待着色物体应该是比较粗糙，弯曲或者法线细节比较丰富的表面。
+
+\begin{figure}
+\begin{fullwidth}
+	\begin{subfigure}[b]{0.33\thewidth}
+		\includegraphics[width=\textwidth]{figures/pl/reflection-1}
+		\caption{平滑且弯曲的表面}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.33\thewidth}
+		\includegraphics[width=\textwidth]{figures/pl/reflection-2}
+			\caption{粗糙且平坦的表面}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.33\thewidth}
+		\includegraphics[width=\textwidth]{figures/pl/reflection-3}
+			\caption{平滑且平坦的表面}
+	\end{subfigure}
+	\caption{由于环境光照与位置无关的假设，其在局部环境中会表现出比较大的误差，特别是在平坦而光滑的表面上会表现得特别明显(c)，而粗糙(b)或者弯曲(a)的表面则会表现的好得多（图片来自\cite{m:ReflectionEnvironment}）}
+	\label{f:pl-reflection-issues}
+\end{fullwidth}
+\end{figure}
+
+另一点关于光照场探针（或者局部环境贴图）需要注意的是，正是由于这种与位置有关的误差，光照场探针接收的仅仅是来自漫反射表面的反射光照，这一点是非常关键的，它也是后面我们讨论基于光线追踪的可见性方法的重要基础。由于光泽反射是严格与位置相关且光照分布的频率是非常高的，因此这会导致那些没有处于光照场探针中心位置的反射光照呈现比较严重的视觉误差。所以例如在Unreal Engine 4当中，光照场探针的生成需要位于光照贴图的预处理之后，因为这时场景才包含了间接漫反射光照，所以这也要求场景的表面主要是漫反射表面，光泽表面的场景其效果就要差得多，更多的信息可以参考\cite{m:ReflectionEnvironment}。
+
+由于光照场探针记录的是入射辐射亮度，因此在着色的时候，我们需要将其与表面上余弦加权的BRDF函数相乘然后在半球空间上做积分计算，这对于实时渲染其成本是比较昂贵的。而由于辐射亮度相对于辐射照度分布更高的频率变化，它通常也不能使用低阶的球谐函数来近似，所以实时渲染中常见的做法仍然是对光照场探针执行预过滤操作，不同粗糙度的BRDF分布函数通常将其预过滤成不同分辨率的多级纹理，这样着色时的积分计算就被转化为一个纹理查询操作，这些内容和本章前面第\ref{sec:pl-pre-filtering}是一致的。这种基于预过滤的光照场探针技术在现代实时渲染中被大量使用，例如\cite{m:ReflectionEnvironment,m:LightProbes}。
+
+\begin{myshaded}
+	反射贴图与体积光照贴图的区别，插值和非插值，环境范围内的概念
+\end{myshaded}
+
+
+
+\begin{figure}
+\begin{fullwidth}
+	\begin{subfigure}[b]{0.33\thewidth}
+		\includegraphics[width=\textwidth]{figures/pl/light-field-1}
+		\caption{入射辐射亮度分布}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.33\thewidth}
+		\includegraphics[width=\textwidth]{figures/pl/light-field-2}
+			\caption{光照场探针}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.33\thewidth}
+		\includegraphics[width=\textwidth]{figures/pl/light-field-3}
+			\caption{体积光照样本}
+	\end{subfigure}
+	\caption{一种特殊的由线性分段函数组成的函数基，其每个基函数是一小段信号，它们可以被缩放并组合起来对原始函数形成近似，这个过程称为重建(b)，决定每个基函数的缩放系数的过程被称为投影(a)（图片来自\cite{a:TheIrradianceVolume}）}
+	\label{f:pl-light-field}
+\end{fullwidth}
+\end{figure}
+
+
+
+
+
 
 
 
@@ -1767,56 +1829,11 @@ Materials with varying glossiness are supported by generating blurry mipmaps fro
 
 
 
-
-It is also extremely important to setup your level's Materials to work well with the Reflection Environment by keeping the following in mind.
-
-A flat, mirror surface will reveal the inaccuracies of combining cubemaps projected onto simple shapes.
-Curvy geometry or rough surfaces can both obscure these artifacts and provide convincing results.
-It is important to use detail Normal maps and specify some degree of roughness on Materials that will be used in flat areas as this will help them better show off reflections.
-
-
-
-
-Reflection Probe
-SWITCH TO SCRIPTING
-A Reflection Probe is rather like a camera that captures a spherical view of its surroundings in all directions. The captured image is then stored as a Cubemap that can be used by objects with reflective materials. Several reflection probes can be used in a given scene and objects can be set to use the cubemap produced by the nearest probe. The result is that the reflections on the object can change convincingly according to its environment.
-
-
-
-
-\begin{figure}
-\begin{fullwidth}
-	\begin{subfigure}[b]{0.33\thewidth}
-		\includegraphics[width=\textwidth]{figures/pl/reflection-1}
-		\caption{只包含直接光照的场景}
-	\end{subfigure}
-	\begin{subfigure}[b]{0.33\thewidth}
-		\includegraphics[width=\textwidth]{figures/pl/reflection-2}
-			\caption{体积光照贴图的光照泄露}
-	\end{subfigure}
-	\begin{subfigure}[b]{0.33\thewidth}
-		\includegraphics[width=\textwidth]{figures/pl/reflection-3}
-			\caption{执行可见性判断的体积光照贴图效果}
-	\end{subfigure}
-	\caption{图中展示了三个简单的场景，其中(a)仅包含直接光照，由于直接光照包含可见性测试所以其结果是正确的，然而当使用体积光照贴图来计算间接光照时，由于缺乏可见性测试，两个相邻但是光照条件完全不同的场景之间就会出现光照泄露(b)，在(c)中，通过简单地在体积光照样本和着色像素之间添加可见性测试，这种光照泄露可以被很好地控制（图片来自\cite{a:Lightprobeinterpolationusingtetrahedraltessellations}）}
-	\label{f:pl-reconstruction-comparation}
-\end{fullwidth}
-\end{figure}
-
-
-
-
 考虑环境遮挡与probe的可见性的关键区别在于，环境遮挡一般不考虑可见性的方向，它只使用一个遮挡比例值，而probe需要考虑方向，例如使用一个cone，其包含遮挡比例和方向
 
 
 
 
-
-Traditionally, games have used a technique called reflection mapping to simulate reflections from objects while keeping the processing overhead to an acceptable level. This technique assumes that all reflective objects in the scene can “see” (and therefore reflect) the exact same surroundings. This works quite well for the game’s main character (a shiny car, say) if it is in open space but is unconvincing when the character passes into different surroundings; it looks strange if a car drives into a tunnel but the sky is still visibly reflected in its windows.
-
-Unity improves on basic reflection mapping through the use of Reflection Probes, which allow the visual environment to be sampled at strategic points in the scene. You should generally place them at every point where the appearance of a reflective object would change noticeably (eg, tunnels, areas near buildings and places where the ground colour changes). When a reflective object passes near to a probe, the reflection sampled by the probe can be used for the object’s reflection map. Furthermore, when several probes are nearby, Unity can interpolate between them to allow for gradual changes in reflections. Thus, the use of reflection probes can create quite convincing reflections with an acceptable processing overhead.
-
-Unity improves on basic reflection mapping through the use of Reflection Probes, which allow the visual environment to be sampled at strategic points in the scene. You should generally place them at every point where the appearance of a reflective object would change noticeably (eg, tunnels, areas near buildings and places where the ground colour changes). When a reflective object passes near to a probe, the reflection sampled by the probe can be used for the object’s reflection map. Furthermore, when several probes are nearby, Unity can interpolate between them to allow for gradual changes in reflections. Thus, the use of reflection probes can create quite convincing reflections with an acceptable processing overhead.
 
 
 
@@ -1852,6 +1869,13 @@ Each pixel blends between multiple cubemaps to get the final result. Smaller Ref
 However, just using the cubemap reflections on a very rough surface results in an overly bright reflection that has significant leaking due to lack of local occlusion. This is solved by reusing the lightmap data generated by Lightmass. The cubemap reflection is mixed together with the lightmap indirect specular based on how rough the material is. A very rough material (fully diffuse) will converge on the lightmap result. This mixing is essentially combining the high detail part of one set of lighting data (cubemaps) with the low-frequency part of another set of lighting data (lightmaps). For this to work correctly, though, only indirect lighting can be in the lightmap. This means that only the indirect lighting from Stationary lights can improve the quality of reflections on rough surfaces. Static light types should not be used together with the Reflection Environment as they will put direct lighting in the lightmap. Note that this mixing with the lightmap also means that the map must have meaningful indirect diffuse lighting and that lighting must already be built to see results.
 
 
+
+\begin{figure}
+	\sidecaption
+	\includegraphics[width=0.5\textwidth]{figures/pl/light-field-ray-marching}
+	\caption{Hello}
+	\label{f:pl-light-field-ray-marching}
+\end{figure}
 
 
 When you use Reflection Capture Actors, UE4 mixes the indirect Specular from the Reflection Capture with the indirect Diffuse lighting from lightmaps. This helps to reduce leaking since the reflection cubemap was only captured at one point in space, but the lightmaps were computed on all the receiver surfaces and contain local shadowing information.
