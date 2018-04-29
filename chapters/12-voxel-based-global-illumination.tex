@@ -523,7 +523,7 @@
 
 
 
-\subsection{实现}\label{sec:vct-implementation}
+\subsection{实~~现}\label{sec:vct-implementation}
 本节最后再来总结整理关于体素的表述和实现方案，我们的目标是对多级 体素（我们将在后面第\ref{sec:vct-data-structure}在详细讨论这种多级体素的数据结构以及在 GPU 中的遍历算法）中最高分辨率层级中的每个体素，存储一个平均漫反射颜色值 $C_{RGB}$，一个法线分布函数 $N$ 以及一个透明度 $T$。最后我们将对多级体素的最 高分辨率层级进行过滤和预积分计算，以得到整个多级体素的金字塔结构，其 中具体的预过滤或预积分方法也会留在下一节讨论，因为它涉及到多级体素的 数据结构，并且这个过程发生于多级体素的构建过程当中。
 
 上一节已经介绍过与材质参数相关的项，由于具有线性关系，这些参数可 以被直接使用预过滤处理，然而透明度则不同，体素的透明度通常与光照结果 不具备线性关系，因此透明度需要使用预积分的方式进行计算。由于预积分计 算会更加复杂，所以通常会使用更加近似的方法。
@@ -785,7 +785,7 @@
 
 
 
-\section{渲染}\label{sec:vct-rendering}
+\section{渲~~染}\label{sec:vct-rendering}
 我们已经了解了圆锥体追踪的基本思路，基于多级体素的全局光照算法的 原理，即使用体积渲染积分的思路来体素化场景，然后我们介绍了不同的构建 和存储这种多分辨率的体素结构的方法，最后本节将所有这些内容串联起来， 我们将讨论基于体素的全局光照算法的整体渲染逻辑。
 
 在阅读本节之前，读者需要稍微留意的是，基于体素的全局光照技术大概 需要两个阶段，第一个阶段是构建体素表述及（在该构建过程中）对表面参数 的过滤，如上一节的内容所述；第二个阶段就是本节会讨论的渲染阶段。因此， 在本节内容的背景下，体素结构已经存在。实际上，我们认为第一个阶段的目 的主要是将用三角网格基元表述几何场景，转化为一种使用体素作为基元表述 的几何场景，尽管这种新的基元形式是实时构建，而不是如网格场景在设计阶 段定制而成。我们可以认为基于体素的全局光照算法是一种对某种特殊格式的 基元表述(即多分辨率的体素结构)的渲染方法，当然这里的体素不是一般的 3D 数据，而是需要包含本章前面介绍的那些参数的 3D 体素，例如漫反射颜色 值，法线分布函数以及透明度。
@@ -964,7 +964,7 @@ Our solution is to perform three separate passes in which all threads have rough
 
 
 
-\section{总结}
+\section{总~~结}
 This very interesting talk that was given at Siggraph 2011 by Cyril Crassin. His work was on a technique he called Voxel Cone Tracing, which was capable of producing Global Illumination effects in real time on a high end GPU. This worked by voxelizing the scene into what he called a Sparse Voxel Octree, in- jecting lighting information into this structure, and then tracing cones through that from the location of a pixel in world space in order to gather the indirect illumination affecting it.
 
 

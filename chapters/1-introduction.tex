@@ -1,50 +1,51 @@
-\section{渲染的逻辑}
-计算机图形学（Computer Graphics）的主要目的之一，就是将一个虚拟的数字3D场景，模拟光与物体交互的光学原理，利用计算机生成一张数字图像，供屏幕显示使用或者保存为数字文件格式。
+计算机图形学（computer graphics）的主要目的之一，就是模拟光与物体交互的光学原理，将一个虚拟的数字3D场景，利用计算机生成一张2D的数字图像，供屏幕显示使用或者保存为数字文件格式。
 
-然而，要达到逼真的视觉效果，（尤其在实时的环境下）这个渲染的过程却异常复杂。从技术上讲，这里有两个突出的困难需要解决：首先，对于表面上的每个点，我们必须在垂直于该点法线方向的半空间上（hemisphere）做积分运算以便求出该点的颜色值，因为每个点可以接受来自场景中所有其他点反射的光照；其次，对于空间中传播的每一条光线（ray），我们必须遍历场景中所有物体表面上的其他的所有点，来计算出与该光线相交的最近的一个点(即最近点测试)，从而进行光照计算。在当前的硬件条件下，我们几乎不可能实时处理这两个计算。
+然而，要达到逼真的视觉效果，尤其在实时的环境下，这个渲染的过程却异常复杂。从技术上讲，这里有两个突出的困难需要解决：首先，对于表面上的每个点，我们必须在该点法线方向对应的半空间（hemisphere）上做积分运算以便求出该点的颜色值，因为每个点可以接受来自场景中所有其他点反射的光照；其次，对于空间中传播的每一条光线（ray），我们必须遍历场景中所有物体表面上的每一个点，来计算出与该光线相交的最近的一个点(即最近点测试)，从而进行光照计算。在当前的硬件条件下，我们几乎不可能实时处理这两个计算。
 
 为了解决这两个问题，计算机图形学提出了大量的方法和理论以简化和加速这两个方面的计算，从而更快（甚至实时）地进行光照计算以渲染场景。
 
-我们可以将所有这些方法和理论分为两大类，其中第一类方法通过寻找更快的数学方法来计算光照积分方程（见第\ref{sec:intro-the-rendering-equation}节），这方面有两大经典方法：基于有限元分解的辐射度理论，以及基于 Monte Carlo积分的光线追踪技术。
+我们可以将所有这些方法和理论分为两大类，其中第一类方法通过寻找更快的数学方法来比较精确地计算渲染积分方程（见第\ref{sec:intro-the-rendering-equation}节），这方面有两大经典方法：即基于有限元分解的辐射度理论，以及基于蒙特卡洛积分的光线追踪技术。
 
-有限元分解（Finite Element Method，简称FEM\index{Finite Element Method}）是一种常见的积分计算方法，它将一个沿无限空间的积分分解为一个有限纬度(称为一个有限元)的积分, 我们只需要求出每个有限元的均值，并可以很容易地计算出光照积分方程。在辐射度理论中，通常我们通过Monte Carlo等方法预计算出每个有限元的均值，供渲染时渲染方程的实时计算；而Monte Carlo\index{Monte Carlo}方法通过随机抽样, 使用有限个采样点的值，来计算积分方程的值(详见本书第\ref{chp:mc}章的内容)。这两种方法均能达到非常高的图像品质，然而它们的计算仍然十分耗时, 因此主要用于电影等离线渲染领域(例如Pixar的渲染产品RenderMan 就是基于光线追踪的渲染器)。
+有限元方法（finite element method，FEM）\myindex{有限元方法}{finite element method}是一种常见的积分计算方法，它将一个沿无限维空间的积分分解为一个有限纬度(称为一个有限元)的积分, 我们只需要求出每个有限元的均值，便可以很容易地计算出渲染积分方程，在辐射度理论中，我们通常通过蒙特卡洛等方法预计算出每个有限元的均值，供渲染时渲染方程的实时计算，详见本书第\ref{chp:rad}章的内容；而基于蒙特卡洛\myindex{蒙特卡洛}{Monte Carlo}的方法则通过随机抽样, 使用有限个采样点的函数贡献值，来近似计算积分方程的值，由于在渲染中一个这样的样本称为一条光线的路径，因此基于蒙特卡洛的方法又称为光线追踪技术，详见本书第\ref{chp:mc}章的内容。
 
-与辐射度和光线追踪技术通过简化积分方程的思路不同，第二类方法的主要思路是根据光学现象或者其他理论拆分渲染方程，使得光照效果最终由多种效果叠加而成，例如Direct lighting(光从光源出发经过物体表面反射或者折射一次后进入人眼)，(Soft )Shadow，Diffuse lighting，Specular lighting，Indirect lighting, Ambient Occlusion, Subsurface Scattering, Environment lighting, Reflection等等。
+这两种方法均能达到非常高的图像品质，然而它们的计算仍然十分耗时, 因此主要用于影视动画等离线渲染领域，例如Pixar的RenderMan RIS就是基于光线追踪技术的渲染器产品。
 
-这些拆分后的效果可能分别使用不同的方法来计算（其中大部分都是本书要重点讲述的内容），其中一些主要的思路包括。
+与辐射度和光线追踪技术通过简化和加速积分方程求解的思路不同，第二类方法的主要思路是根据光学现象或者其他理论拆分渲染方程，使得光照效果最终由多种效果叠加而成，例如直接光照（即光从光源出发经过物体表面反射或者折射一次后进入人眼的光照），（软）阴影，漫反射光照，光照反射光照，间接光照，环境遮挡，次表面散射，环境光照等等。
+
+这些拆分后的效果可能分别使用不同的方法来计算，其中大部分都是本书要重点讨论的内容，这些方法的一些主要思路包括但不限于：
 
 \begin{itemize}
-	\item 使用GPU的光栅化特性，例如用来简化物体间的阻挡关系和阴影（利用光栅化从光源的角度生成光照贴图）计算。
-	\item 为了减少计算量，另一些技术从屏幕空间(Screen Space)进行计算，例如Ambient Occlusion可以使用Post processing基于屏幕空间计算；还有一些技术在屏幕空间进行光线追踪计算。
-	\item 对于一些静态的数据，例如静态光源，环境贴图（Environment lighting）则可以通过预处理将这些光照贴图在编译阶段生成，而在运行时只需要使用简单的贴图即可；有时候一个复杂的积分方程的一部分静态数据也可以进行预处理。 
-	\item 有些算法则使用一些特定的数据格式来加速其中的一些计算：如最近点测试和遮挡范围计算；例如Unreal Engine 4通过对整个场景构建一个Distance field的数据结构，通过它来加速遮挡关系的计算从而实现Soft shadow以及Ambient occlusion等效果。
-	\item 对于积分函数中的低频部分（Low-frequency），我们可以通过使用Spherical Harmonic等函数来存储一些点的“环境函数”，从而能够快速地进行积分计算。
-	\item 光会在场景中进行多次反射或折射才会进入摄像机，模拟这种多次反弹（Bounce）的效果计算量非常大，但是一些近似方法通过仅计算一次反弹（即光从光源出发，经过两次与表面反射或折射，然后进入摄像机）也能获得非常好的效果。
+	\item 使用GPU的光栅化特性，例如用来简化物体间的遮挡关系和阴影计算，这可以通过使用光栅化从光源的角度生成光照贴图来实现。
+	\item 为了减少计算量，另一些技术从屏幕空间（screen space）进行计算，例如环境遮挡可以在渲染的后处理阶段，基于屏幕（而不是物体）空间计算像素的环境遮挡值，还有一些技术在屏幕空间进行光线追踪计算，这都大大减少了着色计算的数量。
+	\item 对于一些静态的数据，例如静态光源和场景，我们可以在预处理阶段将某些光照的中间结果转换为纹理的形式，例如环境贴图和光照贴图等，而在运行时只需要使用简单的贴图即可；有时候一个复杂的积分方程的一部分静态数据也可以进行预处理。 
+	\item 有些算法则使用一些特定的数据格式来加速其中的一些计算，如最近点测试和遮挡范围计算；例如Unreal Engine 4在预处理阶段对整个场景构建一个距离场的数据结构，通过它来加速遮挡关系的计算，从而实现如软阴影和环境遮挡等效果。
+	\item 对于积分函数中的某些低频部分（low-frequency），我们可以通过使用比如低阶的球谐函数等来近似这一部分，它们仅被存储为少数一些稀疏，从而能够快速地进行积分计算。
+	\item 光会在场景中进行多次反射或折射才会进入摄像机，模拟这种多次反弹（bounce）的效果计算量非常大，但是一些近似方法通过仅计算两次反弹（即光从光源出发，经过两次与表面反射或折射，然后进入摄像机）也能获得非常好的效果。
 	\item ......
 \end{itemize}
 
-从这些众多看似复杂的计算机图形学零散的知识碎片中，我们可以看到其实它是具有一定的“逻辑”的。从一个个完整的全局光照系统的角度，以及通过多个不同全局光照模型之间层层递进的关系，通过本书读者应该能够很轻易地去理解这些逻辑，从而站在一个更高的高度去看待计算机图形学，最终能够更得心应手地解决工作和学习中的问题。
+从这些众多看似复杂而零散的计算机图形学知识碎片中，我们可以看到其实它们是具有一定的“逻辑”的。从一个个完整的全局光照系统的角度，以及通过多个不同全局光照模型之间层层递进的关系，通过本书读者应该能够很轻易地去理解这些逻辑，从而站在一个更高的高度去看待计算机图形学，最终能够更得心应手地解决工作和学习中的问题。
 
 
 
 
 \section{什么是全局光照}
-实际上，计算机图形学中所涉及的光照都是指全局光照。但是由于渲染方程计算的的复杂性，早期工业中一般忽略间接光照，仅考虑光从光源出发，经过表面一次反射/折射之后到达人眼或者场景中的虚拟摄像机。这种不考虑环境其他非光源表面对着色影响的光照模型称为局部光照（Local illumination\index{Local Illumination}）模型，反之则称为全局光照（Global illumination\index{Global Illumination}）模型。如今工业中使用的主流商业3D游戏引擎，如Unreal Engine，Unity等大都支持某种程度的全局光照。
+实际上，计算机图形学中所涉及的光照都是指全局光照。但是由于渲染方程计算的的复杂性，早期工业中一般忽略间接光照，仅考虑光从光源出发，经过表面一次反射/折射之后到达人眼或者场景中的虚拟摄像机。这种不考虑环境其他非光源表面对着色影响的光照模型称为局部光照（local illumination）\myindex{局部光照}{local Illumination}模型，反之则称为全局光照（global illumination）\myindex{全局光照}{global Illumination}模型。如今工业中使用的主流商业3D游戏引擎，如Unreal Engine，Unity等大都支持某种程度的全局光照。
 
-由于硬件计算性能的限制，我们很难在产品中达到物理上正确的渲染品质。现阶段计算机图形学领域的主要目标是渲染出令人信服的（Convincing），真实的（Realistic）图像品质，所以不同公司的产品往往使用不同的方法来实现全局光照模型，这些不同的方法在品质上甚至会有很大的差异，因此我们很难用一种技术的标准来衡量全局光照，但我们可以从另一个角度，即从光与物体的光学特性上去定义一个令人信服的全局光照模型应该实现这样一些效果。
+由于硬件计算性能的限制，我们很难在产品中达到物理上正确的渲染品质。现阶段计算机图形学领域的主要目标是渲染出令人信服的（convincing），写实的（realistic）图像品质，所以不同公司的产品往往使用不同的方法来实现全局光照模型，这些不同的方法在品质上甚至会有很大的差异，因此我们很难用一种技术的标准来衡量全局光照，但我们可以从另一个角度，即从光与物体的光学特性上去定义一个令人信服的全局光照模型应该实现怎样一些效果。
 
 当然这里仅列出一些目前主流的游戏引擎或其他一些离线渲染产品都在实现的一些光学现象，这并不是一个标准，也不是全局光照的全部内容。通过这样一些现象，我们可以对全局光照有一个直观印象，以及理解作为令人信服的图形渲染目标，哪些核心因素是一个优秀的全局光照模型应该满足的。
 
-注意，本书选择在这样没有开始介绍任何具体的图形学知识之前讨论这些全局光照现象，是希望能够使用非图形学的术语更加直观地讲述这些现象，因为这是整本书都在试图达到的目标。
+注意，本书选择在还没有开始介绍任何具体的图形学知识之前讨论这些全局光照现象，是希望能够使用非图形学的术语更加直观地讲述这些现象，因为这是整本书都在试图达到的目标。
 
 
 
-\subsubsection{阴~~影}\index{Shadows}
-阴影对于人眼对3D场景的立体感觉非常重要，在实时渲染领域，直接光照（如Point light，Spot light以及Directional light）的渲染通常不考虑物体间的遮挡关系（这是为了利用GPU快速的光栅化特性），所以需要另一个单独的通道来处理阴影。这个通道可以通过GPU的光栅化特性，在运行时动态生成光照贴图（Shadow maps），或者利用GPU的Stencil test生成Shadow Volume等比较简单的方法实现。
+\paragraph{阴~~影}\index{Shadows}
+阴影对于人眼对3D场景的立体感觉非常重要，在实时渲染领域，直接光照（如点光源，聚光灯以及直线光源等）的渲染通常不考虑物体间的遮挡关系（这是为了利用GPU快速的光栅化特性），所以需要另一个单独的通道来处理阴影。这个通道可以通过GPU的光栅化特性，在运行时动态生成光照贴图（shadow maps），或者利用GPU的模板测试生成阴影体积（shadow volume）等比较简单的方法实现。
 
-光照贴图是以光源中的单个点为视角，利用GPU光栅化渲染的一张图，通常它只包含深度值，所以它记录的只是物体边缘的信息，因此产生的阴影为硬阴影（Hard shadow\index{Hard Shadow}）。对于硬阴影，通常还需要使用适当的反走样措施（关于反走样技术将在本章第\ref{sec:intro-sampling}节讲述）。
+光照贴图是以光源中的单个点为观察点，利用GPU光栅化渲染的一张图，通常它只包含深度值，所以它记录的只是物体边缘的几何信息，因此产生的阴影为硬阴影（hard shadow）。对于硬阴影，通常还需要使用适当的反走样措施（关于反走样技术将在本章第\ref{sec:intro-sampling}节讲述）。
 
-对于非点光源，其光源具有一定的面积，生成的阴影为软阴影（Soft shadow\index{Soft Shadow}），一个软阴影包含3个部分：即完全遮挡的Fully Dark区，部分光照被遮挡的Penumbra区，以及完全没用被遮挡的Fully lit区，如图\ref{f:intro-shadow}所示。其中Penumbra过渡区可以通过表面到遮挡物体及光源的距离，以及光源的面积大小三个参数求得，光线追踪，光照图的深度值等技术可以用以软阴影效果的计算。本书将会详细介绍相关的阴影计算，参考资料《Real-Time Shadows》\cite{b:rts}包含了大量关于阴影技术的介绍。
+对于非点光源，其光源具有一定的面积，生成的阴影为软阴影（soft shadow），一个软阴影的定义包含3个部分：即完全遮挡的本影区（Fully Dark），部分光照被遮挡的半影（Penumbra）区，以及完全没用被遮挡的光照（Fully lit）区，如图\ref{f:intro-shadow}所示。其中半影过渡区可以通过表面到遮挡物体和光源的距离，以及光源的面积大小三个参数来计算，本书将会详细介绍相关的阴影计算，《Real-Time Shadows》\cite{b:rts}包含了大量关于阴影技术的介绍。
 
 \begin{figure}
 \sidecaption
@@ -56,10 +57,10 @@
 
 
 
-\subsubsection{环境遮挡}\index{Ambient Occlusion}
-对于更大面积的环境光（Ambient light\index{Ambient Light}），如Environment map，Sky light，或者来自其他物体反射的间接光照等，其光源往往来自整个半空间，往往不可能通过以上的方式计算物体间的遮挡效果。在早期的光照计算中，人们通常忽略这种阻挡关系，这造成场景中的缝隙等被较多遮挡的地方比实际的效果要明亮，如图\ref{f:intro-ao}(a)所示，这是因为对于这些地方我们并没有考虑它的遮挡关系。如果环境光是一个常数，则整个物体表面会看起来更平坦。
+\paragraph{环境遮挡}\index{Ambient Occlusion}
+对于更大面积的环境光（ambient light）\myindex{环境光}{ambient Light}），如环境贴图，天空盒，或者来自其他物体反射的间接光照等，其光源往往来自整个半空间，往往不可能通过以上的方式计算物体间的遮挡效果。在早期的光照计算中，人们通常忽略这种阻挡关系，这造成场景中的缝隙等被较多遮挡的地方比实际的效果要明亮，如图\ref{f:intro-ao}(a)所示，这是因为对于这些地方我们并没有考虑它的遮挡关系。如果环境光是一个常数，则整个物体表面会看起来更平坦。
 
-Langer和Zucker\cite{a:Shape-from-shadingonacloudyday}于1994年首次指出了这种环境阻挡对于图形识别以及增强图像质量的重要性，2010年Hayden Landis, Ken McGaugh和Hilmar Koch因为推进Ambient occlusion（以下简称AO）在渲染技术中的运用而获得当年的奥斯卡科学技术奖\footnote{\url{http://www.altfg.com/film/oscar-2010-scientific-and-technical-awards-489/}}，之后AO被大量应用于电影产业，如今主流的商业游戏引擎也几乎都支持某种程度（静态或动态）的AO。
+\cite{a:Shape-from-shadingonacloudyday}于1994年首次指出了这种环境阻挡对于图形识别以及增强图像质量的重要性，2010年Hayden Landis, Ken McGaugh和Hilmar Koch因为推进环境遮挡（ambient occlusion，AO）在渲染技术中的运用而获得当年的奥斯卡科学技术奖\footnote{\url{http://www.altfg.com/film/oscar-2010-scientific-and-technical-awards-489/}}，之后AO被大量应用于电影工业，如今主流的商业游戏引擎也几乎都支持某种程度（静态或动态）的AO。
 
 \begin{figure}
 \begin{fullwidth}
@@ -75,65 +76,62 @@ Langer和Zucker\cite{a:Shape-from-shadingonacloudyday}于1994年首次指出了�
 		\includegraphics[width=1.\textwidth]{figures/intro/ao-3}
 		\caption{包含AO的场景}
 	\end{subfigure}
-\caption{AO对渲染的影响，注意(c)图中墙砖的裂缝，以及人物颈部等地方由于部分被遮挡显得更暗 （图片来自Epic Games）}
+\caption{AO对渲染的影响，注意(c)图中墙砖的裂缝，以及人物颈部等地方由于部分被遮挡显得更暗 （图片来自Unreal Engine 4官方文档）}
 \label{f:intro-ao}
 \end{fullwidth}
 \end{figure}
 
 
-AO的计算实际上是要针对每个点，在垂直于该点法线的半空间上，针对每一个方向对可见性函数（Visibility function）进行积分运算，其值为一个介于0到1的表示遮挡程度的值。对于静态的场景可以预计算出这个值；对于离线渲染环境下，可以使用Monte Carlo方法使用随机抽样的方式求积分\footnote{\url{https://renderman.pixar.com/view/global-illumination-and-all-that}}；而对于实时环境，则需要更高效的方法，例如由CryTek提出的基于屏幕空间的Screen Space Ambient Occlusion\index{Screen Space Ambient Occlusion}（SSAO），以及Unreal Engine使用Distance field来加速AO的计算。关于AO本书后面的章节将会做更详细地介绍。这里只需要理解其现象即可。
+AO的计算实际上是要针对每个点，在该点法线对应的半空间上，针对每一个方向对可见性函数（visibility function）进行积分运算，其值为一个介于0到1之间表示遮挡程度的值。对于静态的场景我们可以预计算出这个值；在离线渲染的环境下，可以使用蒙特卡洛方法使用随机抽样的方式求积分\footnote{\url{https://renderman.pixar.com/view/global-illumination-and-all-that}}；而对于实时环境，则需要更高效的方法，例如由CryTek提出的基于屏幕空间的环境遮挡（screen space ambient occlusion，SSAO），以及Unreal Engine 4使用距离场来加速AO的计算。关于AO本书后面的章节将会做更详细地介绍，这里只需要理解其现象即可。
 
 
 
 
-\subsubsection{反~~射}\index{Reflection}
+\paragraph{反~~射}\index{Reflection}
 光线在物体表面之间穿梭，经过多次反射和折射最后才会进入摄像机，形成图像，如果一个表面是光滑的，或者不是完全粗糙的，则这些表面可以反射它周围的环境，表面越光滑，则其反射的场景越清晰，否则则越模糊。反射几乎无处不在，它是高质量图形渲染不可缺少的部分，如图\ref{f:intro-reflection-1}所示。
 
 \begin{figure}
 \includegraphics[width=1.\textwidth]{figures/intro/reflection}	
-\caption{反射无处不在，图为台湾桃园国际机场的走廊}
+\caption{反射无处不在，较光滑的表面能够比较清晰地反射周围的环境，图为台湾桃园国际机场的走廊}
 \label{f:intro-reflection-1}
 \end{figure}
 
-就像对于阴影，一般不会真的使用光线的穿梭来决定遮挡一样，对于反射，通常也是使用其他的技术来实现反射。最经常使用的是基于称之为Image-based lighting(IBL)\index{Image-based Lighting}的技术，这种技术通常将要反射的“环境”渲染为一张图，然后在反射面使用折射的方式贴图；对于粗糙的表面可以使用走样Filtering技术来实现粗糙表面的效果。对于静态的贴图可以进行预处理，动态的环境则可以对环境部分实时渲染两次。这种技术大大减少了反射效果的计算时间。
+就像对于阴影，一般不会真的使用光线的穿梭来计算遮挡一样，对于反射，通常也是使用其他一些近似技术来计算反射。最经常使用的是基于图像的光照技术（image-based lighting，IBL），这种技术通常将要反射的“环境”渲染为一张图，然后渲染时通过查询这个贴图来计算来自周围的环境光照；对于粗糙的表面可以使用过滤的技术来实现粗糙表面的效果。这种技术大大减少了反射效果的计算时间。
 
-IBL用于计算对比较近的环境的反射，这样的反射是和点的位置有关的。对于比较远的环境，可以认为“环境”是和位置无关的，而仅与方向有关，这样的环境可以使用称为Environment lighting\index{Environment Lighting}的技术实现，这种技术可以使用一个放置于场景中心的一个使用鱼眼镜头的照相机，将环境制作成一张Cube map或者Spherical map，如图\ref{f:intro-reflection-2}所示，通常游戏中的Sky light就是一张远距离的环境贴图。
+当IBL用于计算对比较近的环境的反射时，这样的反射是和观察点的位置有关的。对于比较远的环境，可以认为“环境”是和位置无关的，而仅与方向有关。环境贴图可以使用一个放置于场景中心的一个鱼眼镜头的照相机来生成，整个环境被制作成一张立方体贴图（cube map）或者球面贴图（spherical map），如图\ref{f:intro-reflection-2}所示，通常游戏中的天空盒就是一张远距离的环境贴图。
 
 \begin{figure}
 \includegraphics[width=1.\textwidth]{figures/intro/reflection-1}	
-\caption{使用Environment lighting技术渲染物体对环境的反射}
+\caption{使用基于图像的技术渲染物体对环境的反射，这里整个周围的环境被渲染到一个贴图中，表面着色时直接将这个贴图作为入射光源，其中环境贴图的光照是与观察点的位置无关的}
 \label{f:intro-reflection-2}
 \end{figure}
 
 
 
 
-\subsubsection{间接光照}\index{Indirect Lighting}
-环境贴图仅用于光泽表面（Specular surface），对于完全粗糙的表面（Diffuse surface），则不可能使用使用环境贴图来计算环境光对其的贡献，其原因是每个点可以接收来自整个环境的的贡献，即是光照计算需要对整个环境贴图进行积分计算。
-
-然而环境对于Diffuse表面的影响非常重要，它最重要的效果称为Color Bleeding\index{Color Bleeding}\footnote{通过后面第\ref{sec:intro-material-model}对材质模型的学习，Color Bleeding是由于漫反射光从物体内部反射回空中时，被乘以了一个反射率，这个反射率$baseColor$即是物体表面的真实颜色，因此漫反射光携带了物体的颜色，从而能够影响周围的环境。}，例如一个红色的地毯靠近一侧墙面则会使墙面呈现粉红色，Color Bleeding的效果如图\ref{f:intro-indirect}所示。
+\paragraph{间接光照}\index{Indirect Lighting}
+然而环境对于漫反射表面的影响非常重要，它最重要的效果称为颜色渗透\footnote{通过后面第\ref{sec:intro-material-model}对材质模型的学习，颜色渗透是由于漫反射光从物体内部反射回空中时，被乘以了一个反射率，这个反射率$baseColor$即是物体表面的真实颜色，因此漫反射光携带了物体的颜色，从而能够影响周围的环境。}（color bleeding）\myindex{颜色渗透}{color bleeding})，例如一个红色的地毯靠近一侧墙面则会使墙面呈现粉红色，颜色渗透的效果如图\ref{f:intro-indirect}所示。
 
 \begin{figure}
 \sidecaption
 \includegraphics[width=0.4\textwidth]{figures/intro/indirect}	
-\caption{环境对Diffuse表面的影响，这种效果称之为Color Bleeding，这种效果的计算非常昂贵}
+\caption{环境对漫反射表面的影响，这种效果称之为颜色渗透，这种效果的计算非常昂贵}
 \label{f:intro-indirect}
 \end{figure}
 
-这种效果的计算特别昂贵，尤其是Diffuse-to-Diffuse的计算，它涉及渲染方程针对整个半空间的积分计算。对于这种Indirect lighting，目前主要的解决方法还是预处理，使用Monte Carlo或Finite Element方法生成光照贴图；对于动态物体如角色，常用的处理方法则是对环境进行光照采样（在Unity中这些采样点称为一个Light Probe\index{Light Probes}，如图\ref{f:intro-light-probe}所示），然后在运行时使用插值的方法计算Indirect lighting。这样做的理由是漫反射通常都是低频的，相邻点之间的颜色值变化不大，其间的点的值可以通过插值计算。由于这些采样点是预处理的，所以动态物体并不能影响场景中其他物体，它只能接受来自其他静态环境的影响。
+间接漫反射效果的计算特别昂贵，它涉及渲染方程针对整个半球空间的积分计算，目前主要的解决方法还是预处理，这些方法在预处理阶段使用蒙特卡洛或有限元方法生成光照贴图；对于动态物体如角色等，常用的处理方法则是在空白空间对环境光照进行稀疏采样（在Unity中这些采样点称为一个光照探针（light Probe），如图\ref{f:intro-light-probe}所示），然后在运行时使用插值的方法来计算间接光照。这样做的理由是因为漫反射通常都是低频的，相邻点之间的颜色值变化不大，其间的点的值可以通过插值计算。由于这些采样点是预处理的，所以动态物体并不能影响场景中其他物体，它只能接受来自其他静态环境的影响，这方面可以参见后面第\ref{chp:prt}章的内容。
 
 \begin{figure}
-\includegraphics[width=1.\textwidth]{figures/intro/LightProbes}	
-\caption{Unity使用Light Probes对环境进行采样，这发生在预处理阶段，在运行时阶段，渲染器从邻近的采样点中取值对其间的点进行插值}
+\includegraphics[width=\textwidth]{figures/intro/LightProbes}	
+\caption{Unity使用光照探针对环境进行采样，这发生在预处理阶段，在运行时阶段，渲染器从邻近的采样点中取值对其间的点进行插值（图片来自Unity官方文档）}
 \label{f:intro-light-probe}
 \end{figure}
 
 
 
 
-\subsubsection{焦~~散}\index{Caustics}
-在全局光照模型中，Caustics效果尤其明显。广义的Caustics是指光从光源出发，经过至少一次光泽反射，最后通过一个光泽或漫反射面 反射后进入摄像机。在计算机图形学中尤其指光通过反射或折射后，多束光落在同一个点上（例如由于玻璃或水面等弯曲面使折射后多束光落在同一点），导致这些点的光照特别明亮，如图\ref{f:intro-caustics}中所示的一些常见Caustics的效果。
-
+\paragraph{焦~~散}\index{Caustics}
+在全局光照模型中，焦散（caustics）效果尤其明显。广义的焦散是指光从光源出发，经过至少一次光泽反射，最后通过一个光泽或漫反射面 反射后进入摄像机。在计算机图形学中尤其指光通过光泽面的反射或折射后，多束光落在同一个漫反射表面点上（例如由于玻璃或水面等弯曲面使折射后多束光落在桌面上），导致这些点的光照特别明亮，如图\ref{f:intro-caustics}中所示的一些常见焦散的效果。
 
 \begin{figure}
 \begin{fullwidth}
@@ -149,26 +147,22 @@ IBL用于计算对比较近的环境的反射，这样的反射是和点的位�
 	\begin{subfigure}[b]{0.246\thewidth}
 		\includegraphics[width=1.\textwidth]{figures/intro/Caustics-4}
 	\end{subfigure}
-\caption{由于多束光经过反射或折射后落在同一点上，Caustics效果在全局光照中特别明显（图片来自Wikipedia）}
+\caption{由于多束光经过反射或折射后落在同一点上，焦散效果在全局光照中特别明显（图片来自Wikipedia）}
 \label{f:intro-caustics}
 \end{fullwidth}
 \end{figure}
 
-对Caustics的渲染尤其困难，其主要原因是这样方向的光束特别少，导致一般的采样方法不能获得足够的信息，通常Caustics都需要结合某种重要度采样方法（Important sampling），本书也将介绍各种Caustics的实现算法。
-
-
-
+对焦散的渲染尤其困难，其主要原因是这样方向的光束特别少，导致一般的采样方法不能获得足够的信息，通常焦散都需要结合某种重要度采样方法（important sampling），本书也将介绍各种焦散的实现算法。
 
 
 
 \paragraph{散~~射}\index{Scattering}
-到目前为止，所有我们所讨论的全局光照现象，都仅限于光与物体表面进行交互。在现实环境中，许多物体部分或全部是半透明的（Translucent）：即光进入物体表面后，部分被吸收（Absorbed），部分发生散射（Scattered）最后从物体表面发射出去（这个出射点的位置可能和入射点的位置不一样）。
+到目前为止，所有我们所讨论的全局光照现象，都仅限于光与物体表面进行交互。在现实环境中，许多物体部分或全部是半透明的（translucent）：即光进入物体表面后，部分被吸收（absorbed），部分发生散射（scattered）最后从物体表面发射出去，其中这个出射点的位置可能和入射点的位置不一样。
 
-由于散射效果的计算相当复杂，因此和其他前面提到的技术一样，计算机图形学中也存在很多近似的方法来处理散射效果。特别地，对于散射的计算，存在两大类方法分别处理散射导致的两种比较明显的子分类效果，即次表面散射和Participating Media。
+由于散射效果的计算相当复杂，因此和其他前面提到的技术一样，计算机图形学中也存在很多近似的方法来处理散射效果。特别地，对于散射的计算，存在两大类方法分别处理散射导致的两种比较明显的子分类效果，即次表面散射和参与介质。
 
-
-\paragraph{次表面散射}\index{Subsurface Scattering}
-次表面散射（Subsurface Scattering）是散射中最复杂的效果，它表示由于物体内部存在介质的不连续性，导致折射进物体内部的光在经历多次散射之后，重新从另一个位置反射会空中。它要求比较真实地模拟散射效果，并且它处理的都是要求视觉表现比较真实的材料，例如大理石，皮肤，叶子，蜡烛，牛奶等。例如对于皮肤，它有约6\%的光被直接反射，剩下94\%的光被散射，并且散射之发生在表面以下一小部分厚度的空间内，如图\ref{f:intro-sss}所示。
+\index{Subsurface Scattering}
+次表面散射（subsurface Scattering）是散射中最复杂的效果，它表示由于物体内部存在介质的不连续性，导致折射进物体内部的光在经历多次散射之后，重新从另一个位置反射会空中。它要求比较真实地模拟散射效果，并且它处理的都是要求视觉表现比较真实的材料，例如大理石，皮肤，叶子，蜡烛，牛奶等。例如对于皮肤，它有约6\%的光被直接反射，剩下94\%的光被散射，并且散射之发生在表面以下一小部分厚度的空间内，如图\ref{f:intro-sss}所示。
 
 \begin{figure}
 \sidecaption
@@ -179,33 +173,22 @@ IBL用于计算对比较近的环境的反射，这样的反射是和点的位�
 
 关于次表面散射，本章第\ref{sec:intro-bsdf}节会介绍Disney使用的近似然而精确度很高的次表面散射模型，它用在了电影《超能陆战队》中除头发以外的所有次表面散射情形。
 
-
-
-
-
-
-\paragraph{参与媒介}\index{Participating Media}
-
-Participating media，例如云，烟，雾等在自然界是普遍存在的，它们也导致了很多有趣的视觉现象。当光在Participating media介质中传播时，部分被吸收，其他则经过多次散射从不同的位置离开表面。Participating media与次表面不同的是，次表面往往只是物体表面很浅的一层，而Participating media则往往整个介质是半透明的，光线能够从一边进入，然后从另一边离开。Participating media能够有效地增强环境的氛围，以及对场景深度的感知。
+\index{Participating Media}
+参与介质（participating media），例如云，烟，雾等在自然界是普遍存在的，它们也导致了很多有趣的视觉现象。当光在参与介质中传播时，部分被吸收，其他则经过多次散射从不同的位置离开表面。参与介质与次表面不同的是，次表面往往只是物体表面很浅的一层，而参与介质则往往整个介质是半透明的，光线能够从一边进入，然后从另一边离开。参与介质能够有效地增强环境的氛围，以及对场景深度的感知。
 
 \begin{figure}
 	\includegraphics[width=1.0\textwidth]{figures/intro/Participating-media}
-	\caption{Participating media在大自然中无处不在，并且对环境有非常大的影响}
+	\caption{参与介质在大自然中无处不在，例如云层，空气，烟雾等，并且对整个环境的光照有非常大的影响}
 	\label{f:intro-Participating-media}
 \end{figure}
 
 
 
 
-
-
-
-
-
 \section{辐射度量学}
-光学中关于光的测量这一分支，称为辐射度量学（Radiometry）。1986年Kajiya\cite{a:TheRenderingEquation}首次将辐射度量学引入到计算机图形学中，用于测量和计算计算机图形学中的光的传播，并推导出渲染方程（The Rendering Equation\index{The Rendering Equation}）。渲染方程保留了辐射度量学两个最基本的特性即Helmholtz reciprocity\index{Helmholtz reciprocity}和Conservation of Energy\index{Conservation of Energy}，现代图形学理论基于渲染方程提出来大量的模型用于简化和加速渲染方程的计算，在这两个基本物理特征的保障下，这些模型能够达到非常真实的图形品质。
+光学中关于光的测量这一分支，称为辐射度量学（radiometry）\myindex{辐射度量学}{radiometry}。\cite{a:TheRenderingEquation}首次将辐射度量学引入到计算机图形学中，用于测量和计算计算机图形学中光的传播，并由此推导出渲染方程（the rendering equation\myindex{渲染方程}{the rendering equation}）。渲染方程保留了辐射度量学两个最基本的特性即赫姆霍兹互反律（Helmholtz reciprocity）\myindex{赫姆霍兹互反律}{Helmholtz reciprocity}和能量守恒（energy conservation）\myindex{能量守恒}{energy conservation}，现代图形学理论基于渲染方程提出了大量的模型用于简化和加速渲染方程的计算，在这两个基本物理特征的保障下，这些模型能够达到非常真实的图形品质。
 
-辐射度量学定义了一组基本的物理量用来测量光辐射，因此这些度量也成为计算机图形学最重要的基本概念，这几个度量如表 \ref{t:radiometric-quantities}所示。
+辐射度量学定义了一组基本的物理量用来测量光辐射，因此这些度量也成为计算机图形学中最重要的基本概念，这几个度量的名称及单位如表 \ref{t:radiometric-quantities}所示。
 
 \begin{table}
 \caption{辐射度量学中的基本度量，这些度量也成为渲染方程的基本度量}
@@ -224,16 +207,16 @@ Participating media，例如云，烟，雾等在自然界是普遍存在的，�
 \end{tabular}
 \end{table}
 
-在开始讨论这些度量之前，必须首先了解立体角（Solid Angle\index{Solid Angle}）的概念，如图\ref{f:intro-solid-angle}所示。在几何学中，立体角是2D角度的概念在3D空间的延伸，它表示在3D空间，从某个点观察，另外一个物体有多“大”。立体角的数学符号通常用$\Omega$表示，其单位为$sr$（其为steradians\index{Steradians}的缩写）。立体角也可以理解为3D空间中沿某一点多个方向的集合。
+在开始讨论这些度量之前，必须首先了解立体角（solid angle）\myindex{立体角}{Solid Angle}的概念，如图\ref{f:intro-solid-angle}所示。在几何学中，立体角是2D角度的概念在3D空间的延伸，它表示在3D空间，从某个点观察，另外一个物体有多“大”。立体角的数学符号通常用$\Omega$表示，其单位为$sr$（其为steradians\index{Steradians}的缩写）。立体角也可以理解为3D空间中以某一点为起点的多个方向的集合。
 
 \begin{figure}
 \sidecaption
-	\includegraphics[width=0.25\textwidth]{figures/intro/solid-angle}
+	\includegraphics[width=0.35\textwidth]{figures/intro/solid-angle}
 	\caption{立体角的概念，它表示单位球体上一块区域对应的球面部分的面积。根据立体角的定义，如果球面上任意一块区域的面积等于球半径的平方，当从球心观察时，该区域面积就是$1sr$}
 	\label{f:intro-solid-angle}
 \end{figure}
 
-正如在2D中，使用单位圆上的一段弧线的长度表示其对于角度的大小，在3D中，使用单位球体上一块区域面积的大小表示其对应的立体角的大小。所以一个物体相对于某一点的立体角的大小，等于这个物体投影到以该点为球心的单位球体上的面积。
+正如在2D中，使用单位圆上的一段弧线的长度表示其对应角度的大小，在3D中，使用单位球体上一块区域面积的大小表示其对应的立体角的大小。所以一个物体相对于某一点的立体角的大小，等于这个物体投影到以该点为球心的单位球体上的面积。
 
 在球面坐标系中，单位球体上任意一块区域$A$的面积可以简单地表示为：
 
@@ -241,37 +224,37 @@ Participating media，例如云，烟，雾等在自然界是普遍存在的，�
 	\Omega= {\rm \iint}_A \sin\theta {\rm d}\theta {\rm d}\varphi
 \end{equation}
 
-\noindent 其中，$\theta$表示经度，$\varphi$表示纬度。所以整个球面的立体角为$4\pi$，一个正方体的一个面，从该正方体的中心点测量的立体角为$ \cfrac{2}{3}\pi$。
+\noindent 其中，$\theta$表示经度，$\varphi$表示纬度，所以整个球面的立体角为$4\pi$，对于一个正方体的一个面，从该正方体的中心点测量的立体角为$ \cfrac{2}{3}\pi$。
 
 
 
 
 
 \subsection{辐射能量}\index{Radiant energy} 
-在辐射度量学中，最基本的单位是辐射能量（Radiant energy），表示为$Q$，单位为J(焦耳)，辐射能$Q$是以辐射的形式发射，传播或接收的能量。每个光子都携带一定的能量，这个能量正比于它的频率$v$：
+在辐射度量学中，最基本的单位是辐射能量（radiant energy）\myindex{辐射能量}{radiant energy}，表示为$Q$，单位为J(焦耳)，辐射能$Q$是以辐射的形式发射，传播或接收的能量。每个光子都携带一定的能量，这个能量正比于它的频率$v$，即：
 
 \begin{equation}
 	Q=hv
 \end{equation}
 
-\noindent 其中，$h$为普朗克常数 ($6.62620\times 10^{-34} J\cdot s$) 。光子的频率（或者说能量），影响着光子与物体表面的交互，更重要的是，它影响着光与感应器（例如人眼中的视锥细胞和视杆细胞）之间的作用，使不同频率的光被察觉为不同的颜色。在可见光谱（Visible Spectrum\index{Visible Spectrum}）中，更“蓝”的光子具有更高的能量，而更“红”的光子具有更低的能量。 
+\noindent 其中，$h=6.62620\times 10^{-34} J\cdot s$) 为普朗克常数（Planck constant）\myindex{普朗克常数}{Planck constant}。光子的频率（或者说能量），影响着光子与物体表面的交互，更重要的是，它影响着光与感应器（例如人眼中的视锥细胞和视杆细胞）之间的作用，使不同频率的光被察觉为不同的颜色。在可见光谱（visible spectrum\myindex{可见光谱}{visible spectrum}）中，更“蓝”的光子具有更高的能量，而更“红”的光子具有更低的能量。 
 
 
 
 \subsection{辐射通量}\index{Radiant Flux} 
-辐射通量$\Phi$，Radiant flux，表示光源每秒钟发射的功率（$d\Phi/dt$），其单位为瓦特$W$（watt）。例如一个灯泡可能发射100瓦特的辐射通量。在辐射测量中，都是基于这个辐射通量来测试能量，而不是使用总的能量$Q$，所以以下这些度量都是在单位时间下发生的。
+辐射通量（radiant flux）\myindex{辐射通量}{radiant flux}记为$\Phi$，，表示光源每秒钟发射的功率（${\rm d}\Phi/{\rm d}t$），其单位为瓦特（watt）$W$，例如一个灯泡可能发射100瓦特的辐射通量。在辐射测量中，都是基于这个辐射通量来测试能量，而不是使用总的能量$Q$，所以以下这些度量都是在单位时间下发生的。
 
 
 
 
 
 \subsection{辐射亮度}\index{Radiance} 
-在辐射度量学中，基本上考虑的是从面$A$的一部分射出的光能量。这个面可能是虚构的，也可能就是光源的真实的辐射面，或固体的一个受照面。如果固体是不透明的，则考虑的是反射光；如果固体是透明或半透明的（这是有一部分光被吸收或散射），通常测量的是透射光。
+在辐射度量学中，基本上考虑的是从面$A$的一部分射出的光能量。这个面可能是虚构的，也可能就是光源的真实的辐射面，或固体的一个受照面。如果固体是不透明的，则考虑的是反射光；如果固体是透明或半透明的（这时有一部分光被吸收或散射），通常测量的是透射光。
 
 \begin{figure}
 \sidecaption
 	\includegraphics[width=0.65\textwidth]{figures/intro/radiance}
-	\caption{辐射亮度Radiance表示的是某个点在某个方向上的亮度，在计算机图形学中它是一束光的亮度，是渲染方程最终要计算的量}
+	\caption{辐射亮度表示的是某个点在某个方向上的亮度，在计算机图形学中它是一束光的亮度，是渲染方程最终要计算的量}
 	\label{f:intro-radiance}
 \end{figure}
 
@@ -287,14 +270,14 @@ Participating media，例如云，烟，雾等在自然界是普遍存在的，�
 	L=L(\xi,\eta;\alpha,\beta)
 \end{equation}
 
-\noindent 式中引入因子$\cos\theta$，是因为物理上有意义的量是${\rm d}A$在垂直于$(\alpha,\beta)$方向的平面上的投影，而非${\rm d}A$本身。$\overline{\cos}$表示$\cos\theta$的最小值为$0$，这是因为光不能向该面的背面发射。$L$称作$(\xi,\eta)$点处$(\alpha,\beta)$方向上的辐射量度，Radiance，其单位为$W/(m^2\cdot sr)$。
+\noindent 式中引入因子$\cos\theta$，是因为物理上有意义的量是${\rm d}A$在垂直于$(\alpha,\beta)$方向的平面上的投影，而非${\rm d}A$本身。$\overline{\cos}$表示$\cos\theta$的最小值为$0$，这是因为光不能向该面的背面发射。$L$称作$(\xi,\eta)$点处$(\alpha,\beta)$方向上的辐射亮度（radiance）\myindex{辐射亮度}{radiance}，其单位为$W/(m^2\cdot sr)$。
 
-Radiance测试的是单束光的量度，它也正是感应器（例如人的眼睛，或者场景中的虚拟摄像机）测量的度量，所以它在光照计算中特别重要。计算渲染方程的目的就是计算出表面上的点到摄像机所在方向上光的强度。另外值得注意的是，$L$的值不随距离发射点距离的变化而变化。
+辐射亮度测试的是单束光的量度，它也正是感应器（例如人的眼睛，或者场景中的虚拟摄像机）测量的度量，所以它在光照计算中特别重要。计算渲染方程的目的就是计算出表面上的点到摄像机所在方向上光的强度。另外值得注意的是，$L$的值不随距离发射点距离的变化而变化。
 
-通常用两种不同的方式把${\rm d}Q$分解为两个量的乘积，以表示它对${\rm d}\omega$和${\rm d} A$的显示关系：
+通常用两种不同的方式把${\rm d}Q$分解为两个量的乘积，以表示它对${\rm d}\omega$和${\rm d} A$的显式关系：
 
 \begin{equation}\label{eq:intro-energy-1}
-	{\rm d}\Phi=dI {\rm d}\omega={\rm d}E {\rm d}A
+	{\rm d}\Phi={\rm d}I {\rm d}\omega={\rm d}E {\rm d}A
 \end{equation}
 
 \noindent 在接下来的两小节将分别讲述这两个新的度量$I$和$E$。
@@ -316,7 +299,7 @@ Radiance测试的是单束光的量度，它也正是感应器（例如人的眼
 	I(\alpha,\beta)={\rm \int} L\overline{\cos}\theta {\rm d}A
 \end{equation}
 
-\noindent $I$称为$(\alpha,\beta)$方向上的辐射强度，Radiance Intensity，其单位为$W/sr$。$I$也是一个与距离无关的量，由于光源通常具有一定的形状和面积，所以图形学中常常使用$I$来表示一个光源的辐射强度分布，这个分布是方向的函数，如图\ref{f:intro-radiant-intensity}表示一个点光源，这个点光源每秒发出100瓦特的辐射通量，但是它在不同的方向上具有不同辐射强度。
+\noindent $I$称为$(\alpha,\beta)$方向上的辐射强度（radiance intensity）\myindex{辐射强度}{radiance intensity}，其单位为$W/sr$。$I$也是一个与距离无关的量，由于光源通常具有一定的形状和面积，所以图形学中常常使用$I$来表示一个光源的辐射强度分布，这个分布是方向的函数，如图\ref{f:intro-radiant-intensity}表示一个点光源，这个点光源每秒发出100瓦特的辐射通量，但是它在不同的方向上具有不同辐射强度。
 
 \begin{figure}
 \sidecaption
@@ -337,17 +320,14 @@ Radiance测试的是单束光的量度，它也正是感应器（例如人的眼
 	I_0={\rm \int} L{\rm d}A
 \end{equation}
 
-\noindent 这时在任何方向上的辐射强度随该方向与面法线间夹角的余弦而变化。公式\ref{eq:intro-radiant-intensity-1}通常称为朗伯余弦定理（Lambert's cosine law\index{Lambert's Cosine Law}），如图\ref{f:intro-lambert-cosine-law}所示。此时，如果是发射面，则称为漫发射；如果是反射面，则称为漫反射。
+\noindent 这时在任何方向上的辐射强度随该方向与面法线间夹角的余弦而变化。公式\ref{eq:intro-radiant-intensity-1}通常称为朗伯余弦定理（Lambert's cosine law\myindex{朗伯余弦定理}{Lambert's cosine Law}），如图\ref{f:intro-lambert-cosine-law}所示。此时，如果是发射面，则称为漫发射；如果是反射面，则称为漫反射。
 
 \begin{figure}
 \sidecaption
-	\includegraphics[width=0.45\textwidth]{figures/intro/Lambert_Cosine_Law}
+	\includegraphics[width=0.5\textwidth]{figures/intro/Lambert_Cosine_Law}
 	\caption{在一个漫反（发）射面，法线方向和非法线方向的每秒光子发射情况。每个楔形区域内光子的发射量正比于它们的面积}
 	\label{f:intro-lambert-cosine-law}
 \end{figure}
-
-
-
 
 
 
@@ -366,18 +346,18 @@ Radiance测试的是单束光的量度，它也正是感应器（例如人的眼
 	E(\xi,\eta)={\rm \int} L\overline{\cos}\theta {\rm d}\omega
 \end{equation}
 
-\noindent $E$称为$(\xi,\eta)$点的辐射照度，Irradiance，其单位为$W/m^2$，它是点$(\xi,\eta)$沿各个方向对辐射亮度$L$的积分，如图\ref{f:intro-irradiance}所示。值得注意的是，前面提到过，在辐射度量学中，基本上考虑的是从面的一部分射出或者接收能量，所以辐射照度虽然表述的是面上一个点的度量，但它实际上是通过该点所在的单位面积来测量的，因为辐射量度$L$也是通过单位面积来测量的。
+\noindent $E$称为$(\xi,\eta)$点的辐射照度（irradiance）\myindex{辐射照度}{irradiance}，其单位为$W/m^2$，它是点$(\xi,\eta)$沿各个方向对辐射亮度$L$的积分，如图\ref{f:intro-irradiance}所示。值得注意的是，前面提到过，在辐射度量学中，基本上考虑的是从面的一部分射出或者接收能量，所以辐射照度虽然表述的是面上一个点的度量，但它实际上是通过该点所在的单位面积来测量的，因为辐射量度$L$也是通过单位面积来测量的。
 
 \begin{figure}
 \sidecaption
-	\includegraphics[width=0.4\textwidth]{figures/intro/irradiance}
+	\includegraphics[width=0.45\textwidth]{figures/intro/irradiance}
 	\caption{一个面上某点接收来自各个方向的辐射亮度形成辐射照度}
 	\label{f:intro-irradiance}
 \end{figure}
 
-由于Irradiance表示一个点接收的来自各个方向的辐射亮度$L$，所以在计算机图形学中它被用来表述表面的一个点接收的所有光照。而渲染方程所要处理的正是通过反射定律及后面要讲述的其他理论，计算出沿某个方向的出射亮度$L_o$。
+由于辐射照度表示一个点接收的来自各个方向的辐射亮度$L$，所以在计算机图形学中它被用来表述表面的一个点接收的所有光照。而渲染方程所要处理的正是通过反射定律及后面要讲述的其他理论，计算出沿某个方向的出射亮度$L_o$。
 
-Irradiance被用来测量光进入一个表面的强度，它也可以表示光离开一个表面的强度，称为出射度，用$M$表示，其也称为Radiosity\index{Radiosity}或者Radiant Exitance\index{Radiant Exitance}，例如表示一个光源的出射度，或者在Radiosity理论（第\ref{chp:rad}章）中首先将整个场景栅格化为多个面片，将每个面片视作一个光源，然后计算出每个面片的出射度。通常用radiant flux density来统称一个表面出射或者入射的强度。
+辐射照度被用来测量光进入一个表面的强度，它也可以表示光离开一个表面的强度，称为出射度，用$M$表示，其也称为辐射度（radiosity）\myindex{辐射度}{Radiosity}或者辐射出射度(radiant exitance）\myindex{辐射出射度}{radiant exitance}，例如表示一个光源的出射度，或者在辐射度理论（第\ref{chp:rad}章）中首先将整个场景栅格化为多个面片，将每个面片视作一个光源，然后计算出每个面片的出射度。通常用辐射通量密度（radiant flux density）\myindex{辐射通量密度}{radiant flux density}来统称一个表面出射或者入射的强度。
 
 在图\ref{f:intro-directional-irradiance}所示的平行光中，光源的辐射强度是不随表面到光源的距离发生变化的。但是现实世界中大多数光源（例如本章后面将要讨论的点光源和聚光灯等）都不是平行光，那么一般光源的辐射强度是怎样分布的呢？
 
@@ -405,7 +385,7 @@ Irradiance被用来测量光进入一个表面的强度，它也可以表示光�
 
 \begin{figure}
 \sidecaption
-	\includegraphics[width=0.5\textwidth]{figures/intro/inverse-square-law}
+	\includegraphics[width=0.65\textwidth]{figures/intro/inverse-square-law}
 	\caption{点光源产生的辐射照度}
 	\label{f:intro-inverse-square-law}
 \end{figure}
@@ -431,19 +411,19 @@ Irradiance被用来测量光进入一个表面的强度，它也可以表示光�
 \subsection{几何光学模型} 
 本节首先介绍光的一些基础物理特征，这些特征是我们模拟真实的光与物体交互的基础，从而渲染出更真实的图像。
 
-在电磁学中，有两种模型用于研究光的性质，第一种为物理光学，第二种为几何光学。物理光学（Physical Optics\index{Physical Optics}），又称为波动光学（Wave Optics\index{Wave Optics}），它认为光在介质中以波的形式传播。这种模型可以解释光的衍射和干涉等现象。然而它以光的波长为测量尺寸，这大大超出了计算机图形学的需求。
+在电磁学中，有两种模型用于研究光的性质，第一种为物理光学，第二种为几何光学。物理光学（physical optics）\myindex{物理光学}{physical optics}，又称为波动光学（wave optics）\myindex{波动光学}{wave optics}），它认为光在介质中以波的形式传播。这种模型可以解释光的衍射和干涉等现象。然而它以光的波长为测量尺寸，这大大超出了计算机图形学的需求。
 
-由于可见光的波长非常短，另一种模型忽略光的波长，即相对于$\lambda\to 0$的极限情况，并证明\footnote{感兴趣的读者可以参考书籍\cite{b:PrinciplesofOptics}第三章的推导。}在这种近似处理下，光学定律可以用几何学的语言来描述，这种模型称为几何光学（Geometric Optics\index{Geometric Optics}），或者称为Ray Optics\index{Ray Optics}，因为这种模型下能量可以看作是以一定的直线传输。几何光学模型正是被计算机图形学广泛采用的模型。
+由于可见光的波长非常短，另一种模型忽略光的波长，即相对于$\lambda\to 0$的极限情况，并证明\footnote{感兴趣的读者可以参考书籍\cite{b:PrinciplesofOptics}第三章的推导。}在这种近似处理下，光学定律可以用几何学的语言来描述，这种模型称为几何光学（geometric optics\myindex{几何光学}{geometric optics}，或者称为光线光学（ray optics）\myindex{光线光学}{ray optics}，因为这种模型下能量可以看作是以一定的直线传输。几何光学模型正是被计算机图形学广泛采用的模型。
 
 当然，几何光学模型仍然比较复杂，在计算机图形学中，我们作出了一些简化假设，这虽然限制了一些效果如衍射，但是它处理起来相对简单，并且满足一般图形学的需求。这些假设包括：
 
 \begin{itemize}
-	\item 物体的表面绝对光滑\footnote{当然现实世界的物体表面不是绝对光滑的，但是这种粗糙度介于光的波长和一个像素的尺寸之间，这种粗糙度可以通过下一节的技术实现，它本质上是反射和折射的一种聚合。}（Smooth）。
-	\item 光仅可以被发射（Emitted），反射（Reflected）或者传播（Transmitted）。
+	\item 物体的表面绝对光滑\footnote{当然现实世界的物体表面不是绝对光滑的，但是这种粗糙度介于光的波长和一个像素的尺寸之间，这种粗糙度可以通过下一节的技术实现，它本质上是反射和折射的一种聚合。}（smooth）。
+	\item 光仅可以被发射（emitted），反射（reflected）或者传播（transmitted）。
 	\item 光以无限快的速度沿直线传播。
 \end{itemize} 
 
-在这些假设下，光的反射由反射定律（Law of Reflection\index{Law of Reflection}）决定，即： 给定一条入射光线$\mathbf{l}$和表面法线$\mathbf{n}$，反射光和入射光处于同一个平面, 并且反射光与法线之间的夹角大小等于入射光与法线的夹角大小，如图\ref{f:intro-Ray-optics-model}所示。
+在这些假设下，光的反射由反射定律（law of reflection）\myindex{反射定律}{law of reflection}）决定，即： 给定一条入射光线$\mathbf{l}$和表面法线$\mathbf{n}$，反射光和入射光处于同一个平面, 并且反射光与法线之间的夹角大小等于入射光与法线的夹角大小，如图\ref{f:intro-Ray-optics-model}所示。
 
 \begin{figure}
 \sidecaption
@@ -452,12 +432,11 @@ Irradiance被用来测量光进入一个表面的强度，它也可以表示光�
 	\label{f:intro-Ray-optics-model}
 \end{figure}
 
-当光在传输过程中，介质的折射率（index of refraction\index{Index of Refraction}）发生变化，则会发生折射（refraction\index{Refraction}）。当入射光$\mathbf{l}$从具有折射率为$n_1$的介质进入折射率为$n_2$的介质时， 其光线传输方向的偏离$\mathbf{t}$由斯涅尔定律（Snell's Law\index{Snell's Law}）决定（如图\ref{f:intro-Ray-optics-model}所示），即：
+当光在传输过程中，介质的折射率（index of refraction）\myindex{折射率}{index of refraction}发生变化，则会发生折射（refraction）\myindex{折射}{refraction}。当入射光$\mathbf{l}$从具有折射率为$n_1$的介质进入折射率为$n_2$的介质时， 其光线传输方向的偏离$\mathbf{t}$由斯涅尔定律（Snell's law）\myindex{斯涅尔定律}{Snell's law}决定（如图\ref{f:intro-Ray-optics-model}所示），即：
 
 \begin{equation}\label{eq:intro-snell-Law}
 	n_1\sin\theta_1 = n_2\sin\theta_2\ 	
 \end{equation}
-
 
 
 
@@ -480,25 +459,25 @@ Irradiance被用来测量光进入一个表面的强度，它也可以表示光�
 
 
 \subsubsection{光~~源}\label{sec:intro-light-sources}
-光源（Light Sources\index{Light Sources}）发出光并照亮整个场景，此外，在计算机图形学中，光源一般不会反射或吸收其他光照。
+光源（light sources）\myindex{光源}{light sources}）发出光并照亮整个场景，此外，在计算机图形学中，光源一般不会反射或吸收其他光照。
 
 现实世界中的光源是很复杂的，它可能沿不同的方向以及光源表面上不同的点都具有不同的分布，在图形学中一般仅使用少数几种简单的光源模型，这几种模型都假设光源的光照分布只随方向而发生变化。这几种模型包括：
 
 \begin{itemize}
-	\item \textbf{Directional light}\index{Directional Light}：平行光模拟光从无限远的地方发射，这意味着所有由它产生的阴影都是平行的，因此这种模型是模拟太阳光的理想选择。
-	\item \textbf{Point light}\index{Point Light}：点光源从一个点向四面八方发出光线，它可以用于模拟如现实世界中的钨丝灯泡发出的光。
-	\item \textbf{Spot light}\index{Spot Light}：聚光灯限制点光源发出光线的方向，它通常使用两个圆锥体作为参数，其中内部圆锥体的半径内发出的光线最强，从内部到外部圆锥体半径内光线强度逐渐减至零。
+	\item 平行光（directional light）\myindex{平行光}{directional light}：平行光模拟光从无限远的地方发射，这意味着所有由它产生的阴影都是平行的，因此这种模型是模拟太阳光的理想选择。
+	\item 点光源（point light）\myindex{点光源}{point light}：点光源从一个点向四面八方发出光线，它可以用于模拟如现实世界中的钨丝灯泡发出的光。
+	\item 聚光灯(spot light）\myindex{聚光灯}{spot light}：聚光灯限制点光源发出光线的方向，它通常使用两个圆锥体作为参数，其中内部圆锥体的半径内发出的光线最强，从内部到外部圆锥体半径内光线强度逐渐减至零。
 \end{itemize}
 
 
-以上这些光源发出的光线会在场景中像自然光一样进行传播，即这些光线通过最近点测试计算出光线与哪个物体表面的哪个位置相交，然后根据物体表面的材质属性进行着色计算。除此之外，出于性能考虑，场景中还有另外一些（通常是间接）光不会通过这种方式计算，例如大面积的环境光通常通过贴图的方式计算，这包括Sky light\index{Sky Light}以及其他Environment light；而低频率的间接漫反射的光可以通过用SH表示，然后在GPU中使用快速的卷积计算（Convolution\index{Convolution}）。
+以上这些光源发出的光线会在场景中像自然光一样进行传播，即这些光线通过最近点测试计算出光线与哪个物体表面的哪个位置相交，然后根据物体表面的材质属性进行着色计算。除此之外，出于性能考虑，场景中还有另外一些（通常是间接）光不会通过这种方式计算，例如大面积的环境光通常通过贴图的方式计算，这包括天空盒（sky light）\myindex{天空盒}{sky light}以及其他环境光照；而低频率的间接漫反射的光可以通过用SH表示，然后在GPU中使用快速的卷积（convolution）\myindex{卷积}{convolution}计算。
 
 
 对于直接光源，另一个我们最关心的问题是这个光源的光照用什么物理量表示，以及这个物理量怎样参与到光与表面的交互计算之中。
 
 首先，虽然眼睛等感应器接收的是辐射亮度$L$，但这是一个五维（三个维度表示位置，两个维度表示方向）的量，太过于复杂，所以在图形学中一般不会直接表示光源的辐射亮度分布。考虑到图形学中大部分直接光源的亮度分布都是只与方向有关，所以辐射强度$I$通常用来表示本节提到的几种直接光源的辐射亮度分布。
 
-当然这个方向分布函数不宜太复杂，一般引擎不允许定义任意方向分布，例如点光源可能所有方向的辐射强度都相同，聚光灯也是沿着一个圆的向外递减。在Unreal Engine 4中，可以对Point light和Spot light使用一个称为IES Light Profiles\index{IES Light Profiles}的配置文件。IES Light Profiles可以以曲线的方式定义光源的光照强度分布，如图\ref{f:intro-ies}所示。
+当然这个方向分布函数不宜太复杂，一般引擎不允许定义任意方向分布，例如点光源可能所有方向的辐射强度都相同，聚光灯也是沿着一个圆的向外递减。在Unreal Engine 4中，可以对点光源和聚光灯使用一个称为IES Light Profiles\index{IES Light Profiles}的配置文件。IES Light Profiles可以以曲线的方式定义光源的光照强度分布，如图\ref{f:intro-ies}所示。
 
 \begin{figure}
 \begin{fullwidth}
@@ -519,7 +498,7 @@ Irradiance被用来测量光进入一个表面的强度，它也可以表示光�
 \end{fullwidth}
 \end{figure}
 
-通过第\ref{sec:irradiance}节我们知道，在计算光与物体表面交互时，表面的接收的所有光照使用辐射照度$E$表示，而光源使用辐射强度$I$表示，所以这里就需要使用同样第\ref{sec:irradiance}节的平方反比定律通过$I$来计算$E$，为了方便，这里重新列出该方程：
+通过第\ref{sec:irradiance}节的内容可知，在计算光与物体表面交互时，表面接收的所有光照使用辐射照度$E$表示，而光源使用辐射强度$I$表示，所以这里就需要使用同样第\ref{sec:irradiance}节介绍的的平方反比定律通过$I$来计算$E$，为了方便，这里重新列出该方程：
 
 \begin{equation}
 	E= \cfrac{I\cos\theta}{r^{2}}
