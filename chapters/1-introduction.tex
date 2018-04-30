@@ -6,7 +6,7 @@
 
 我们可以将所有这些方法和理论分为两大类，其中第一类方法通过寻找更快的数学方法来比较精确地计算渲染积分方程（见第\ref{sec:intro-the-rendering-equation}节），这方面有两大经典方法：即基于有限元分解的辐射度理论，以及基于蒙特卡洛积分的光线追踪技术。
 
-有限元方法（finite element method，FEM）\myindex{有限元方法}{finite element method}是一种常见的积分计算方法，它将一个沿无限维空间的积分分解为一个有限纬度(称为一个有限元)的积分, 我们只需要求出每个有限元的均值，便可以很容易地计算出渲染积分方程，在辐射度理论中，我们通常通过蒙特卡洛等方法预计算出每个有限元的均值，供渲染时渲染方程的实时计算，详见本书第\ref{chp:rad}章的内容；而基于蒙特卡洛\myindex{蒙特卡洛}{Monte Carlo}的方法则通过随机抽样, 使用有限个采样点的函数贡献值，来近似计算积分方程的值，由于在渲染中一个这样的样本称为一条光线的路径，因此基于蒙特卡洛的方法又称为光线追踪技术，详见本书第\ref{chp:mc}章的内容。
+有限元方法（finite element method，FEM）\myindex{有限元方法}{finite element method}是一种常见的积分计算方法，它将一个沿无限维空间的积分分解为一个有限纬度(称为一个有限元)的积分, 我们只需要求出每个有限元的均值，便可以很容易地计算出渲染积分方程，在辐射度理论中，我们通常通过蒙特卡洛等方法预计算出每个有限元的均值，供渲染时渲染方程的实时计算，详见本书第\ref{chp:rad}章的内容；而基于蒙特卡洛（Monte Carlo）\myindex{蒙特卡洛}{Monte Carlo}的方法则通过随机抽样, 使用有限个采样点的函数贡献值，来近似计算积分方程的值，由于在渲染中一个这样的样本称为一条光线的路径，因此基于蒙特卡洛的方法又称为光线追踪技术，详见本书第\ref{chp:mc}章的内容。
 
 这两种方法均能达到非常高的图像品质，然而它们的计算仍然十分耗时, 因此主要用于影视动画等离线渲染领域，例如Pixar的RenderMan RIS就是基于光线追踪技术的渲染器产品。
 
@@ -40,8 +40,8 @@
 
 
 
-\paragraph{阴~~影}\myindex{阴影}{shadows}
-阴影对于人眼对3D场景的立体感觉非常重要，在实时渲染领域，直接光照（如点光源，聚光灯以及直线光源等）的渲染通常不考虑物体间的遮挡关系（这是为了利用GPU快速的光栅化特性），所以需要另一个单独的通道来处理阴影。这个通道可以通过GPU的光栅化特性，在运行时动态生成光照贴图（shadow maps），或者利用GPU的模板测试生成阴影体积（shadow volume）等比较简单的方法实现。
+\paragraph{阴~~影}
+阴影（shadows）\myindex{阴影}{shadows}对于人眼对3D场景的立体感觉非常重要，在实时渲染领域，直接光照（如点光源，聚光灯以及直线光源等）的渲染通常不考虑物体间的遮挡关系（这是为了利用GPU快速的光栅化特性），所以需要另一个单独的通道来处理阴影。这个通道可以通过GPU的光栅化特性，在运行时动态生成光照贴图（shadow maps），或者利用GPU的模板测试生成阴影体积（shadow volume）等比较简单的方法实现。
 
 光照贴图是以光源中的单个点为观察点，利用GPU光栅化渲染的一张图，通常它只包含深度值，所以它记录的只是物体边缘的几何信息，因此产生的阴影为硬阴影（hard shadow）。对于硬阴影，通常还需要使用适当的反走样措施（关于反走样技术将在本章第\ref{sec:intro-sampling}节讲述）。
 
@@ -57,10 +57,10 @@
 
 
 
-\paragraph{环境遮挡}\myindex{环境遮挡}{ambient occlusion}
+\paragraph{环境遮挡}
 对于更大面积的环境光（ambient light）\myindex{环境光}{ambient Light}，如环境贴图，天空盒，或者来自其他物体反射的间接光照等，其光源往往来自整个半空间，往往不可能通过以上的方式计算物体间的遮挡效果。在早期的光照计算中，人们通常忽略这种阻挡关系，这造成场景中的缝隙等被较多遮挡的地方比实际的效果要明亮，如图\ref{f:intro-ao}(a)所示，这是因为对于这些地方我们并没有考虑它的遮挡关系。如果环境光是一个常数，则整个物体表面会看起来更平坦。
 
-\cite{a:Shape-from-shadingonacloudyday}于1994年首次指出了这种环境阻挡对于图形识别以及增强图像质量的重要性，2010年Hayden Landis, Ken McGaugh和Hilmar Koch因为推进环境遮挡（ambient occlusion，AO）在渲染技术中的运用而获得当年的奥斯卡科学技术奖\footnote{\url{http://www.altfg.com/film/oscar-2010-scientific-and-technical-awards-489/}}，之后AO被大量应用于电影工业，如今主流的商业游戏引擎也几乎都支持某种程度（静态或动态）的AO。
+\cite{a:Shape-from-shadingonacloudyday}于1994年首次指出了这种环境阻挡对于图形识别以及增强图像质量的重要性，2010年Hayden Landis, Ken McGaugh和Hilmar Koch因为推进环境遮挡（ambient occlusion，AO）\myindex{环境遮挡}{ambient occlusion}在渲染技术中的运用而获得当年的奥斯卡科学技术奖\footnote{\url{http://www.altfg.com/film/oscar-2010-scientific-and-technical-awards-489/}}，之后AO被大量应用于电影工业，如今主流的商业游戏引擎也几乎都支持某种程度（静态或动态）的AO。
 
 \begin{figure}
 \begin{fullwidth}
@@ -119,7 +119,7 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 \label{f:intro-indirect}
 \end{figure}
 
-间接漫反射效果的计算特别昂贵，它涉及渲染方程针对整个半球空间的积分计算，目前主要的解决方法还是预处理，这些方法在预处理阶段使用蒙特卡洛或有限元方法生成光照贴图；对于动态物体如角色等，常用的处理方法则是在空白空间对环境光照进行稀疏采样（在Unity中这些采样点称为一个光照探针（light Probe），如图\ref{f:intro-light-probe}所示），然后在运行时使用插值的方法来计算间接光照。这样做的理由是因为漫反射通常都是低频的，相邻点之间的颜色值变化不大，其间的点的值可以通过插值计算。由于这些采样点是预处理的，所以动态物体并不能影响场景中其他物体，它只能接受来自其他静态环境的影响，这方面可以参见后面第\ref{chp:prt}章的内容。
+间接漫反射效果的计算特别昂贵，它涉及渲染方程针对整个半球空间的积分计算，目前主要的解决方法还是预处理，这些方法在预处理阶段使用蒙特卡洛或有限元方法生成光照贴图；对于动态物体如角色等，常用的处理方法则是在空白空间对环境光照进行稀疏采样，在Unity中这些采样点称为一个光照探针（light probe）\myindex{光照探针}{light probe}，如图\ref{f:intro-light-probe}所示，然后在运行时使用插值的方法来计算间接光照。这样做的理由是因为漫反射通常都是低频的，相邻点之间的颜色值变化不大，其间的点的值可以通过插值计算。由于这些采样点是预处理的，所以动态物体并不能影响场景中其他物体，它只能接受来自其他静态环境的影响，这方面可以参见后面第\ref{chp:prt}章的内容。
 
 \begin{figure}
 \includegraphics[width=\textwidth]{figures/intro/LightProbes}	
@@ -161,7 +161,7 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 
 由于散射效果的计算相当复杂，因此和其他前面提到的技术一样，计算机图形学中也存在很多近似的方法来处理散射效果。特别地，对于散射的计算，存在两大类方法分别处理散射导致的两种比较明显的子分类效果，即次表面散射和参与介质。
 
-次表面散射（subsurface Scattering）\myindex{次表面散射}{subsurface scattering}是散射中最复杂的效果，它表示由于物体内部存在介质的不连续性，导致折射进物体内部的光在经历多次散射之后，重新从另一个位置反射会空中。它要求比较真实地模拟散射效果，并且它处理的都是要求视觉表现比较真实的材料，例如大理石，皮肤，叶子，蜡烛，牛奶等。例如对于皮肤，它有约6\%的光被直接反射，剩下94\%的光被散射，并且散射之发生在表面以下一小部分厚度的空间内，如图\ref{f:intro-sss}所示。
+次表面散射（subsurface scattering）\myindex{次表面散射}{subsurface scattering}是散射中最复杂的效果，它表示由于物体内部存在介质的不连续性，导致折射进物体内部的光在经历多次散射之后，重新从另一个位置反射会空中。它要求比较真实地模拟散射效果，并且它处理的都是要求视觉表现比较真实的材料，例如大理石，皮肤，叶子，蜡烛，牛奶等。例如对于皮肤，它有约6\%的光被直接反射，剩下94\%的光被散射，并且散射之发生在表面以下一小部分厚度的空间内，如图\ref{f:intro-sss}所示。
 
 \begin{figure}
 \sidecaption
@@ -184,7 +184,7 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 
 
 \section{辐射度量学}
-光学中关于光的测量这一分支，称为辐射度量学（radiometry）\myindex{辐射度量学}{radiometry}。\cite{a:TheRenderingEquation}首次将辐射度量学引入到计算机图形学中，用于测量和计算计算机图形学中光的传播，并由此推导出渲染方程（the rendering equation\myindex{渲染方程}{the rendering equation}。渲染方程保留了辐射度量学两个最基本的特性即赫姆霍兹互反律（Helmholtz reciprocity）\myindex{赫姆霍兹互反律}{Helmholtz reciprocity}和能量守恒（energy conservation）\myindex{能量守恒}{energy conservation}，现代图形学理论基于渲染方程提出了大量的模型用于简化和加速渲染方程的计算，在这两个基本物理特征的保障下，这些模型能够达到非常真实的图形品质。
+光学中关于光的测量这一分支，称为辐射度量学（radiometry）\myindex{辐射度量学}{radiometry}。\cite{a:TheRenderingEquation}首次将辐射度量学引入到计算机图形学中，用于测量和计算计算机图形学中光的传播，并由此推导出渲染方程（the rendering equation）\myindex{渲染方程}{the rendering equation}。渲染方程保留了辐射度量学两个最基本的特性即赫姆霍兹互反律（Helmholtz reciprocity）\myindex{赫姆霍兹互反律}{Helmholtz reciprocity}和能量守恒（energy conservation）\myindex{能量守恒}{energy conservation}，现代图形学理论基于渲染方程提出了大量的模型用于简化和加速渲染方程的计算，在这两个基本物理特征的保障下，这些模型能够达到非常真实的图形品质。
 
 辐射度量学定义了一组基本的物理量用来测量光辐射，因此这些度量也成为计算机图形学中最重要的基本概念，这几个度量的名称及单位如表 \ref{t:radiometric-quantities}所示。
 
@@ -233,7 +233,7 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 	Q=hv
 \end{equation}
 
-\noindent 其中，$h=6.62620\times 10^{-34} J\cdot s$) 为普朗克常数（Planck constant）\myindex{普朗克常数}{Planck constant}。光子的频率（或者说能量），影响着光子与物体表面的交互，更重要的是，它影响着光与感应器（例如人眼中的视锥细胞和视杆细胞）之间的作用，使不同频率的光被察觉为不同的颜色。在可见光谱（visible spectrum\myindex{可见光谱}{visible spectrum}中，更“蓝”的光子具有更高的能量，而更“红”的光子具有更低的能量。 
+\noindent 其中，$h=6.62620\times 10^{-34} J\cdot s$为普朗克常数（Planck constant）\myindex{普朗克常数}{Planck constant}。光子的频率（或者说能量），影响着光子与物体表面的交互，更重要的是，它影响着光与感应器（例如人眼中的视锥细胞和视杆细胞）之间的作用，使不同频率的光被察觉为不同的颜色。在可见光谱（visible spectrum）\myindex{可见光谱}{visible spectrum}中，更“蓝”的光子具有更高的能量，而更“红”的光子具有更低的能量。 
 
 
 
@@ -316,7 +316,7 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 	I_0={\rm \int} L{\rm d}A
 \end{equation}
 
-\noindent 这时在任何方向上的辐射强度随该方向与面法线间夹角的余弦而变化。公式\ref{eq:intro-radiant-intensity-1}通常称为朗伯余弦定理（Lambert's cosine law\myindex{朗伯余弦定理}{Lambert's cosine Law}，如图\ref{f:intro-lambert-cosine-law}所示。此时，如果是发射面，则称为漫发射；如果是反射面，则称为漫反射。
+\noindent 这时在任何方向上的辐射强度随该方向与面法线间夹角的余弦而变化。公式\ref{eq:intro-radiant-intensity-1}通常称为朗伯余弦定理（Lambert's cosine law）\myindex{朗伯余弦定理}{Lambert's cosine Law}，如图\ref{f:intro-lambert-cosine-law}所示。此时，如果是发射面，则称为漫发射；如果是反射面，则称为漫反射。
 
 \begin{figure}
 \sidecaption
@@ -409,7 +409,7 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 
 在电磁学中，有两种模型用于研究光的性质，第一种为物理光学，第二种为几何光学。物理光学（physical optics）\myindex{物理光学}{physical optics}，又称为波动光学（wave optics）\myindex{波动光学}{wave optics}，它认为光在介质中以波的形式传播。这种模型可以解释光的衍射和干涉等现象。然而它以光的波长为测量尺寸，这大大超出了计算机图形学的需求。
 
-由于可见光的波长非常短，另一种模型忽略光的波长，即相对于$\lambda\to 0$的极限情况，并证明\footnote{感兴趣的读者可以参考书籍\cite{b:PrinciplesofOptics}第三章的推导。}在这种近似处理下，光学定律可以用几何学的语言来描述，这种模型称为几何光学（geometric optics\myindex{几何光学}{geometric optics}，或者称为光线光学（ray optics）\myindex{光线光学}{ray optics}，因为这种模型下能量可以看作是以一定的直线传输。几何光学模型正是被计算机图形学广泛采用的模型。
+由于可见光的波长非常短，另一种模型忽略光的波长，即相对于$\lambda\to 0$的极限情况，并证明\footnote{感兴趣的读者可以参考书籍\cite{b:PrinciplesofOptics}第三章的推导。}在这种近似处理下，光学定律可以用几何学的语言来描述，这种模型称为几何光学（geometric optics）\myindex{几何光学}{geometric optics}，或者称为光线光学（ray optics）\myindex{光线光学}{ray optics}，因为这种模型下能量可以看作是以一定的直线传输。几何光学模型正是被计算机图形学广泛采用的模型。
 
 当然，几何光学模型仍然比较复杂，在计算机图形学中，我们作出了一些简化假设，这虽然限制了一些效果如衍射，但是它处理起来相对简单，并且满足一般图形学的需求。这些假设包括：
 
@@ -498,7 +498,7 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 	E= \cfrac{I\cos\theta}{r^{2}}
 \end{equation}
 
-\noindent 虽然$E$随着$1/r^{2}$正比增长在物理上是正确的，但是在图形学上通常使用一个不同的函数来描述$E$怎样随着距离的增加而递减。这种函数称为距离递减函数（distance falloff function\myindex{距离递减函数}{distance falloff function}，由此$E$可以表示为：
+\noindent 虽然$E$随着$1/r^{2}$正比增长在物理上是正确的，但是在图形学上通常使用一个不同的函数来描述$E$怎样随着距离的增加而递减。这种函数称为距离递减函数（distance falloff function）\myindex{距离递减函数}{distance falloff function}，由此$E$可以表示为：
 
 \begin{equation}
 	E=I\cos\theta f_{\rm dist}(r)
@@ -568,7 +568,7 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 	\label{f:intro-refraction} 
 \end{figure}
 
-散射的光重新发射回表面外的位置与入射点位置之间距离的分布，取决于该物质表面属性。如果这个距离小于一个像素的尺寸（即在微观范围中），在着色的时候我们可以假设其距离为$0$，这种散射称为局部次表面散射（local subsurface scattering）\myindex{局部次表面散射}{local Subsurface scattering}；否则称为全局次表面散射（global subsurface scattering\myindex{全局次表面散射}{global subsurface scattering}。在计算机图形学中，这两种现象通常分别使用不同的技术实现。
+散射的光重新发射回表面外的位置与入射点位置之间距离的分布，取决于该物质表面的属性。如果这个距离小于一个像素的尺寸（即在微观范围中），在着色的时候可以假设其距离为$0$，这种散射称为局部次表面散射（local subsurface scattering）\myindex{局部次表面散射}{local Subsurface scattering}；否则称为全局次表面散射（global subsurface scattering）\myindex{全局次表面散射}{global subsurface scattering}。在计算机图形学中，这两种现象通常分别使用不同的技术实现。
 
 在计算机图形学中，通常将反射和漫反射这两种不同的光照区分开，分别称为光泽（specular）和漫反射光\footnote{在光学中，漫反射（甚至散射本身）也包含一部分由于物体表面的粗糙度形成的直接反射光的一部分，并不全是由折射进表面的光形成。}（diffuse）。其中前者主要由于光在物体表面的直接反射形成，而后者通常由光进入物体表面，经历折射，吸收，多次散射过程之后重新从物体表面散射回表面外的光形成，如图\ref{f:intro-specular-and-diffuse}所示。这样区分的目的也在于由于漫反射光可以接收来自全部方向的光，因此需要对全空间进行积分计算，但是将与方向无关的部分分离出来，则可以使用更简单的方法处理漫反射。关于这些方法将在本章后面介绍。
 
@@ -645,7 +645,7 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 	c_n= \cfrac{1}{T}{\rm \int}^{T/2}_{-T/2}f(t)e^{-j \cfrac{2\pi n}{T}t}{\rm d}t, n=0,n=\pm 1,n=\pm 2,\cdots
 \end{equation}
 
-}（但该曲线下的面积是有限的）的连续函数$f(t)$可以用正弦和/或余弦和乘以一个加权函数的积分来表示，这个积分方程称为傅里叶变换（Fourier transform\myindex{傅里叶变换}{Fourier transform}。用$F(\mu)$表示连续变量$t$的连续函数$f(t)$的傅里叶变换，则：
+}（但该曲线下的面积是有限的）的连续函数$f(t)$可以用正弦和/或余弦和乘以一个加权函数的积分来表示，这个积分方程称为傅里叶变换（Fourier transform）\myindex{傅里叶变换}{Fourier transform}。用$F(\mu)$表示连续变量$t$的连续函数$f(t)$的傅里叶变换，则：
 
 \begin{equation}\label{eq:intro-fourier}
 	F(\mu)={\rm \int}^{\infty}_{-\infty}f(t)e^{-j2\pi\mu t}{\rm d}t
@@ -665,7 +665,7 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 
 \noindent 我们看到，由于变量$t$被积分后只剩下$\mu$，而$\mu$表示正弦项或余弦项的频率，所以傅里叶变换$F(\mu)$的作用域是频率域。频率变量$\mu$的单位取决于$t$的单位，例如，如果$t$表示单位为秒的时间，则$\mu$的单位为周/秒，如果$t$表示单位为米的时间，则$\mu$的单位为周/米。
 
-从广义上讲，频率域（frequency domain）\myindex{频率域}{frequency domain}指的是一个连续函数在它的作用域上的改变有多快，所以一个函数通常有多个频率，这些频率构成该函数的一个频率谱（spectrum of frequencies\myindex{频率谱}{spectrum of frequencies}。傅里叶变换正是将一个连续非周期函数由其时间域\footnote{如果一个信号随时间而变化，称该作用域为时间域。}（time domain）\myindex{时间域}{time domain}或空间域\footnote{例如与时间无关的静止的图像，它的作用域为空间位置$x,y,z$，称为空间域。}（spatial domain）\myindex{空间域}{spatial domain}变换到其频率域。其目的是从频率域可以发现该函数的一些重要特征，甚至一些对函数的操作在频率域进行更方便。
+从广义上讲，频率域（frequency domain）\myindex{频率域}{frequency domain}指的是一个连续函数在它的作用域上的改变有多快，所以一个函数通常有多个频率，这些频率构成该函数的一个频率谱（spectrum of frequencies）\myindex{频率谱}{spectrum of frequencies}。傅里叶变换正是将一个连续非周期函数由其时间域\footnote{如果一个信号随时间而变化，称该作用域为时间域。}（time domain）\myindex{时间域}{time domain}或空间域\footnote{例如与时间无关的静止的图像，它的作用域为空间位置$x,y,z$，称为空间域。}（spatial domain）\myindex{空间域}{spatial domain}变换到其频率域。其目的是从频率域可以发现该函数的一些重要特征，甚至一些对函数的操作在频率域进行更方便。
 
 %在图\ref{f:intro-fourier}中可以看到这种作用域的转化，红色线条代表原始连续周期函数，蓝色线条为傅里叶级数各级的正弦或余弦函数，图\ref{f:intro-fourier}(a)傅里叶级数的头6项，这个傅里叶级数有无穷多项。，这个频率作用域将用于后面对信号采样的质量判定。图\ref{f:intro-fourier}(b)通过提取出每个正弦或余弦项的频率，而形成图\ref{f:intro-fourier}(c)的频率域函数。值得注意的是，由式\ref{eq:fourier-series}可知，其傅里叶级数的频率域是离散的；然而由式\ref{eq:intro-fourier}可知，其频率域函数，即傅里叶变换函数是连续的，如图\ref{f:intro-fourier-case}所示。
 
@@ -713,7 +713,7 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 
 这种由于对几何图形的可见性函数采样导致的走样称为几何走样（geometric aliasing）\myindex{几何走样}{geometric aliasing}，它是计算机图形学中最严重的走样现象，因为整个场景图像的渲染都是根据物体表面的的位置来决定的，而每个像素点的位置都是光栅化阶段对物体几何形状的可见性函数来决定的。
 
-虽然没有任何采样率可以有效地避免几何走样的存在（即完美地对可见性函数采样），但是我们任然寻求一些方法来减轻这种走样现象，其中比较流行的方法称为Oversampling（详见第\ref{sec:intro-resampling}节），这种方法本质上使用比图像分辨率更高的采样频率对原始可见性函数进行采样，然后使用这些采样点来重建像素对应的采样率下的函数值。这在3D渲染中相当于使用高于图像输出分辨率的频率渲染场景，然后将其缩放至输出分辨率，这个过程称为Supersampling。本章后面第\ref{sec:intro-msaa}将详细讨论这种技术。
+虽然没有任何采样率可以有效地避免几何走样的存在（即完美地对可见性函数采样），但是我们仍然会寻求一些方法来减轻这种走样现象，其中比较流行的方法称为过采样（oversampling）\myindex{过采样}{oversampling}，详见第\ref{sec:intro-resampling}节，这种方法本质上使用比图像分辨率更高的采样频率对原始可见性函数进行采样，然后使用这些采样点来重建像素对应的采样率下的函数值。这在3D渲染中相当于使用高于图像输出分辨率的频率渲染场景，然后将其缩放至输出分辨率，这个过程称为超采样（supersampling）\myindex{超采样}{supersampling}。本章后面第\ref{sec:intro-msaa}将详细讨论这种技术。
 
 
 
@@ -749,9 +749,9 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 \subsubsection{时间走样}
 前面的例子都是对处于空间域的2个$(x,y)$或者3个$(x,y,z)$连续变量进行采样，然而在游戏或者电影动画渲染中，由于大量的物体处于运动状态，因此，对于另一个时间域的采样问题也特别突出。
 
-时间走样（temporal aliasing）\myindex{时间走样}{temporal aliasing}出现于当物体在运动时，由于渲染帧率的限制导致对其运动过程的采样导致的走样。游戏画面的渲染是根据帧率按较低的采样率对时间域进行采样，所以对于高速运动下的物品，其时间域的频率较高，很容易出现走样。其中一个比较经典的例子称为车轮效应（Wagon-wheel effect）\myindex{车轮效应}{Wagon-wheel effect}，它使一个旋转的辐条车轮表现出不同的视觉效果，例如轮子可能看起来比实际更慢，或者看起来像静止一样，甚至沿着相反的方向旋转。
+时间走样（temporal aliasing）\myindex{时间走样}{temporal aliasing}出现于当物体在运动时，由于渲染帧率的限制使其对运动过程的采样不足导致的走样。游戏画面的渲染是根据帧率按较低的采样率对时间域进行采样，所以对于高速运动下的物品，其时间域的频率较高，很容易出现走样。其中一个比较经典的例子称为车轮效应（Wagon-wheel effect）\myindex{车轮效应}{Wagon-wheel effect}，它使一个旋转的辐条车轮表现出不同的视觉效果，例如轮子可能看起来比实际更慢，或者看起来像静止一样，甚至沿着相反的方向旋转。
 
-对于减轻时间走样，一种比较常用的方法称为运动模糊（motion blur）\myindex{运动模糊}{motion blur}。这种方法跟Supersampling一样，它依靠对时间域取更多的采样点，然后对其进行走样，当然这种方法的计算成本很高。另一种更普遍的方法是针对当前帧渲染结果，生成一个速率缓存（velocity buffer）\cite{a:AReconstructionFilterforPlausibleMotionBlur}\myindex{速率缓存}{velocity buffer}，然后使用这些方向在Post processing阶段对其邻近的像素点走样，如图\ref{f:intro-motion-blur}所示。
+对于减轻时间走样，一种比较常用的方法称为运动模糊（motion blur）\myindex{运动模糊}{motion blur}。这种方法跟超采样一样，它依靠对时间域取更多的采样点，然后对其进行走样，当然这种方法的计算成本很高。另一种更普遍的方法是针对当前帧渲染结果，生成一个速率缓存（velocity buffer）\cite{a:AReconstructionFilterforPlausibleMotionBlur}\myindex{速率缓存}{velocity buffer}，然后使用这些方向在后处理阶段对其邻近的像素点走样，如图\ref{f:intro-motion-blur}所示。
 
 \begin{figure}
 	\includegraphics[width=1.\textwidth]{figures/intro/motion-blur}
@@ -764,7 +764,7 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 \subsection{重~~建}\label{sec:intro-reconstruction}
 重建（reconstruction）\myindex{重建}{reconstruction}是指将采样后的离散函数还原为原始连续函数的过程，为了从一些离散的采样点还原为原始连续函数，必须对离散函数执行一个滤波器（filter）\myindex{滤波器}{filter}。“滤波”一词源于数字信号处理中，用于在频率域上接受（通过）或拒绝一定的频率分量。然而滤波器实际的概念非常复杂，根据滤波器是离散还是连续，以及被滤波器作用的函数是离散还是连续，滤波器的作用以及实现的结果都是不一样的。
 
-因为滤波器这种技术十分重要，我们很有必要理解它的基本原理。滤波器严重依赖于卷积的数学概念，卷积在计算机图形学中也是一个重要的基础数学工具，例如在后面讨论渲染方程，以及一些全局光照方案中几乎所有涉及Spherical Harmonic的地方等都会涉及卷积，所以本节首先学习卷积及其在傅立叶变换中的应用。
+因为滤波器这种技术十分重要，我们很有必要理解它的基本原理。滤波器严重依赖于卷积的数学概念，卷积在计算机图形学中也是一个重要的基础数学工具，例如在后面讨论渲染方程，以及一些全局光照方案中几乎所有涉及球谐函数（spherical harmonics）\myindex{球谐函数}{spherical harmonics}的地方等都会涉及卷积，所以本节首先学习卷积及其在傅立叶变换中的应用。
 
 
 
@@ -834,7 +834,7 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 
 
 \subsubsection{平~~滑}
-卷积计算最本质也是最直观的特征是平滑，它通过对$f$的每个点考虑该点周围一定范围内的值对该点的影响，来消除该点与周围环境的频率的快速变化。这在计算机图形学中运用时分广泛，例如大部分可能出现走样的地方（如前面第节讨论的那些走样现象），都可以在采样之前对原始函数进行平滑，以减轻走样现象。这种滤波器称为反走样滤波器（anti-aliasing filter）\myindex{反走样滤波器}{anti-aliasing filter}。
+卷积计算最本质也是最直观的特征是平滑，它通过对$f$的每个点考虑该点周围一定范围内的值对该点的影响，来消除该点与周围环境的频率的快速变化。这在计算机图形学中运用时分广泛，大部分可能出现走样的地方，例如前面第\ref{sec:intro-sampling}节讨论的那些走样现象，都可以在采样之前对原始函数进行平滑，以减轻走样现象。这种滤波器称为反走样滤波器（anti-aliasing filter）\myindex{反走样滤波器}{anti-aliasing filter}。
 
 
 这里举一个图像处理的例子，在图像处理中，常常考虑$f(x,y)$为一个具有一定分辨率的图像，$g(x,y)$为一个$m\times n$的矩形（其分辨率通常小于或等于$f(x,y)$的分辨率），假设$m=2a+1$且$n=2b+1$，其中$a,b$为正整数，则式\ref{eq:intro-conv}变为：
@@ -857,7 +857,7 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 
 
 \subsubsection{重~~建}
-除了平滑，借助卷积的特性还可以实现将离散函数还原为原始连续函数，卷积的这种运用称为重建滤波器（reconstruction filter\myindex{重建滤波器}{reconstruction filter}。重建的操作表现为用一个无限连续的$g$作用于采样后离散的$f$，然而为了直观理解重建的过程，我们需要首先从频率域以及采样定律说起。
+除了平滑，借助卷积的特性还可以实现将离散函数还原为原始连续函数，卷积的这种运用称为重建滤波器（reconstruction filter）\myindex{重建滤波器}{reconstruction filter}。重建的操作表现为用一个无限连续的$g$作用于采样后离散的$f$，然而为了直观理解重建的过程，我们需要首先从频率域以及采样定律说起。
 
 设$\tilde{F}(\mu)$为对$f(t)$采样后的离散函数$\tilde{f}(t)$的傅里叶变换，如图\ref{f:intro-reconstruction}所示，为了使$f(t)$能够被完美重建，首先需要保留$\tilde{F}(\mu)$所有的频率，在本例子中使用了一个高于奈奎斯特采样率的频率进行采样。如果能够从$\tilde{F}(\mu)$中包含的这个函数的拷贝的周期序列中分离出$F(\mu)$的一个拷贝，那么我们就可以从取样后的版本恢复$f(t)$。
 
@@ -933,7 +933,7 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 \subsection{重采样}\label{sec:intro-resampling}
 在渲染场景的时候，程序会大量使用预先采样的数据，如图像，或者场景的某些离散的表示空间结构数据等。这些数据都是具有一定的分辨率（或者是按一定的采样率生成的数据），当程序中需要在不同分辨率下使用这些数据时（例如摄像机靠近或者原理表面导致纹理被放大或者缩小），我们需要对这些离散的数据进行重采样（resampling）\myindex{重采样}{resampling}，以生成一个具有不同分辨率的数据。以下我们主要以GPU中对纹理的采样分析分辨率转换的问题。
 
-当摄像机靠近物体表面时，即发生放大操作（Magnification），这是摄像机看到更多细节，它要求对原始函数具有更高的采样率。如图\ref{f:intro-magnification}所示，这要求生成更多的采样点，根据上一节讲述的内容，我们只需要对于离散的图像提供一个滤波器，便可以对任意点的插值。
+当摄像机靠近物体表面时，即发生放大操作（magnification）\myindex{放大操作}{magnification}，这是摄像机看到更多细节，它要求对原始函数具有更高的采样率。如图\ref{f:intro-magnification}所示，这要求生成更多的采样点，根据上一节讲述的内容，我们只需要对于离散的图像提供一个滤波器，便可以对任意点的插值。
 
 \begin{figure}
 	\includegraphics[width=1.\textwidth]{figures/intro/magnification}
@@ -941,7 +941,7 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 	\label{f:intro-magnification}
 \end{figure}
 
-然而，正如前面提到的，sinc函数要求样本间的内插值有无限多项，所以我们必须使用一些近似方法来进行插值计算。最简单的方法是最近邻插值（nearest-neighbor interpolation）\myindex{最近邻插值}{nearest-neighbor interpolation}，它采用像素复制的放大操作。例如，将一幅图像放大两倍，我们可以复制每一列，这会在水平方向上将图像尺寸放大一倍；然后复制这幅放大后图像的每一行，在垂直方向上将图像尺寸放大一倍。相同的步骤可用于任意整数倍放大图像。最近邻内插法实际上是对图像使用一个盒式过滤器（box filter）\myindex{盒式过滤器}{box filter}，如图\ref{f:intro-Piecewise_constant}所示。
+然而，正如前面提到的，辛克函数要求样本间的内插值有无限多项，所以我们必须使用一些近似方法来进行插值计算。最简单的方法是最近邻插值（nearest-neighbor interpolation）\myindex{最近邻插值}{nearest-neighbor interpolation}，它采用像素复制的放大操作。例如，将一幅图像放大两倍，我们可以复制每一列，这会在水平方向上将图像尺寸放大一倍；然后复制这幅放大后图像的每一行，在垂直方向上将图像尺寸放大一倍。相同的步骤可用于任意整数倍放大图像。最近邻内插法实际上是对图像使用一个盒式过滤器（box filter）\myindex{盒式过滤器}{box filter}，如图\ref{f:intro-Piecewise_constant}所示。
 
 \begin{figure}
 \sidecaption
@@ -986,7 +986,7 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 
 在开始讨论具体的全屏反走样技术之前，首先我们应该思考的是，对于固定的屏幕分辨率（相当于固定的采样率），其反走样的思路是什么。通过前面对采样及滤波器等知识的学习，我们知道走样是一个采样问题，它不能通过任何技术手段在采样之后消除这种由采样不足导致的走样。那么走样是什么，走样是由于采样率低导致傅里叶变换的高频部分没有被覆盖，从而使相邻的采样点之间出现比较大的差值。所以，对于固定采样率的前提下，我们能做的事情就是对原始函数进行平滑，消除原始函数的高频部分，而这通走样波器来实现（回想第\ref{sec:intro-reconstruction}节滤波器的主要功能是通过卷积实现平滑）。
 
-然而，在渲染中，我们通常并不能对原始函数进行平滑，一方面存储这样的原始函数（例如几何图形的可见性函数）需要大量的内存；另一方面，平滑是一个相对的概念，例如一个图像数据的频率对于$1920\times 1200$的分辨率来说是平滑的，但是它对于$1024\times 640$的分辨率来说频率带宽仍然太宽。这就是为什么纹理缩小时需要使用Mipmap技术而不是直接从原始图像进行缩放。
+然而，在渲染中，我们通常并不能对原始函数进行平滑，一方面存储这样的原始函数（例如几何图形的可见性函数）需要大量的内存；另一方面，平滑是一个相对的概念，例如一个图像数据的频率对于$1920\times 1200$的分辨率来说是平滑的，但是它对于$1024\times 640$的分辨率来说频率带宽仍然太宽。这就是为什么纹理缩小时需要使用多级纹理（mipmap）\myindex{多级纹理}{mipmap}技术而不是直接从原始图像进行缩放。
 
 根据以上这些分析，过采样（oversampling）\myindex{过采样}{Oversampling}就是一种针对特定分辨率的反走样技术，它通过使用一个比输出分辨率略高的采样率对原始函数进行采样，并对这个高分辨率的样本函数使用滤波器进行平滑，然后对这个高分辨率的样本函数进行重采样得到输出分辨率的图像。
 
@@ -1015,9 +1015,9 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 \end{fullwidth}
 \end{figure}
 
-对于FSAA，需要注意的是，可以对每个像素范围内子采样点采样不同的分布，图\ref{f:intro-Supersampling-pattern}介绍了其中几种采样模式\footnote{关于采样模式，我们将在第\ref{chp:mc}章介绍更多的细节。}（Sampling pattern），不同的采样模式具有不同的优点，例如RGSS对像素格子进行渲染然后采样，这样得到的结果使得接近水平线的变更平坦，实际上，Naiman指出\cite{a:Jaggededges:whenisfilteringneeded?}人的眼睛对接近水平或垂直直线的走样更敏感，而对$45^{o}$左右直线的走样敏感度是最低的；Nvidia的High-Resoulution Antialiasing\footnote{参见：\url{http://www.evga.com/articles/41.asp}}（HRAA）使用Quincunx的采样模式，它对每个像素点使用两个子采样点，但是使用Quincunx的分布模式，使得每个像素可以使用周围的4个（一个5个点）相邻的子采样点进行平均求值。当然这里只列出少数几种采样模式\footnote{参见：\url{https://en.wikipedia.org/wiki/Supersampling}。}。
+对于FSAA，需要注意的是，可以对每个像素范围内子采样点采样不同的分布，图\ref{f:intro-Supersampling-pattern}介绍了其中几种采样模式\footnote{关于采样模式，我们将在第\ref{chp:mc}章介绍更多的细节。}（sampling pattern）\myindex{采样模式}{sampling pattern}，不同的采样模式具有不同的优点，例如RGSS对像素格子进行渲染然后采样，这样得到的结果使得接近水平线的变更平坦，实际上，\cite{a:Jaggededges:whenisfilteringneeded?}指出人的眼睛对接近水平或垂直直线的走样更敏感，而对$45^{o}$左右直线的走样敏感度是最低的；Nvidia的高分辨率反走样（high-resoulution antialiasing，HRAA）\footnote{参见：\url{http://www.evga.com/articles/41.asp}}使用Quincunx的采样模式，它对每个像素点使用两个子采样点，但是使用Quincunx的分布模式，使得每个像素可以使用周围的4个（一个5个点）相邻的子采样点进行平均求值。当然这里只列出少数几种采样模式\footnote{参见：\url{https://en.wikipedia.org/wiki/Supersampling}。}。
 
-Supersampling技术对每个子采样点的着色，深度及位置等都需要进行单独的计算。对于由几何图形光栅化导致的走样，实际上我们只需要对其可见性函数进行采样即可，即是说我们可以将可见性函数从着色当中分离出来，这样对于每个像素点只需要计算一次着色（即执行一次Pixel shader），这样将大大减少反走样的计算量。基于这样思路的反走样技术称为多重采样反走样（multisample antialiasing，MSAA）\myindex{多重采样反走样}{multisample antialiasing}技术。然而其代价是由于每个像素的颜色只计算一次，因此它不能实现Shader aliasing的反走样，这仍然需要借助Mipmap等技术来实现。
+超采样技术对每个子采样点的着色，深度及位置等都需要进行单独的计算。对于由几何图形光栅化导致的走样，实际上我们只需要对其可见性函数进行采样即可，即是说我们可以将可见性函数从着色当中分离出来，这样对于每个像素点只需要计算一次着色（即执行一次Pixel shader），这样将大大减少反走样的计算量。基于这样思路的反走样技术称为多重采样反走样（multisample antialiasing，MSAA）\myindex{多重采样反走样}{multisample antialiasing}技术。然而其代价是由于每个像素的颜色只计算一次，因此它不能实现着色走样的反走样，这仍然需要借助多级纹理等技术来实现。
 
 MSAA需要借助图形API的光栅化技术来实现，在图形渲染管线（见第\ref{chp:pipeline}章）的光栅化阶段，光栅化器根据输入的几何图形的顶点，按照输出分辨率将几何图形光栅化成一个个像素点，然后对每个像素点执行一个像素着色器以计算该像素颜色，深度，模板值，其中像素着色器只计算颜色值，而深度值由光栅化器计算，模板值则应用程序对图形接口的调用来决定。而在一个实现MSAA的光栅化器，它会对每个像素生成多个子采样点，并计算每个子采样点的深度和模板值，而对于颜色值，光栅化器对每个像素只调用一次像素着色器，然后将计算结果复制给每个子采样点。
 
@@ -1029,9 +1029,9 @@ MSAA需要借助图形API的光栅化技术来实现，在图形渲染管线（�
 
 图\ref{f:intro-msaa}为DirectX 11中MSAA的实现，对于每个通过深度和模板测试的子采样点，其深度和模板值将被写入到缓冲区，该子采样点的颜色值由像素着色器计算，该颜色将被乘以该像素点的覆盖率，覆盖率是由几何图形所占区域的子采样点与总采样点之比。
 
-在上述的光栅化过程中，像素着色器根据像素点中心的位置从纹理采样，以计算该像素的颜色值，然而如果几何图形只占据像素点的一小部分，则中心点不会被覆盖到，从而导致从纹理中不正确的位置获得颜色值。为了保证颜色计算的正确性，这个像素着色器使用的采样位置可以被调整到覆盖区域中某个点的位置，这种技术称为centroid sampling，或者centroid interpolation。对于一个被几何图形覆盖的像素点，它首先从像素中心点开始寻找，如果中心点没被几何图形覆盖，则一次向外延伸直到找到一个被覆盖的子采样点，该点的位置将作为最终像素着色器对纹理采样的位置。
+在上述的光栅化过程中，像素着色器根据像素点中心的位置从纹理采样，以计算该像素的颜色值，然而如果几何图形只占据像素点的一小部分，则中心点不会被覆盖到，从而导致从纹理中不正确的位置获得颜色值。为了保证颜色计算的正确性，这个像素着色器使用的采样位置可以被调整到覆盖区域中某个点的位置，这种技术称为质心采样（centroid sampling）\myindex{质心采样}{centroid sampling}，或者质心插值（centroid interpolation）\myindex{质心插值}{centroid interpolation}。对于一个被几何图形覆盖的像素点，它首先从像素中心点开始寻找，如果中心点没被几何图形覆盖，则一次向外延伸直到找到一个被覆盖的子采样点，该点的位置将作为最终像素着色器对纹理采样的位置。
 
-MSAA相对于Supersampling大大减少了计算量（每个像素着色器只执行一次计算），然而MSAA并没有减少内存占用，CSAA\footnote{参见：\url{http://www.nvidia.com/object/coverage-sampled-aa.html}}则进一步将像素点的覆盖率从颜色/深度/模板值当中分离出来，使其内存占用和数据传输的宽度占用都得到降低。
+MSAA相对于超采样大大减少了计算量（每个像素着色器只执行一次计算），然而MSAA并没有减少内存占用，CSAA\footnote{参见：\url{http://www.nvidia.com/object/coverage-sampled-aa.html}}则进一步将像素点的覆盖率从颜色/深度/模板值当中分离出来，使其内存占用和数据传输的宽度占用都得到降低。
 
 \begin{figure}
 \sidecaption
@@ -1042,7 +1042,7 @@ MSAA相对于Supersampling大大减少了计算量（每个像素着色器只执
 
 如图\ref{f:intro-sample-coverage}所示，除了MSAA中的子采样点，CSAA还使用了一个二进制结构的数组蒙板（bit mask）表示覆盖率，这个覆盖率比子采样点具有更高的分辨率，在光栅化阶段，光栅化其首先投影几何图形到该蒙板以计算覆盖率，然后对子采样点进行采样计算深度，模板及颜色值，其中计算颜色值的时候其覆盖率直接由该蒙板提供。这样使得更少的子采样点可以得到更精准的覆盖率，而原本这需要更多的子采样点来存储这些数据，而每个子采样点存储深度，模板及颜色值，所以在存储占用及数据传输带宽占用方面都是很大的。
 
-关于覆盖率与深度，模板及颜色值的分离，其思路来源于Loren Carpenter的论文\cite{a:TheA-bufferanAntialiasedHiddenSurfaceMethod}中的A-buffer技术，图形学中还存在大量从分离覆盖率着手的解决方案。本节仅对全屏反走样技术做基本的介绍，更多的反走样技术还涉及与渲染方法（例如延迟着色）结合起来工作，所以我们需要在接触相关的概念之后才能进行深入地学习，第\ref{sec:shade-anti-aliasing}还会更深入地讨论各种各样的反走样技术。
+关于覆盖率与深度，模板及颜色值的分离，其思路来源于\cite{a:TheA-bufferanAntialiasedHiddenSurfaceMethod}中的A-buffer技术，图形学中还存在大量从分离覆盖率着手的解决方案。本节仅对全屏反走样技术做基本的介绍，更多的反走样技术还涉及与渲染方法（例如延迟着色）结合起来工作，所以我们需要在接触相关的概念之后才能进行深入地学习，后面还会更深入地讨论各种各样的反走样技术。
 
 
 
@@ -1056,10 +1056,6 @@ MSAA相对于Supersampling大大减少了计算量（每个像素着色器只执
 由于渲染方程的复杂性，以及硬件性能的限制，早期的工业运用中（甚至处于离线渲染的电影行业）大都使用一些非常近似的模型，这些模型能够产生比较理想的效果，然而这些图像结果却不是物理上正确的。所谓物理上正确的，主要指光在场景中的传输保持能量守恒（本节后面将会讲述更多关于基于物理渲染的特征）。基于物理的渲染能够使渲染结果更能够接近物理世界的品质。
 
 自从2012年Burley的论文\cite{a:PhysicallyBasedShadingatDisney}之后，游戏行业已经开始广泛采用基于物理的渲染，并在之后几年的各种技术会议上，业界各大主流游戏引擎都纷纷展示了它们基于物理渲染的效果和品质。所以本书中大多数解决方案都是基于物理的。
-
-
-
-
 
 
 
@@ -1124,19 +1120,19 @@ MSAA相对于Supersampling大大减少了计算量（每个像素着色器只执
 
 
 \subsubsection{BRDF性质}
-物理定理赋予BRDF两个特殊的性质，第一个是赫姆霍兹互反律(Helmholtz reciprocity)\myindex{赫姆霍兹互反律}{Helmholtz reciprocity}，即BRDF的入射方向和出射方向可以互相对换，其值保持不变，即：
+物理定理赋予BRDF两个特殊的性质，第一个性质是赫姆霍兹互反律(Helmholtz reciprocity)\myindex{赫姆霍兹互反律}{Helmholtz reciprocity}，它说明BRDF的入射方向和出射方向可以互相对换，其值保持不变，即：
 
 \begin{equation}
 	f_r(\omega_i,\omega_r)=f_i(\omega_r,\omega_i)
 \end{equation}
 
-第二条性质是能量守恒（conserving energy）\myindex{能量守恒}{conserving energy}，即所有反射的能量不能大于所有吸收的能量（不包括物体自发光的情形），这可以表示为:
+第二个性质是能量守恒（conserving energy）\myindex{能量守恒}{conserving energy}，即所有反射的能量不能大于所有吸收的能量（不包括物体自发光的情形），这可以表示为:
 
 \begin{equation}\label{eq:intro-conserving energy}
 	{\rm \int}_{\Omega}f_r(\omega_i,\omega_r)\cos\theta_i {\rm d}\omega_i \leq 1,\forall\omega_r
 \end{equation}
 
-\noindent 式\ref{eq:intro-conserving energy}表示对于一个给定的入射方向$\omega_r$，其所有出射方向的BRDF的积分的值小于1，这相当于针对该入射光照的出射度$B$。我们可以用另一个更一般的名字来代替这个函数，即有向半球面反射（directional-hemispherical reflectance）\myindex{有向半球面反射}{directional-hemispherical reflectance}，$R(\omega_r)$:
+式\ref{eq:intro-conserving energy}表示对于一个给定的入射方向$\omega_r$，其所有出射方向的BRDF的积分的值小于1，这相当于针对该入射光照的出射度$B$。我们可以用另一个更一般的名字来代替这个函数，即有向半球面反射（directional-hemispherical reflectance）\myindex{有向半球面反射}{directional-hemispherical reflectance}，$R(\omega_r)$:
 
 \begin{equation}
 	R(\omega_r)= \cfrac{{\rm d}B}{{\rm d}E(\omega_r)}={\rm \int}_{\Omega}f_r(\omega_i,\omega_r)\cos\theta_i {\rm d}\omega_i
@@ -1152,7 +1148,7 @@ MSAA相对于Supersampling大大减少了计算量（每个像素着色器只执
 
 
 \subsubsection{BRDF可视化}
-因为BRDF遵循物理定律，所以使用BRDF模型来计算光与表面交互的渲染技术通常又称为基于物理的着色（physically based shading\myindex{基于物理的着色}{physically based shading}，为了更好地设计和验证不同的BRDF模型，我们需要十分便利的可视化方式使得BRDF更直观，如图\ref{f:intro-brdf-models}所示。
+因为BRDF遵循物理定律，所以使用BRDF模型来计算光与表面交互的渲染技术通常又称为基于物理的着色（physically based shading）\myindex{基于物理的着色}{physically based shading}，为了更好地设计和验证不同的BRDF模型，我们需要十分便利的可视化方式使得BRDF更直观，如图\ref{f:intro-brdf-models}所示。
 
 \begin{figure}
 \begin{fullwidth}
@@ -1183,7 +1179,7 @@ MSAA相对于Supersampling大大减少了计算量（每个像素着色器只执
 
 由于物体表面微观结构上不是绝对光滑的，所以导致表面上的每个点反射或折射光\footnote{这里的入射光实际上是一个物体表面一个像素尺寸大小的范围内接收的来自某个方向的所有光线，实际上是微观上的多条光线。}至多个不同的方向（每个方向一条光线）。所以给定一个入射方向，BRDF的值分布在所有出射方向上。在图\ref{f:intro-brdf-models}中，球面的部分是漫反射部分，因为漫反射可能沿所有出射方向都有反射光；椭圆形部分则是光泽反射部分。
 
-Disney提供有一个开源的BRDF工具BRDF Explorer\footnote{\url{http://www.disney.animation.com/technology/brdf.html}}，这个工具可以导入并绘制给定的BRDF模型，这些BRDF模型可以由OpenGL GLSL着色语言编写，或者来自MERL数据库的对真实材质测量的BRDF二进制数据，以及MIT CSAIL的各向异性的BRDF数据格式。当参数发生改变时，环境可以被实时地重新渲染，可以非常方便地用来分析和评估不同的BRDF模型。
+Disney提供有一个开源的BRDF工具BRDF Explorer\cite{m:BRDFExplorer}，这个工具可以导入并绘制给定的BRDF模型，这些BRDF模型可以由OpenGL GLSL着色语言编写，或者来自MERL数据库的对真实材质测量的BRDF二进制数据，以及MIT CSAIL的各向异性的BRDF数据格式。当参数发生改变时，环境可以被实时地重新渲染，可以非常方便地用来分析和评估不同的BRDF模型。
 
 
 
@@ -1271,7 +1267,7 @@ Disney提供有一个开源的BRDF工具BRDF Explorer\footnote{\url{http://www.d
 \label{f:intro-fresnel-diff-1}
 \end{figure}
 
-由图\ref{f:intro-fresnel-diff}可知，菲涅耳公式的曲线非常复杂，在渲染领域我们通常不会使用原始的菲涅耳公式，Schlick\cite{a:AnInexpensiveBRDFModelforPhysically-BasedRendering}于1994年提出了一种比较简单且相对比较精确的模型，他的近似方程如下：
+由图\ref{f:intro-fresnel-diff}可知，菲涅耳公式的曲线非常复杂，在渲染领域我们通常不会使用原始的菲涅耳公式，\cite{a:AnInexpensiveBRDFModelforPhysically-BasedRendering}于1994年提出了一种比较简单且相对比较精确的模型，他的近似方程如下：
 
 \begin{equation}
 	R_F(\theta_i)\approx R_F(0^o)+(1-R_F(0^o))(1-\overline{\cos}\theta_i)^5
@@ -1288,21 +1284,21 @@ Disney提供有一个开源的BRDF工具BRDF Explorer\footnote{\url{http://www.d
 
 
 
-\subsection{Microfacet理论}
-本节将开始介绍BRDF模型，虽然有很多非常流行且比较理想的一些经验BRDF模型（例如\cite{a:AComparisonofFourBRDFModels,a:ExperimentalAnalysisofBRDFModels,a:AnOverviewofBRDFModels}讨论了很多比较主流的BRDF模型，特别是\cite{a:AnOverviewofBRDFModels}讨论了不同BRDF的分类），然而当前主流的游戏引擎\cite{a:RealShadinginUnrealEngine4,a:MovingFrostbitetoPBR,a:PhysicallyBasedShadingatDisney,a:PhysicallyBasedShadinginUnity}都在采用基于Microfacet理论的BRDF模型，所以本书我们将只讨论这种BRDF模型。
+\subsection{微面元理论}
+本节将开始介绍BRDF模型，虽然有很多非常流行且比较理想的一些经验BRDF模型（例如\cite{a:AComparisonofFourBRDFModels,a:ExperimentalAnalysisofBRDFModels,a:AnOverviewofBRDFModels}讨论了很多比较主流的BRDF模型，特别是\cite{a:AnOverviewofBRDFModels}讨论了不同BRDF的分类），然而当前主流的游戏引擎\cite{a:RealShadinginUnrealEngine4,a:MovingFrostbitetoPBR,a:PhysicallyBasedShadingatDisney,a:PhysicallyBasedShadinginUnity}都在采用基于微面元理论的BRDF模型，所以本书我们将只讨论这种BRDF模型。
 
-在前面介绍材质相关内容时（第\ref{sec:intro-materials}节），我们看到绝大多数物质在低于一个像素的观察尺度上，都是不连续的，称这个尺度为Microscale。在这个尺度下，一个像素接收到来自某个方向的光照并不是一单束光，由于一个像素的尺寸远大于光子的尺寸，因此入射光实际上是很多束光，这些光与微观上具有不同方向法线的微面元发生交互，从而反射或折射至不同的方向，如图\ref{f:intro-microgeometry}所示。
+在前面介绍材质相关内容时（第\ref{sec:intro-materials}节），我们看到绝大多数物质在低于一个像素的观察尺度上，都是不连续的，称这个尺度为微观尺度（microscale）\myindex{微观尺度}{microscale}。在这个尺度下，一个像素接收到来自某个方向的光照并不是一单束光，由于一个像素的尺寸远大于光子的尺寸，因此入射光实际上是很多束光，这些光与微观上具有不同方向法线的微面元发生交互，从而反射或折射至不同的方向，如图\ref{f:intro-microgeometry}所示。
 
 \begin{figure}
 	\sidecaption
 	\includegraphics[width=0.4\textwidth]{figures/intro/ray-optics-3}
-	\caption{Microfacet理论假设物质表面由大量微观结构的面元组成，这些微观结构远小于一个像素的尺寸，光束与每个面元进行交互将光反射或折射至不同的方向}
+	\caption{微面元理论假设物质表面由大量微观结构的面元组成，这些微观结构远小于一个像素的尺寸，光束与每个面元进行交互将光反射或折射至不同的方向}
 	\label{f:intro-microgeometry}
 \end{figure}
 
-由于这种微观结构不能通过分析的方式精确模拟，因此只能通过统计的方式来模拟这种微观结构的分布。Microfacet理论正是基于这样的假设，它假设物质由大量微几何结构（Microgeometry）的面元（Microfacet）组成，每个面元是绝对光滑的，因此光与这些面元的交互遵循反射定律和折射定律；而这些微观面元法线（Microfacet normals）方向的分布使用一个统计的分布函数（称为Normal distribution function，NDF）给出，这个分布函数反应光从每个方向反射的概率，例如大多数表面的NDF函数分布集中在表面的宏观法线方向上（即通过贴图或者顶点插值记录的每个像素的法线$\mathbf{n}$）。
+由于这种微观结构不能通过分析的方式精确模拟，因此只能通过统计的方式来模拟这种微观结构的分布。微面元理论正是基于这样的假设，它假设物质由大量微观几何（microgeometry）\myindex{微观几何}{microgeometry}结构的微面元（microfacet）\myindex{微面元}{microfacet}组成，每个面元是绝对光滑的，因此光与这些面元的交互遵循反射定律和折射定律；而这些微面元法线（microfacet normals）\myindex{微面元法线}{microfacet normals}方向的分布使用一个统计的法线分布函数（normal distribution function，NDF）\myindex{法线分布函数}{normal distribution function}给出，这个分布函数反应光从每个方向反射的概率，例如大多数表面的NDF函数分布集中在表面的宏观法线方向上（即通过贴图或者顶点插值记录的每个像素的法线$\mathbf{n}$）。
 
-因为每个面元都是绝对光滑的，每束光仅在沿反射定律决定的方向上才能反射，即意味着只有那些满足反射方向刚好在观察方向$\mathbf{v}$的面元才能被看到，如图\ref{f:intro-microfacet}所示。这意味着这些可以被观察到的面元的法线正好位于入射方向$\mathbf{l}$和观察方向$\mathbf{v}$的中间，这个矢量称为半矢量(Half vector)$\mathbf{h}= \cfrac{\mathbf{l}+\mathbf{v}}{|\mathbf{l}+\mathbf{v}|}$。
+因为每个面元都是绝对光滑的，每束光仅在沿反射定律决定的方向上才能反射，即意味着只有那些满足反射方向刚好在观察方向$\mathbf{v}$的面元才能被看到，如图\ref{f:intro-microfacet}所示。这意味着这些可以被观察到的面元的法线正好位于入射方向$\mathbf{l}$和观察方向$\mathbf{v}$的中间，这个矢量称为半矢量(half vector)\myindex{半矢量}{half vector}$\mathbf{h}= \cfrac{\mathbf{l}+\mathbf{v}}{|\mathbf{l}+\mathbf{v}|}$。
 
 \begin{figure}
 \sidecaption
@@ -1311,7 +1307,7 @@ Disney提供有一个开源的BRDF工具BRDF Explorer\footnote{\url{http://www.d
 	\label{f:intro-microfacet}
 \end{figure}
 
-并不是所有法线在半矢量$\mathbf{h}$方向的面元都会被观察到，其中的一些会在光源方向或观察方向上被其他面元阻挡，如图\ref{f:intro-microfacet-effect}(a)和(b)所示。尽管实际这些被阻挡的光线会继续与其他面元进行多次反射最终仍有可能进入观察视线内，如图\ref{f:intro-microfacet-effect}(c)所示，但是Microfacet理论一般忽略这种复杂的情况，即不考虑所有被阻挡的光线，本书介绍的Microfacet BRDF都是只考虑光的一次反射，对于在微面元之间多次反射之间的情形，感兴趣的读者可以参考\cite{a:MultidimensionalBinarySearchTreesUsedforAssociativeSearching}。
+并不是所有法线在半矢量$\mathbf{h}$方向的面元都会被观察到，其中的一些会在光源方向或观察方向上被其他面元阻挡，如图\ref{f:intro-microfacet-effect}(a)和(b)所示。尽管实际这些被阻挡的光线会继续与其他面元进行多次反射最终仍有可能进入观察视线内，如图\ref{f:intro-microfacet-effect}(c)所示，但是微面元理论一般忽略这种复杂的情况，即不考虑所有被阻挡的光线，本书介绍的微面元BRDF都是只考虑光的一次反射，对于在微面元之间多次反射之间的情形，感兴趣的读者可以参考\cite{a:MultidimensionalBinarySearchTreesUsedforAssociativeSearching}。
 
 \begin{figure}
 	\begin{subfigure}[b]{0.34\textwidth}
@@ -1330,17 +1326,17 @@ Disney提供有一个开源的BRDF工具BRDF Explorer\footnote{\url{http://www.d
 \label{f:intro-microfacet-effect}
 \end{figure}
 
-由于不考虑微观面元内部的相互反射，所以基于Microfacet理论的BRDF模型一般只针对光泽部分，所以它通常还需要配合一个漫反射的BRDF分布。因为漫反射主要是光线在微观结构内部经过多次反射的结果，它的光照相对于只考虑一次反射的光泽要弱得多。
+由于不考虑微观面元内部的相互反射，所以基于微面元理论的BRDF模型一般只针对光泽部分，所以它通常还需要配合一个漫反射的BRDF分布。因为漫反射主要是光线在微观结构内部经过多次反射的结果，它的光照相对于只考虑一次反射的光泽要弱得多。
 
 
-综合以上这些假设和理论，基于Microfacet理论的BRDF模型主要由两部分因素决定，即：
+综合以上这些假设和理论，基于微面元理论的BRDF模型主要由两部分因素决定，即：
 
 \begin{itemize}
 	\item 一个关于所有微观面元的表面法线分布函数$D$，其中只有法线指向半矢量$\mathbf{h}$方向的面元才会被观察到。
 	\item 同时，对法线方向处于半矢量$\mathbf{h}$的微观面元，当且仅当它们在入射方向和观察方向没有被其他面元阻挡才能被观察到，这需要一个表示几何遮挡关系的函数$G$。
 \end{itemize}
 
-根据以上结论，再结合菲涅耳公式，对于各向同性(Isotropic)材质的BRDF模型由以下式给出：
+根据以上结论，再结合菲涅耳公式，对于各向同性(isotropic)\myindex{各向同性}{isotropic}材质的BRDF模型由以下式给出：
 
 \begin{equation}
 	f(\mathbf{l},\mathbf{v})=f_d+ \cfrac{R_F(\theta_h)G(\theta_l,\theta_v)D(\theta_h)}{4\cos\theta_l \cos\theta_v}
@@ -1349,12 +1345,12 @@ Disney提供有一个开源的BRDF工具BRDF Explorer\footnote{\url{http://www.d
 \noindent 这个方程包含漫反射和光泽部分，其中漫反射通常与方向无关，为一个常数；而光泽部分包含三个组件：菲涅耳反射率$R_F(\theta_h)$，表示几何遮挡关系的$G(\theta_l,\theta_v)$，以及微面元法线发布函数$D(\theta_h)$，其中$D(\theta_h)$必须是归一化的。$\theta_l$和$\theta_v$分别表示入射方向$\mathbf{l}$和观察方向$\mathbf{v}$与表面法线$\mathbf{n}$的夹角，$\theta_h$是表面法线$\mathbf{n}$和半矢量$\mathbf{h}$之间的夹角，$\theta_d$则是入射方向$\mathbf{l}$和半矢量$\mathbf{h}$之间的差值。由于假设材质是各项同性（我们将在后面讨论各向异性材质的法线分布函数）的，因此微面元法线分布函数$D$仅有一个变量$\theta_h$。分母$4\cos\theta_l \cos\theta_v$表示一个从微观面元空间向宏观像素空间转变的转换因子，因为$f(\mathbf{l},\mathbf{v})$是宏观空间的一个度量。
 
 
-以下我们分别讨论Microfacet BRDF的各个部分，以及各个部分的选择，尤其我们要讨论几个主流游戏引擎各自的选择，这些选择大都基于或者源自Disney\cite{a:PhysicallyBasedShadingatDisney}的BRDF模型。首先对于菲涅耳反射率，工业中比较广泛的解决方案还是前面讲述的Schlick近似，所以本节将集中讨论法线分布函数$D$以及几何遮挡函数$G$。
+以下我们分别讨论微面元BRDF的各个部分，以及各个部分的选择，尤其我们要讨论几个主流游戏引擎各自的选择，这些选择大都基于或者源自\cite{a:PhysicallyBasedShadingatDisney}的BRDF模型。首先对于菲涅耳反射率，工业中比较广泛的解决方案还是前面讲述的Schlick近似，所以本节将集中讨论法线分布函数$D$以及几何遮挡函数$G$。
 
 
 
 \subsubsection{微观面元法线分布函数$D$}
-Microfacet BRDF最重要的部分就是微观面元的法线分布函数NDF，它是表面的微观几何结构中，所有微观面元的法线面向不同方向的概率，它决定了光泽部分的宽度，形状及其他特征。工业中比较流行的NDF包括Beckmann\cite{a:TheScatteringofElectromagneticWavesfromRoughSurfaces}，Phong\cite{a:IlluminationforComputerGeneratedPictures}以及GGX\cite{a:Microfacetmodelsforrefractionthroughroughsurfaces}等分布函数。本节的重点不在于分析这些不同的模型，我们只需要了解不同模型的特征，以及它怎样被使用在Microfacet BRDF中。
+微面元BRDF最重要的部分就是微观面元的法线分布函数NDF，它是表面的微观几何结构中，所有微观面元的法线面向不同方向的概率，它决定了光泽部分的宽度，形状及其他特征。工业中比较流行的NDF包括Beckmann\cite{a:TheScatteringofElectromagneticWavesfromRoughSurfaces}，Phong\cite{a:IlluminationforComputerGeneratedPictures}以及GGX\cite{a:Microfacetmodelsforrefractionthroughroughsurfaces}等分布函数。本节的重点不在于分析这些不同的模型，我们只需要了解不同模型的特征，以及它怎样被使用在微面元BRDF中。
 
 
 根据概率的特征，$D$函数通常在其作用域（这里的作用域其实是NDF分布曲线空间）归一化为1，即：
@@ -1363,11 +1359,11 @@ Microfacet BRDF最重要的部分就是微观面元的法线分布函数NDF，�
 	{\rm \int}_\Omega D(\theta_h)\cos\theta_h {\rm d}\omega =1
 \end{equation}
 
-\noindent 根据Microfacet理论的假设，这个法线分布函数是由表面的粗糙度决定的，在后面的材质模型中我们用$roughness$表示这个粗糙度参数。Disney对MERL BRDF\footnote{\url{http://www.merl.com/brdf/}}数据的分析中分析中，关于光泽BRDF球状分布，它具有一个很长的拖尾，如图\ref{f:intro-specular-lob-tails}所示，这个拖尾比一般的光泽模型都要长好几倍，传统的Blinn Phong和Gaussian分布都不能有效地表达这种拖尾效应。
+根据微面元理论的假设，这个法线分布函数是由表面的粗糙度决定的，在后面的材质模型中我们用$roughness$表示这个粗糙度参数。Disney对MERL BRDF\cite{a:AData-DrivenReflectanceModel}数据的分析中分析中，关于光泽BRDF球状分布，它具有一个很长的拖尾，如图\ref{f:intro-specular-lob-tails}所示，这个拖尾比一般的光泽模型都要长好几倍，传统的Blinn Phong和Gaussian分布都不能有效地表达这种拖尾效应。
 
-\begin{shaded*}
+\begin{shaded}
 MERL BRDF数据库是对一些实物的进行测量，以二进制数据的方式存储的BRDF数据，每个BRDF是一张$90\times 90\times 180$的三维数组，分别表示BRDF函数的$\theta_h$，$\theta_d$及$\phi_d$参数，其中$\theta_h$和$\phi_d$均以$1^o$为增量记录BRDF数据，而$\theta_d$则被压缩至一个更窄的光泽分布的形状空间。MERL BRDF每个文件为33M，它通常被用来分析真实物质表面的BRDF性质，以及用来验证各种BRDF模型。
-\end{shaded*}
+\end{shaded}
 
 
 \begin{figure}
@@ -1383,15 +1379,13 @@ MERL BRDF数据库是对一些实物的进行测量，以二进制数据的方�
 \end{fullwidth}
 \end{figure}
 
-
-
 为了有效表达这种拖尾效应，Disney发现只有GGX分布\cite{a:Microfacetmodelsforrefractionthroughroughsurfaces}具有最长的拖尾，如图\ref{f:intro-specular-lob-tails}所示，GGX实际上具有和Trowbridge-Reitz\cite{a:Averageirregularityrepresentationofaroughrayreflection}一样的表述，它们的分布函数如下：
 
 \begin{equation}
 	D_{TR}=c/(\alpha^2 \cos^2\theta_h +\sin^2\theta_h)^2
 \end{equation}
 
-\noindent Trowbridge和Reitz比较了其他一些分布函数，发现$D_{TR}$和Berry(1923)的分布函数具有相似的形式，但是后者的指数部分取值1，这就建议一个指数可变化的更一般的分布函数（Generalized-Trowbridge-Reitz）：
+\noindent Trowbridge和Reitz比较了其他一些分布函数，发现$D_{TR}$和Berry(1923)的分布函数具有相似的形式，但是后者的指数部分取值1，这就建议一个指数可变化的更一般的分布函数（generalized-Trowbridge-Reitz）：
 
 \begin{equation}
 	D_{GTR}=c/(\alpha^2 \cos^2\theta_h +\sin^2\theta_h)^\lambda
@@ -1399,7 +1393,7 @@ MERL BRDF数据库是对一些实物的进行测量，以二进制数据的方�
 
 \noindent 其中$c$表示一个缩放常数，$\alpha$表示表面的粗糙度，它的值介于$0$和$1$之间，当$\alpha=0$时导致一个绝对光滑的分布，而$\alpha=1$表示表面绝对粗糙，所有的反射光都是漫反射光。GTR的分布曲线如图\ref{f:intro-gtr}所示。
 
-但是GGX仍然不足以捕捉更多的光泽细节。一些研究发现单一的光泽耳垂（Specular lobe）分布通常不能精确地描述真实物质的光泽性质，因此一些研究建议对同一个表面使用多个Specular lobe，例如\cite{a:GlobalOptimizationforEstimatingaMultiple-LobeAnalyticalBRDF}等，但是大多数不会超过3个，一般以2个Specular lobe居多。所以Disney也采用了两个\footnote{实际上通过如图\ref{f:intro-specular-lob-tails}所示，这种拖尾并不能通过调整一个GGX的参数使它覆盖的范围更宽来实现更长的拖尾，它的中心区域亮度非常高，而在狭长的拖尾部分亮度非常低，因此更适合用两个$D$分布函数来组合这种拖尾}GGX的组合来表述这种更长的拖尾。其中第一个GTR（称为Primary lobe）取值$\lambda=2$，它表示中心的高亮度区域，并且它用来表述金属材质的各向异性；第二个GTR（称为Secondary lobe）取值$\lambda=1$，它表示拖尾部分，具有更低的亮度，同时它仅表示各向同性的光泽。
+但是GGX仍然不足以捕捉更多的光泽细节。一些研究发现单一的光泽叶（specular lobe）\myindex{光泽叶}{specular lobe}分布通常不能精确地描述真实物质的光泽性质，因此一些研究建议对同一个表面使用多个光泽叶，例如\cite{a:GlobalOptimizationforEstimatingaMultiple-LobeAnalyticalBRDF}等，但是大多数不会超过3个，一般以2个Specular lobe居多。所以Disney也采用了两个\footnote{实际上通过如图\ref{f:intro-specular-lob-tails}所示，这种拖尾并不能通过调整一个GGX的参数使它覆盖的范围更宽来实现更长的拖尾，它的中心区域亮度非常高，而在狭长的拖尾部分亮度非常低，因此更适合用两个$D$分布函数来组合这种拖尾}GGX的组合来表述这种更长的拖尾。其中第一个GTR（称为Primary lobe）取值$\lambda=2$，它表示中心的高亮度区域，并且它用来表述金属材质的各向异性；第二个GTR（称为Secondary lobe）取值$\lambda=1$，它表示拖尾部分，具有更低的亮度，同时它仅表示各向同性的光泽。
 
 \begin{figure}
 	\sidecaption
@@ -1408,10 +1402,9 @@ MERL BRDF数据库是对一些实物的进行测量，以二进制数据的方�
 	\label{f:intro-gtr}
 \end{figure}
 
-
 对于粗糙度，Disney选择使用$\alpha=roughness^2$以产生一个更线性的变化，这使得设计师更直观地调整效果。
 
-对于各项异性（Anisotropic）的法线分布函数，粗糙度将随着方位角$\phi$变化，根据\cite{a:PhysicallyBasedShadingatDisney}，$ \cfrac{1}{\alpha^2}$可以被$ \cfrac{\cos^2\phi}{\alpha^2_x}+ \cfrac{\sin^2\phi}{\alpha^2_y}$替换，其中：
+对于各项异性（anisotropic）\myindex{各项异性}{anisotropic}的法线分布函数，粗糙度将随着方位角$\phi$变化，根据\cite{a:PhysicallyBasedShadingatDisney}，$ \cfrac{1}{\alpha^2}$可以被$ \cfrac{\cos^2\phi}{\alpha^2_x}+ \cfrac{\sin^2\phi}{\alpha^2_y}$替换，其中：
 
 \begin{equation}
 \begin{aligned}
@@ -1427,30 +1420,30 @@ MERL BRDF数据库是对一些实物的进行测量，以二进制数据的方�
 
 
 \subsubsection{微观面元几何遮挡函数$G$}
-表示微观面元几何关系的$G$称为Bidirectional shadowing-masking function，它描述的是那些具有半矢量法线的微观面元中，有多少比例是同时被入射方向和反射方向看见的（或者说没有被阻挡的）。因此$G$的一个特征是其值介于0和1之间：
+表示微观面元几何关系的$G$称为双向阴影遮挡函数（bidirectional shadowing-masking function）\myindex{双向阴影遮挡函数}{bidirectional shadowing-masking function}，它描述的是那些具有半矢量法线的微观面元中，有多少比例是同时被入射方向和反射方向看见的（或者说没有被阻挡的）。因此$G$的一个特征是其值介于0和1之间：
 
 \begin{equation}
 	0\leq G(\theta_l,\theta_v)\leq 1
 \end{equation}
 
-\noindent 虽然$D$部分对整个Microfacet BRDF的影响是最大的（如图\ref{f:intro-smith-shadowing-masking}所示，$G_1$在大部分方向值接近于1），但是$G$部分则是最复杂的，因为$G$的计算通常要依赖于法线分布函数$D$，所以在工业中都是首先从法线分布函数按Smith Shadowing function推导出真实的几何遮挡函数，然后再取一个近似函数，这个近似函数大都能直接通过$roughness$参数来直接计算。更多关于几何遮挡函数的资料可以参考\cite{a:UnderstandingtheMaskingShadowingFunctioninMicrofacetBasedBRDFs}。
+\noindent 虽然$D$部分对整个微面元BRDF的影响是最大的（如图\ref{f:intro-smith-shadowing-masking}所示，$G_1$在大部分方向值接近于1），但是$G$部分则是最复杂的，因为$G$的计算通常要依赖于法线分布函数$D$，所以在工业中都是首先从法线分布函数按史密斯阴影函数（Smith shadowing function）\myindex{史密斯阴影函数}{Smith shadowing function}推导出真实的几何遮挡函数，然后再取一个近似函数，这个近似函数大都能直接通过$roughness$参数来直接计算。更多关于几何遮挡函数的资料可以参考\cite{a:UnderstandingtheMaskingShadowingFunctioninMicrofacetBasedBRDFs}。
 
-\begin{shaded*}
-	Smith Shadowing function的形式为（推导参考\cite{a:UnderstandingtheMaskingShadowingFunctioninMicrofacetBasedBRDFs}）：
+\begin{shaded}
+	史密斯阴影函数的形式为（推导参考\cite{a:UnderstandingtheMaskingShadowingFunctioninMicrofacetBasedBRDFs}）：
 	
 	\begin{equation}
 		G_1(\mathbf{v},\mathbf{h})= \cfrac{\chi^{+}(\mathbf{v}\cdot\mathbf{h})}{1+\Lambda (\mathbf{v})}
 	\end{equation}
 	
-	\noindent 其中$ \cfrac{1}{1+\Lambda (\mathbf{v})}$为一般化的Smith Shadowing函数，$\chi^{+}(\alpha)$在$\alpha>0$时为1，$\alpha\leq 0$时为0。
+	\noindent 其中$ \cfrac{1}{1+\Lambda (\mathbf{v})}$为一般化的史密斯阴影函数，$\chi^{+}(\alpha)$在$\alpha>0$时为1，$\alpha\leq 0$时为0。
 	
-	请注意，Smith Shadowing function对$G$做了一个近似，即假设入射遮挡（Shadowing）和出射遮挡（Masking）是不相关（Dependence）的，所以这两部分可以分别被分离出来，并且它们都是由NDF决定的，所以具有相同的计算公式$G_1$，即：
+	请注意，史密斯阴影函数对$G$做了一个近似，即假设入射遮挡（shadowing）和出射遮挡（sasking）是不相关（dependence）的，所以这两部分可以分别被分离出来，并且它们都是由NDF决定的，所以具有相同的计算公式$G_1$，即：
 
 \begin{equation}\label{eq:intro-smith-shadow-masking}
 	G(\mathbf{v,\mathbf{l},\mathbf{h}})\approx G_1(\mathbf{v},\mathbf{h})G_1(\mathbf{l},\mathbf{h})= \cfrac{\chi^{+}(\mathbf{v}\cdot\mathbf{h})}{1+\Lambda (\mathbf{v})} \cfrac{\chi^{+}(\mathbf{l}\cdot\mathbf{h})}{1+\Lambda (\mathbf{l})}
 \end{equation}
 
-但是今年越来越多的引擎开始考虑入射遮挡和出射遮挡的相关性，因此给出更精确的几何遮挡函数，例如在Frostbite\cite{a:MovingFrostbitetoPBR}中，它们使用：
+但是今年越来越多的引擎开始考虑入射遮挡和出射遮挡的相关性，因此给出更精确的几何遮挡函数，例如在\cite{a:MovingFrostbitetoPBR}中，它们使用：
 
 	\begin{equation}\label{eq:intro-correct-shadow-masking}
 		G(\mathbf{v},\mathbf{l},\mathbf{h},\alpha)= \cfrac{\chi^{+}(\mathbf{v}\cdot\mathbf{h})\chi^{+}(\mathbf{l}\cdot\mathbf{h})}{1+\Lambda (\mathbf{v})+\Lambda (\mathbf{l})}
@@ -1463,13 +1456,13 @@ MERL BRDF数据库是对一些实物的进行测量，以二进制数据的方�
 \end{equation}
 
 
-\end{shaded*}
+\end{shaded}
 
 
 \begin{figure}
 	\sidecaption
 	\includegraphics[width=0.45\textwidth]{figures/intro/smith-shadowing-masking}
-	\caption{Smith Shadowing-masking, $G_1$，其中红色曲线基于Beckmann分布，绿色曲线基于GGX分布，由此可见$G_1$的值几乎总是接近于1，除了在接近垂直于表面法线的方向，同时GGX分布比Beckmann具有更多的阴影遮挡，这是因为其更长的拖尾导致}
+	\caption{S史密斯阴影函数, $G_1$，其中红色曲线基于Beckmann分布，绿色曲线基于GGX分布，由此可见$G_1$的值几乎总是接近于1，除了在接近垂直于表面法线的方向，同时GGX分布比Beckmann具有更多的阴影遮挡，这是因为其更长的拖尾导致}
 	\label{f:intro-smith-shadowing-masking}
 \end{figure}
 
@@ -1507,7 +1500,7 @@ Unreal Engine 4\cite{a:RealShadinginUnrealEngine4}则选择使用Schlick\cite{a:
 
 
 \subsubsection{漫反射BRDF}
-对于漫反射，出于性能的考虑，工业中比较流行的方案是Lambert BRDF模型，即光从各个方向以相同的亮度反射，所以BRDF函数是一个常数：
+对于漫反射，出于性能的考虑，工业中比较流行的方案是朗伯BRDF（Lambert BRDF）\myindex{朗伯BRDF}{Lambert BRDF}模型，即光从各个方向以相同的亮度反射，所以BRDF函数是一个常数：
 
 \begin{equation}\label{eq:intro-lambert-diff}
 	f_{d}(\mathbf{l},\mathbf{v})= \cfrac{\mathbf{c}_{\rm diff}}{\pi}
@@ -1515,7 +1508,7 @@ Unreal Engine 4\cite{a:RealShadinginUnrealEngine4}则选择使用Schlick\cite{a:
 
 \noindent 这里$\mathbf{c}_{\rm diff}$是一个材质系数，参见后面材质模型一节的内容。
 
-Lambert漫反射模型假设折射进入表面内部的光经历了足够多的散射，因此失去了方向性，从而在各个方向的反射率为一个常数。然而现实中的材质却很少是这样，物体微观结构导致的粗糙度不仅对光泽反射有影响，它还对对漫反射有影响，当微观面元的结构大于subsurface scattering的结构时，将导致一种回射反射\footnote{注意这里虽然称为反射，但它本质上是漫反射，是因为平行于光源的方向导致看见的被光源直接照射的面积增加，从而微观上漫反射的面积增加。}（retro-reflection）--即光反射回到光源的方向。这种回射反射效果是因为微观面元间的遮挡导致的，如图\ref{f:intro-retro-reflection}所示，当观察方向不同于光源方向，这种阻挡会大大减少被光照到面积，从而减少漫反射的面积。
+朗伯漫反射模型假设折射进入表面内部的光经历了足够多的散射，因此失去了方向性，从而在各个方向的反射率为一个常数。然而现实中的材质却很少是这样，物体微观结构导致的粗糙度不仅对光泽反射有影响，它还对对漫反射有影响，当微观面元的结构大于次表面散射的结构时，将导致一种回射反射\footnote{注意这里虽然称为反射，但它本质上是漫反射，是因为平行于光源的方向导致看见的被光源直接照射的面积增加，从而微观上漫反射的面积增加。}（retro-reflection）--即光反射回到光源的方向。这种回射反射效果是因为微观面元间的遮挡导致的，如图\ref{f:intro-retro-reflection}所示，当观察方向不同于光源方向，这种阻挡会大大减少被光照到面积，从而减少漫反射的面积。
 
 \begin{figure}
 	\includegraphics[width=0.85\textwidth]{figures/intro/retro-reflection}
@@ -1693,11 +1686,11 @@ Metallic控制表面的“金属感”，金属和非金属是一个非此即彼
 
 
 \subsection{BSDF}\label{sec:intro-bsdf}
-前面讨论的BRDF模型通过少数几个参数就可以表述比较广泛的材质，并可以渲染出逼真的图像品质，但是对于如折射，Subsurface scattering还是需要使用其他一些特别的(Ad hoc)方法来专门处理。然而这些特别的方法通常不能保证能量守恒，因此当整个渲染器是基于光线追踪的技术来计算光照时，这种能量的不守恒将会被放大，以至于使整个图像品质失真，因为光线追踪技术对这些特别的函数进行采样，并依此在场景中通过光的传播传递能量，如果这些采样函数本身不能保证能量守恒，它将会导致这些传递的能量完全是错误的。这就是Disney在2014年开发新的基于光线追踪技术的渲染器Hyperion\footnote{关于Disney的Hyperion渲染技术，我们将在第\ref{chp:path-tracing}章详细讨论。}时遇到的困难。我们需要一个对反射，折射以及Subsurface scattering更统一并能保证能量守恒的模型。
+前面讨论的BRDF模型通过少数几个参数就可以表述比较广泛的材质，并可以渲染出逼真的图像品质，但是对于如折射，次表面散射还是需要使用其他一些特别的(ad hoc)方法来专门处理。然而这些特别的方法通常不能保证能量守恒，因此当整个渲染器是基于光线追踪的技术来计算光照时，这种能量的不守恒将会被放大，以至于使整个图像品质失真，因为光线追踪技术对这些特别的函数进行采样，并依此在场景中通过光的传播传递能量，如果这些采样函数本身不能保证能量守恒，它将会导致这些传递的能量完全是错误的。这就是Disney在2014年开发新的基于光线追踪技术的渲染器Hyperion\footnote{关于Disney的Hyperion渲染技术，我们将在第\ref{chp:path-tracing}章详细讨论。}时遇到的困难。我们需要一个对反射，折射以及次表面散射更统一并能保证能量守恒的模型。
 
-这使我们将目光转移到更一般的Bidirectional scattering distribution function，简称BSDF，它其实是BRDF和BTDF的总和。BTDF全称bidirectional transmittance distribution function，它和BRDF的形式基本一样，唯一的区别是BTDF的观察方向是在折射方向范围内。这样BSDF就表示，给定某点的入射方向和出射方向（在反射范围或折射范围内），出射方向上辐射亮度增量与入射方向辐射照度增量的比率。
+这使我们将目光转移到更一般的双向散射分布函数（bidirectional scattering distribution function，BSDF）\myindex{双向散射分布函数}{bidirectional scattering distribution function}，它其实是BRDF和BTDF的总和。BTDF全称为双向传输分布函数（bidirectional transmittance distribution function，BTDF）\myindex{双向传输分布函数}{bidirectional transmittance distribution function}，它和BRDF的形式基本一样，唯一的区别是BTDF的观察方向是在折射方向范围内。这样BSDF就表示，给定某点的入射方向和出射方向（在反射范围或折射范围内），出射方向上辐射亮度增量与入射方向辐射照度增量的比率。
 
-那么BSDF包含了所有光与物体交互的计算吗？答案显然不是，由于BSDF仅考虑某一点的反射和折射，因此所有涉及距离的现象都不会覆盖到，例如光从一个点折射进入表面内部，然后经历多次散射后从另一个点重新散射回原介质的Subsurface scattering；以及折射光在均匀介质中直线传播，经过一段距离后从物体反面的某一点折射出去的Volumetric absorption现象。这些现象加起来可以看做是一个超级的光与物体（而不是表面某点）交互的公式，它计算光从一个方向进入物体，在物体表面或内部经过多次折射和反射之后，从物体表面的另一个点沿直到的方向散射出去。
+那么BSDF包含了所有光与物体交互的计算吗？答案显然不是，由于BSDF仅考虑某一点的反射和折射，因此所有涉及距离的现象都不会覆盖到，例如光从一个点折射进入表面内部，然后经历多次散射后从另一个点重新散射回原介质的次表面散射；以及折射光在均匀介质中直线传播，经过一段距离后从物体反面的某一点折射出去的体积吸收（volumetric absorption）现象。这些现象加起来可以看做是一个超级的光与物体（而不是表面某点）交互的公式，它计算光从一个方向进入物体，在物体表面或内部经过多次折射和反射之后，从物体表面的另一个点沿直到的方向散射出去。
 
 虽然本节标题为BSDF，但是我们也会介绍后两种现象，这些内容都包含在了Disney新的光照模型当中，并且所有这些综合在一起形成一个统一的光照模型，称作集成次表面散射的Disney BSDF模型\cite{a:ExtendingtheDisneyBRDFtoaBSDFwithIntegratedSubsurfaceScattering}（Disney BSDF with integrated subsurface scattering）。
 
@@ -1718,9 +1711,9 @@ Metallic控制表面的“金属感”，金属和非金属是一个非此即彼
 \subsubsection{BTDF}
 目前工业中比较流行的BTDF模型是Bruce Walter等\cite{a:Microfacetmodelsforrefractionthroughroughsurfaces}于2007年提出的BTDF模型，本节我们首先介绍该模型及其在Disney光照模型中的使用。
 
-Walter介绍的BTDF模型同样基于前面讨论的Microfacet理论，即宏观表面由多个微观面元组成，每个面元绝对光滑，光的折射遵循折射定律。假设入射光沿入射方向$\mathbf{i}$从介质折射率为$\eta_i$的介质，折射进入介质折射率为$\eta_o$的介质，经过折射后从方向$\mathbf{o}$观察。根据折射定律，$\eta_i \sin\theta_i=\eta_o \sin\theta_o$。注意折射其实仅跟两种介质折射率的比率有关，所以我们定义一个相对折射率（relative IOR）：$\eta=\eta_o/\eta_i$。
+Walter介绍的BTDF模型同样基于前面讨论的微面元理论，即宏观表面由多个微观面元组成，每个面元绝对光滑，光的折射遵循折射定律。假设入射光沿入射方向$\mathbf{i}$从介质折射率为$\eta_i$的介质，折射进入介质折射率为$\eta_o$的介质，经过折射后从方向$\mathbf{o}$观察。根据折射定律，$\eta_i \sin\theta_i=\eta_o \sin\theta_o$。注意折射其实仅跟两种介质折射率的比率有关，所以我们定义一个相对折射率（relative IOR）：$\eta=\eta_o/\eta_i$。
 
-与Microfacet BRDF一样，Walter首先定义了一个在折射范围观察的半矢量$\mathbf{h}_t$，这里我们采用Disney使用相对折射率的方式表述：
+与微面元BRDF一样，Walter首先定义了一个在折射范围观察的半矢量$\mathbf{h}_t$，这里我们采用Disney使用相对折射率的方式表述：
 
 \begin{equation}
 	\mathbf{h}_t=- \cfrac{\mathbf{i}+\eta\mathbf{o}}{|\mathbf{i}+\eta\mathbf{o}|}
@@ -1839,11 +1832,7 @@ Walter介绍的BTDF模型同样基于前面讨论的Microfacet理论，即宏观
 \end{fullwidth}
 \end{figure}
 
-
-
-
 Disney的归一化散射模型在电影《超能陆战队》（Big Hero 6）中第一次使用，它用在了电影中除头发以外的所有次表面反射中。
-
 
 
 
@@ -1868,7 +1857,6 @@ specular transmission &= (1-F)DG
 \end{equation}
 
 \noindent 当然这样做有一个缺陷，由于折射可以放大或者缩小粗糙度，因此两边的粗糙度是不一样的，一个更好的方法是基于相对介质折射率$\eta$来缩放粗糙度，但是这样调整后的结果没有太大的变化。
-
 
 \begin{figure}
 	\begin{subfigure}[b]{0.325\textwidth}
