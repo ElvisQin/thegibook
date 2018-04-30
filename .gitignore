@@ -22,6 +22,12 @@
 *.mtc12
 *.mtc13
 *.mtc14
+*.mtc15
+*.mtc16
+*.mtc17
+*.mtc18
+*.mtc19
+*.mtc20
 *.out
 *.gz
 *.synctex.gz
