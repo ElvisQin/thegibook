@@ -830,13 +830,13 @@ Nothing is made to ensure temporal coherency→ if one sample changes, the whol
 如果假设着色顶点的局部范围内是同质的，则上述的补偿顶点采样问题可以被更高效的处理。此时，该局部区域可以使用几何限定阈值$b$表述为一个球面空间，其半径为$d=1/\sqrt{{b}}$，其消光系数为该区域内的平均消光系数$\bar{\sigma}_t$，则以$y$为中心，在半径$d$的球面空间内距离为$t$的概率密度函数为：
 
 \begin{equation}
-	p(t)= \cfrac{\bar{\sigma}_t e^{-\bar{\sigma}_t}}{1-e^{-\bar{\sigma}_t d}}
+	p(t)= \cfrac{\bar{\sigma}_t {\rm e}^{-\bar{\sigma}_t}}{1-{\rm e}^{-\bar{\sigma}_t d}}
 \end{equation}
 
 \noindent 使用逆变换采样方法得到的距离为：
 
 \begin{equation}
-	t=- \cfrac{\ln(1-\xi(1-e^{\bar{\sigma}_td}))}{\bar{\sigma}_t}
+	t=- \cfrac{\ln(1-\xi(1-{\rm e}^{\bar{\sigma}_td}))}{\bar{\sigma}_t}
 \end{equation}
 
 \noindent 这里$\xi\in[0,1)$是一个均匀分布的随机数。

@@ -1441,7 +1441,7 @@ void ACCUM(path, technique, r, i) {
 \noindent 这里$(\vec{\omega}\cdot\nabla)$计算沿$\vec{\omega}$方向的方向导数，负数符号表示辐射亮度的减少。为了更直观地描述光束在介质中的传播，我们使用一个光束透射比（beam transmittance）\myindex{光束透射比}{beam transmittance}的概念来解上述的微分方程，记为$T_r$，光束透射比描述的是光束在介质中的两点之间沿光线传播后，保留下来的光子数量的分量，其他的光子则要么被吸收了，要么被散射到其他方向了。根据比尔定律（Beer’s Law）\mathindex{比尔定律}{Beer’s Law}，即通过对式\ref{e:pm-net-loss}执行积分计算可得：
 
 \begin{equation}\label{e:pm-transmittance}
-	T_r(\mathbf{x}\leftrightarrow\mathbf{x}^{'})=e^{-\tau(\mathbf{x}\leftrightarrow\mathbf{x}^{'})}
+	T_r(\mathbf{x}\leftrightarrow\mathbf{x}^{'})={\rm e}^{-\tau(\mathbf{x}\leftrightarrow\mathbf{x}^{'})}
 \end{equation}
 
 \noindent 其中，$\tau$称为光学厚度（optical thickness）\myindex{光学厚度}{optical thickness}或者光学深度（optical depth）\myindex{光学深度}{optical depth}，它可以通过对消光系数沿一个线段执行积分计算而得：
@@ -1597,7 +1597,7 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 例如对于同质介质，由于其消光系数为常数，其距离采样的概率密度函数可以表述为：
 
 \begin{equation}
-	{\rm pdf}(d)=e^{-\sigma_t(\mathbf{x})d}
+	{\rm pdf}(d)={\rm e}^{-\sigma_t(\mathbf{x})d}
 \end{equation}
 
 对于异质介质，可以通过求平均消光系数$\bar{\sigma}_t(\mathbf{x})$等方式来近似计算距离采样的概率密度函数。我们将在第\ref{sec:pm-transmittance-estimate}节详细讨论各种更高级的透射比估计方法。
@@ -2549,7 +2549,7 @@ Since we use a sphere to locate the photons it would be natural to assume that t
 	\item \textbf{The Gaussian filter} is a filter whose impulse response is a Gaussian function (or an approximation of it), see figure \ref{f:gaussian-filter}. A normalized Gaussian filter proposed by \cite{a:APracticalGuidetoGlobalIlluminationusingPhotonMaps} is:
 
 	\begin{equation}
-		\omega_{pg}=\alpha \Biggr[ 1- \cfrac{1-e^{-\beta \cfrac{d^{2}_p}{2r^{2}}}}{1-e^{-\beta}} \Biggr]	
+		\omega_{pg}=\alpha \Biggr[ 1- \cfrac{1-{\rm e}^{-\beta \cfrac{d^{2}_p}{2r^{2}}}}{1-{\rm e}^{-\beta}} \Biggr]	
 	\end{equation}
 	
 	\begin{figure}

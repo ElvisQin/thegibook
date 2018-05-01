@@ -1201,14 +1201,14 @@ public:
 在开始本节的分析之前，我们首先要了解一下切片定理。由第1章的内容可知，一元函数$f$的傅里叶变换（Fourier transform）\mathindex{傅里叶变换}{Fourier transform}为:
 
 \begin{equation}
-	F(\mu)={\rm \int}^{\infty}_{-\infty}f(x)e^{-j2\pi\mu t}{\rm d}x
+	F(\mu)={\rm \int}^{\infty}_{-\infty}f(x){\rm e}^{-j2\pi\mu t}{\rm d}x
 \end{equation}
 
 \noindent 如果令$\mu=0$，则上式变为：
 
 \begin{equation}
 \begin{aligned}
-	F(0)&={\rm \int}^{\infty}_{-\infty}f(x)e^{-j2\pi 0 t}{\rm d}x\\
+	F(0)&={\rm \int}^{\infty}_{-\infty}f(x){\rm e}^{-j2\pi 0 t}{\rm d}x\\
 	&={\rm \int}^{\infty}_{-\infty}f(x){\rm d}x
 \end{aligned}
 \end{equation}
@@ -1372,13 +1372,13 @@ public:
 在数学形式上，\cite{a:Fast4DShearedFilteringforInteractiveRenderingofDistributionEffects}将一个2D过滤器表示两个1D高斯过滤器的乘积：
 
 \begin{equation}
-	h(x,y)=e^{-k_x(x-x_0)^{2}}e^{-k_y(y-y_0(x,x_0))^{2}}
+	h(x,y)={\rm e}^{-k_x(x-x_0)^{2}}{\rm e}^{-k_y(y-y_0(x,x_0))^{2}}
 \end{equation}
 
 \noindent 这里$y_0=\eta(x-x_0)$表示$y$轴过滤器的中心，这里的过滤器使用和协方差矩阵提供的频谱的图像空间相同的形状来度量，为了计算图像空间的高斯过滤器，这需要计算协方差矩阵的逆矩阵，因此上式结合协方差矩阵可以变化为：
 
 \begin{equation}
-	h(x,y)=e^{-[x-x_0,y]\sum\nolimits^{-1}[x-x_0,t]^{T}},\text{ 其中 }\mathsmaller{\sum\nolimits^{-1}}=\begin{bmatrix}
+	h(x,y)={\rm e}^{-[x-x_0,y]\sum\nolimits^{-1}[x-x_0,t]^{T}},\text{ 其中 }\mathsmaller{\sum\nolimits^{-1}}=\begin{bmatrix}
 		k_x+k_y & \eta k_y\\
 		\eta k_y &k_y
 	\end{bmatrix}
