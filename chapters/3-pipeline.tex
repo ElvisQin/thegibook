@@ -1,13 +1,8 @@
-图形处理器接口（Application programming interface，API）\footnote{实际上通过第\ref{chp:hardware}章的内容可知，现代GPU大都包含两套API：一套是专门针对图形渲染的，如OpenGL等；而另一套是针对一般的并行计算，如CUDA或OpenCL等。本章以及本书大部分的内容都是指前者。}大概是每个从事图形渲染相关工作的工程师都非常熟悉的概念了，大多数程序员开始学习渲染相关的知识的时候，都是从OpenGL或DirectX等这样的图形接口开始。经典的图形接口以光栅化为核心，以管线的方式分阶段处理整个渲染过程，其中在现代图形接口中，程序员能够以着色器的方式可编程地控制管线的一些阶段，因此某种程度上，有时候我们甚至直接称图形接口为渲染管线\footnote{然而这实际上并不准确，图形渲染中涉及的对帧缓存的一些后期操作并不能称为传统渲染管线的一部分。因此本书只有在讲述完全使用传统光栅化方式渲染的时候才会称其为渲染管线。}。
+图形处理器接口（Application programming interface，API）\footnote{实际上通过第\ref{chp:hardware}章的内容可知，现代GPU大都包含两套API：一套是专门针对图形渲染的，如OpenGL等；而另一套是针对一般的并行计算，如CUDA或OpenCL等。本章以及本书大部分的内容都是指前者。}大概是每个从事图形渲染相关工作的工程师都非常熟悉的概念了，大多数程序员开始学习渲染相关知识的时候，都是从OpenGL或DirectX等这样的图形接口开始。经典的图形接口以光栅化为核心，以管线的方式分阶段处理整个渲染过程，其中在现代图形接口中，程序员能够以着色器的方式可编程地控制管线的一些阶段，因此某种程度上，有时候我们甚至直接称图形接口为渲染管线\footnote{这实际上并不准确，图形渲染中涉及的对帧缓存的一些后期操作并不能称为传统渲染管线的一部分。因此本书只有在讲述完全使用传统光栅化方式渲染的时候才会称其为渲染管线。}。
 
-一般计算机图形学相关的书籍都会有独立的一部分专门介绍渲染管线，然而它们当中的大部分主要都是围绕渲染管线的各个阶段做一般性描述，或者仅是从使用的角度讲解在程序中怎样调用图形接口进行渲染。然而实际情况是图形接口较其他一般程序接口要复杂得多，例如它要涉及多个阶段，每个阶段有很多状态，内存结构及使用的复杂性等等因素，这使得很多程序员真正掌握图形接口的过程非常漫长。因此本书认为，讲解图形接口背后的工作机制，以及这些技术怎么被用于解决渲染问题十分关键。这不仅能够使读者更加透彻理解图形接口，同时，现代的渲染技术中，光栅化并不是一种独立的渲染技术，它还需要结合很多其他的方法一起实现整个渲染工作，所以更系统地理解图形接口而不仅仅是使用它们显得更加重要，例如在后处理中需要涉及很多对纹理的读和写操作，而在一般渲染管线着色器中，我们只是简单地使用采样器读取纹理的某个（重采样之后的）纹素。
-
-
+一般计算机图形学相关的书籍都会有独立的一部分专门介绍渲染管线，然而它们当中的大部分主要都是围绕渲染管线的各个阶段做一般性描述，或者仅是从使用的角度讲解在程序中怎样调用图形接口进行渲染。然而实际情况是图形接口较其他一般程序接口要复杂得多，例如它要涉及多个阶段，每个阶段有很多状态，内存结构及使用的复杂性等等因素，这使得很多程序员真正掌握图形接口的过程非常漫长。因此本书认为，讲解图形接口背后的工作机制，以及这些技术怎么被用于解决渲染问题十分关键。这不仅能够使读者更加透彻理解图形接口，同时，在现代的渲染技术中，光栅化并不是一种独立的渲染技术，它还需要结合很多其他的方法一起实现整个渲染工作，所以更系统地理解图形接口而不仅仅是使用它们显得更加重要，例如在后处理中需要涉及很多对纹理的读和写操作，而在一般渲染管线着色器中，我们只是简单地使用采样器读取纹理的某个（重采样之后的）纹素。
 
 所以，限于篇幅，本章不会讲解很多图形接口基础的知识，相反，它假设读者对图形接口具有一定的了解，而本章试图使您对这些概念会有更系统甚至完全地理解。本章在解释相关概念的时候以OpenGL（4.5版本）为准，关于OpenGL更多的知识请参考\cite{b:OpenGLProgrammingGuide:TheOfficialGuidetoLearningOpenGLVersion4.3, b:OpenGL4.5CoreProfile, b:TheOpenGLShadingLanguage}。
-
-
-
 
 
 
@@ -18,31 +13,31 @@
 
 从一个宏观的角度，我们可以把OpenGL图形接口相关的内容划分为三大块：CPU宿主应用程序与GPU渲染管线的交互，GPU中的各种OpenGL对象以及几种不同的渲染管线。大部分基础类教材和很多初学者把后者作为图形接口学习的重点。然而从理解的角度，前两者通常能够起决定性作用。
 
-在第\ref{chp:pipeline}中我们讨论了GPU架构及其并行程序执行模型，所以在GPU上执行的渲染管线并不是独立存在的，它需要一个CPU程序充当宿主，这个宿主用于管理整个图形渲染管线的执行；而另一方面，通常CPU和GPU的内存是独立存在的，它们通过PCI-e或者DMA进行联通，这决定了宿主程序是不可能拥有GPU中变量的内存地址的，从而它们之间的通信并不能像普通的CPU程序那样进行直接引用。
+在第\ref{chp:hardware}章我们讨论了GPU架构及其并行程序执行模型，所以在GPU上执行的渲染管线并不是独立存在的，它需要一个CPU程序充当宿主，这个宿主用于管理整个图形渲染管线的执行；而另一方面，通常CPU和GPU的内存是独立存在的，它们通过PCI-e或者DMA进行联通，这决定了宿主程序是不可能拥有GPU中变量的内存地址的，从而它们之间的通信并不能像普通的CPU程序那样进行直接引用。
 
-所以，理解宿主程序与渲染管线进行交互的关键是状态机的概念。宿主程序并不能直接调用GPU直接执行一个命令，而是通过一个状态机来记录所有宿主程序当前要执行GPU应用程序的各种状态，这些状态的设置占据了大部分图形接口的内容，然后宿主通过Draw等相关的命令将这些状态及后面讲述的各种OpenGL对象\footnote{注意，有些初学者会认为我们提交到GPU的是着色器程序，而实际上在OpenGL中着色器程序也被视作一种OpenGL对象（如本章后面所述），OpenGL执行环境拿到这些对象之后根据相关的状态设置将其放入到渲染管线的某些阶段进行执行。}提交到GPU中，GPU开始根据各种状态的设置开始执行图形渲染，或者纯粹的计算工作（如计算着色器），或者其他一些特殊命令（例如将OpenGL缓存中的数据读取会宿主程序）。
+所以，理解宿主程序与渲染管线进行交互的关键是状态机的概念。宿主程序并不能直接调用GPU执行一个命令，而是通过一个状态机来记录所有宿主程序当前要执行GPU应用程序的各种状态，这些状态的设置占据了大部分图形接口的内容，然后宿主通过Draw等相关的命令将这些状态及后面讲述的各种OpenGL对象\footnote{注意，有些初学者会认为我们提交到GPU的是着色器程序，而实际上在OpenGL中着色器程序也被视作一种OpenGL对象（如本章后面所述），OpenGL执行环境拿到这些对象之后根据相关的状态设置将其放入到渲染管线的某些阶段进行执行。}提交到GPU中，GPU开始根据各种状态的设置开始执行图形渲染，或者纯粹的计算工作（如计算着色器），或者其他一些特殊命令（例如将OpenGL缓存中的数据读取回宿主程序）。
 
-这些状态信息有些是用来控制渲染管线中固定阶段的执行（例如是否需要进行深度测试等），更多地状态用于控制各种OpenGL对象以及对这些对象的读取和写入操作。由于宿主程序不能直接获取GPU内存的指针地址，所以一个OpenGL对象包含各种状态信息用来指导该对象在OpenGL被怎么使用，例如它的大小，数据类型，对象类型，例如图\ref{f:api-pipeline}中包含多种对象类型，以及数据的格式（如对于纹理对象中的纹素格式）；另一方面，这些对象大部分不是由着色器分配的，所以我们在编写着色器程序的时候并不能直接取得这些OpenGL对象的引用，那么OpenGL中对于着色器程序访问这些OpenGL对象严重地依赖于一种绑定（Binding）\index{绑定binding}\index[en]{binding绑定}的机制。着色器程序在被编译和链接的时候会给每个属性分配一个索引地址，在宿主程序可以将这些索引地址绑定到某个OpenGL对象上，然后在GPU中执行的时候OpenGL执行环境就可以正确获取到要访问的数据；另外，也有一些其他OpenGL状态用来控制这种着色器对OpenGL对象的访问，例如是否需要对纹理进行某种方式的过滤操作。由于这种着色器访问OpenGL对象的复杂性，OpenGL对象状态几乎也是学习图形接口的难点之一，我们将在下一节详细描述OpenGL对象。
+这些状态信息中有些是用来控制渲染管线中固定阶段的执行（例如是否需要进行深度测试等），更多地状态用于控制各种OpenGL对象以及对这些对象的读取和写入操作。由于宿主程序不能直接获取GPU内存的指针地址，所以一个OpenGL对象包含各种状态信息用来指导该对象在OpenGL被怎么使用，例如它的大小，数据类型，对象类型，例如图\ref{f:api-pipeline}中包含多种对象类型，以及数据的格式（如对于纹理对象中的纹素格式）；另一方面，这些对象大部分不是由着色器分配的，所以我们在编写着色器程序的时候并不能直接取得这些OpenGL对象的引用，那么OpenGL中对于着色器程序访问这些OpenGL对象严重地依赖于一种绑定（Binding）\index{绑定binding}\index[en]{binding绑定}的机制。着色器程序在被编译和链接的时候会给每个属性分配一个索引地址，宿主程序可以将这些索引地址绑定到某个OpenGL对象上，然后在GPU中执行的时候OpenGL执行环境就可以正确获取到要访问的数据；另外，也有一些其他OpenGL状态用来控制这种着色器对OpenGL对象的访问，例如是否需要对纹理进行某种方式的过滤操作。由于这种着色器访问OpenGL对象的复杂性，OpenGL对象状态几乎也是学习图形接口的难点之一，我们将在下一节详细描述OpenGL对象。
 
 \begin{figure}
 \begin{fullwidth}
-	\includegraphics[width=1.0\thewidth]{figures/api/pipeline}
+	\includegraphics[width=\thewidth]{figures/api/pipeline}
 	\caption{OpenGL图形接口执行中的数据流，该图完整展现了OpenGL图形接口中的两种渲染管线：光栅化渲染管线以及计算着色器管线，以及这些计算环节中的数据对象的使用。}
 	\label{f:api-pipeline}
 \end{fullwidth}
 \end{figure}
 
-当我们设置完各种OpenGL对象的状态，以及绑定这些对象到着色器中的属性索引，并将这些对象（包括着色器对象）上传到GPU之后，OpenGL执行环境便开始执行各种管线。对于Open GL管线，我们首先应该明白的是它不仅仅包括传统经典的光栅化管线，它还可以是纯粹在GPU执行并行计算的计算管线，如图\ref{f:api-pipeline}右上角的计算着色器所示，这种计算着色器可以用来做一些非渲染的计算，如物理模拟，并且计算着色器可以直接读取之前光栅化管线存储在OpenGL对象中的计算结果。此外，我们还可以将渲染管线中对顶点的处理结果存储在变换反馈缓存中，并且终止片元着色器的执行，这可以用来使用GPU进行一些变换或者细分操作，并将这些操作结果读回到宿主程序或者供后续的管线作为顶点数据使用。
+当我们设置完各种OpenGL对象的状态，以及绑定这些对象到着色器中的属性索引，并将这些对象（包括着色器对象）上传到GPU之后，OpenGL执行环境便开始执行各种管线。对于OpenGL管线，我们首先应该明白的是它不仅仅包括传统经典的光栅化管线，它还可以是纯粹在GPU执行并行计算的计算管线，如图\ref{f:api-pipeline}右上角的计算着色器所示，这种计算着色器可以用来做一些非渲染的计算，如物理模拟，并且计算着色器可以直接读取之前光栅化管线存储在OpenGL对象中的计算结果。此外，我们还可以将渲染管线中对顶点的处理结果存储在变换反馈缓存中，并且终止片元着色器的执行，这可以用来使用GPU进行一些变换或者细分操作，并将这些操作结果读回到宿主程序或者供后续的管线作为顶点数据使用。
 
-在这些基础之上，理解经典的光栅化渲染管线就是再简单不过的事情了。经典渲染管线的目标是把一个虚拟摄像机可视范围内的场景渲染到一个帧缓存对象中，这个帧缓存对象其实是一个容器对象，它包含多个矩形区域的颜色，深度及模板缓存，这些矩形的尺寸对应于摄像机的分辨率。在这个过程中，应用程序输入的是场景中物体的各个顶点相关的数据，例如顶点坐标，每个顶点会在顶点着色器阶段被执行一次顶点着色器计算，在这个阶段可以对每个顶点的属性进行一些处理，例如坐标变换，我们也可以做一些顶点级别的光照计算，顶点着色器输出的结果可以被光栅化器按图元类型进行插值计算。顶点着色器最必须和重要的内容，是将顶点的坐标由世界坐标系变换到由摄像机远近平面及范围（及视锥体）所在的坐标系下，这样后续的管线阶段将可以直接把这些坐标值投影到摄像机对应的屏幕范围，摄像机定义的视锥体可以构造这样一个变换矩阵。
+在这些基础之上，理解经典的光栅化渲染管线就是再简单不过的事情了。经典渲染管线的目标是把一个虚拟摄像机可视范围内的场景渲染到一个帧缓存对象中，这个帧缓存对象其实是一个容器对象，它包含多个矩形区域的颜色，深度及模板缓存，这些矩形的尺寸对应于摄像机的分辨率。在这个过程中，应用程序输入的是场景中物体的各个顶点相关的数据，例如顶点坐标，每个顶点会在顶点着色器阶段被执行一次顶点着色器计算，在这个阶段可以对每个顶点的属性进行一些处理，例如坐标变换，我们也可以做一些顶点级别的光照计算，顶点着色器输出的结果可以被光栅化器按图元类型进行插值计算。顶点着色器最重要和必须的内容，是将顶点的坐标由世界坐标系变换到由摄像机远近平面及范围（及视锥体）所在的坐标系下，这样后续的管线阶段将可以直接把这些坐标值投影到摄像机对应的屏幕范围，摄像机定义的视锥体可以构造这样一个变换矩阵。
 
-顶点处理的下一个阶段可以对图元进行细分，这通过细分控制着色器和细分计算着色器共同来实现。渲染管线的图元细分可以使得应用程序可以使用更粗粒度的模型顶点表述，减轻CPU和GPU中顶点数据的内存占用以及负责的顶点数据带来的计算开支，例如坐标变换；图形细分也可以使得渲染管线能够根据分辨率来选择细分的级别，通过减少或增加较远或较近物体的图元数量，来达到更好的渲染性能需求。同时通过后面的变换反馈阶段，渲染管线还可以直接将细分的结果返回到宿主程序，这可以用来加快一些建模的工具实时操作。
+顶点处理的下一个阶段可以对图元进行细分，这通过细分控制着色器和细分计算着色器共同来实现。渲染管线的图元细分可以使得应用程序可以使用更粗粒度的模型顶点表述，减轻CPU和GPU中顶点数据的内存占用以及复杂的顶点数据带来的计算开支，例如坐标变换；图形细分也可以使得渲染管线能够根据分辨率来选择细分的级别，通过减少或增加较远或较近物体的图元数量，来达到更好的渲染性能需求。同时通过后面的变换反馈阶段，渲染管线还可以直接将细分的结果返回到宿主程序，这可以用来加快一些建模工具的实时操作。
 
 几何着色器对每个图元执行一次或多次计算，并输出零个或多个图元。几何着色器的功能使它看起来也可以实现图元细分的功能，然而这不是它的初衷。几何着色器可以对同一个图元执行多次计算用来实现如层级渲染的功能，它也可以用来实现多个输出流来记录不同的顶点数据到不同的变换反馈缓存中。
 
 在顶点处理阶段结束到光栅化阶段之前，我们可以选择终止渲染管线的继续执行，此时可以将经过顶点处理阶段处理过后的顶点信息写入到变换反馈缓存，并将这些数据读回到宿主程序或者用于后续的渲染管线作为输入数据。
 
-之后光栅化阶段对每个图元进行插值，以计算出组成一个图元的所有片元，然后每个片元被后续执行一次片元着色器计算。片元着色器是大部分渲染器实现复杂光照计算的地方，它需要计算出每个片元的颜色值（包含RGBA通道）。随后每个片元再经过片元操作阶段以决定当前片元最终是否被保留，这些片元操作包括深度测试，模板测试，混合计算等。最后，所有通过测试的片元被写入到帧缓存中，供操作系统显示到屏幕上，或者作为后处理的数据进行后续的计算。对于写入到帧缓存中的数据（颜色，深度，模板值），它们还可以被读回到宿主程序。
+之后光栅化阶段对每个图元进行插值，以计算出组成一个图元的所有片元，然后每个片元被后续执行一次片元着色器计算。片元着色器是大部分渲染器实现复杂光照计算的地方，它需要计算出每个片元的颜色值（包含RGBA通道）。随后每个片元再经过片元操作阶段以决定当前片元最终是否被保留，这些片元操作包括深度测试，模板测试，混合计算等。最后，所有通过测试的片元被写入到帧缓存中，供操作系统显示到屏幕上，或者作为后处理的数据进行后续的计算。对于写入到帧缓存中的数据（如颜色，深度，模板值），它们还可以被读回到宿主程序。
 
 在对渲染管线有一个整体的认识之后，本章后面的内容将更详细地描述各个部分的内容。
 
@@ -63,12 +58,12 @@ GPU编程模型相较于CPU程序最大的区别在于内存对象的使用。�
 void glGen*(GLsizei n​, GLuint *objects​);
 \end{lstlisting}
 
-该方法为$n$个OpenGL对象创建$n$个名称，这些名称存储在$objects$数组中，每个名称是一个整数，它表示OpenGL服务端一个对象的引用，其中0通常被系统保留。这里*被各种不同的对象类型名称替代，OpenGL中的对象被划分为多种类型，比如Buffer，FrameBuffer，Texture，VertexArray等对象类型，每种类型拥有独立的对象名称，即是说不同类型的对象可能拥有相同的整数名称，因此这些对象在使用的时候必须要指明类型，参见后面的内容。
+该方法为n个OpenGL对象创建n个名称，这些名称存储在objects数组中，每个名称是一个整数，它表示OpenGL服务端一个对象的引用，其中0通常被系统保留。这里*被各种不同的对象类型名称替代，OpenGL中的对象被划分为多种类型，比如Buffer，FrameBuffer，Texture，VertexArray等对象类型，每种类型拥有独立的对象名称，即是说不同类型的对象可能拥有相同的整数名称，因此这些对象在使用的时候必须要指明类型，参见后面的内容。
 	
 
 \begin{table}
 \begin{fullwidth}
-\caption{OpenGL缓存(Buffer)对象的状态列表以及默认值，其中B表示Boolean类型，BMU表示基本的处理器单元，E表示枚举值，$Z^{+}$表示非负整型或枚举值，Y表示指针，S表示终止字符串，$n\times type$表示$n$个type的复制。}
+\caption{OpenGL缓存(Buffer)对象的状态列表以及默认值，其中B表示Boolean类型，BMU表示基本的处理器单元，E表示枚举值，$Z^{+}$表示非负整型或枚举值，Y表示指针，S表示终止字符串，$n\times type$表示n个type的复制。}
 \label{t:api-buffer-state}
 \centering
 \begin{tabular}{>{\scriptsize}p{0.29\thewidth}|>{\small}P{0.08\thewidth}|>{\small}P{0.21\thewidth}|>{\scriptsize}P{0.13\thewidth}|>{\small}p{0.25\thewidth}}
@@ -93,7 +88,6 @@ void glGen*(GLsizei n​, GLuint *objects​);
 \end{fullwidth}
 \end{table}
 
-
 那么接下来的问题就是我们怎样修改一个对象的状态值呢？在OpenGL中， 为了修改一个对象的状态值，我们首先需要绑定它们到OpenGL上下文中，这通过如下的OpenGL命令实现：
 
 \begin{lstlisting}[language=C++]
@@ -102,10 +96,9 @@ void glBind*(GLenum target​, GLuint object​);
 
 同样，*表示对象类型，object为要绑定的对象的名称，即是前面glBind*命名分配的名称。要其中target参数指示该对象的用途，也可以说它是OpenGL对象类型的进一步划分，同一类型的OpenGL对象拥有类似的使用方法，但是它们在OpenGL中的用途甚至存储结构可能是不一样的。OpenGL使用target来区分不同用途的对象，如表\ref{t:api-buffer-target}所示为OpenGL缓存（Buffer）对象所对应的各种目标名称，读者可以在\cite{b:OpenGL4.5CoreProfile}找到所有其他类型对象所对应的目标名称。
 
-
 当绑定一个OpenGL对象到一个目标之后，如果该对象之前还没有被绑定过，OpenGL接口即在当前的上下文中为该对象创建一个状态列表\footnote{为什么要在第一次绑定到目标而不是在创建对象名称之后为其创建状态列表，也是因为每个对象的状态列表是与其使用用途相对应的，同一类型（type）的对象可以有多种不同的用途(target)，所以具有不同的状态列表。}，并使用其类型对应的默认值填充这些状态值\footnote{所以，一个新被创建名称的对象可以被绑定到不同的目标用途上，但是首次绑定决定了该对象的存储位置及布局等，一旦这些信息确定则不能再修改该对象的用途目标。}，例如表\ref{t:api-buffer-state}即为一个缓存对象的状态列表及默认值，关于更多OpenGL对象状态的内容可以参考\cite{b:OpenGL4.5CoreProfile}第23章的内容。
 
-当绑定一个OpenGL对象到一个目标之后，后续所有对该目标进行修改的命令均会修改该绑定对象的状态。为什么OpenGL需要用这种方式来修改对象呢？这是因为大部分OpenGL命令的调用都不是立即发送到GPU执行的，它们被保存为一个命令列表，这些前置命令相当于对一个渲染管线的各种设置，这些设置包括对固定管线的控制或者着色器会使用的数据（如纹理和顶点数组），当所有设置完毕之后，我们才通过Draw相关的函数通知GPU执行渲染管线，此时才会将所有这些设置发送到GPU开始执行（包括上传所有OpenGL对象的数据到GPU）。我们可以理解为GPU帮我们执行的是一个叫做““"渲染管线”的应用程序，而不是那些OpenGL命令，这些命令只不过是为了执行“渲染管线”这个应用程序所做的配置，相应地我们可以理解OpenGL的状态列表为一个配置表。
+当绑定一个OpenGL对象到一个目标之后，后续所有对该目标进行修改的命令均会修改该绑定对象的状态。为什么OpenGL需要用这种方式来修改对象呢？这是因为大部分OpenGL命令的调用都不是立即发送到GPU执行的，它们被保存为一个命令列表，这些前置命令相当于对一个渲染管线的各种设置，这些设置包括对固定管线的控制或者着色器会使用的数据（如纹理和顶点数组），当所有设置完毕之后，我们才通过Draw相关的函数通知GPU执行渲染管线，此时才会将所有这些设置发送到GPU开始执行（包括上传所有OpenGL对象的数据到GPU）。我们可以理解为GPU帮我们执行的是一个叫做“渲染管线”的应用程序，而不是那些OpenGL命令，这些命令只不过是为了执行“渲染管线”这个应用程序所做的配置，相应地我们可以理解OpenGL的状态列表为一个配置表。
 
 我们可以随时查询各个对象的当前状态，根据对象类型的不同，每种类型的对象拥有一套不同的命令来查询其对应的状态，这些命令均可以在\cite{b:OpenGL4.5CoreProfile}中查询到，由于OpenGL上下文的状态在客户端也能读取到，所以这些命令可以立即返回。例如对于缓存对象，它的状态查询命令对应于表\ref{t:api-buffer-state}中的“查询命令”一列的命令名称，例如：
 
@@ -113,13 +106,13 @@ void glBind*(GLenum target​, GLuint object​);
 void GetBufferParameteriv( enum target, enum pname, int *data );void GetBufferParameteri64v( enum target, enum pname, int64 *data );
 \end{lstlisting}
 
-其中target对于对象的目标名称，pname是每个对象类型拥有的状态名称，它是一个枚举值，而data则包含其查询到的状态数据（根据状态的类型可能是不同类型的数据）。
+其中target对应对象的目标名称，pname是每个对象类型拥有的状态名称，它是一个枚举值，而data则包含其查询到的状态数据（根据状态的类型可能是不同类型的数据）。
 
 \begin{table}
 \caption{OpenGL缓存类型对象对应的各种不同用途的target名称列表，它们指明这些对象被用于不同的用途。}
 \label{t:api-buffer-target}
 \centering
-\begin{tabular}{>{\small}p{0.48\textwidth}|>{\small}p{0.48\textwidth}}
+\begin{tabular}{>{\small}p{0.56\textwidth}|>{\small}p{0.4\textwidth}}
 \hline 
    目标名称 & 用~~途  \\
     \hline  
@@ -142,10 +135,7 @@ void GetBufferParameteriv( enum target, enum pname, int *data );void GetBufferP
 \end{tabular}
 \end{table}
 
-
-
-
-由于OpenGL通过这种绑定的机制来修改OpenGL对象（的状态），所以当我们修改完一个对象之后，应该理解对该对象进行解绑，以防止后面的命令可能对该对象进行超出预期的修改，否则我们应该始终注意我们所修改的状态属于哪个对象。OpenGL并没有注入glUnbind之类的命令用来解绑，我们只能通过绑定其他对象到该目标来解除当前对象的绑定，如果我们不再需要对任何对象进行修改，则可以绑定到每种目标对应的默认对象，即名称为0的对象。
+由于OpenGL通过这种绑定的机制来修改OpenGL对象（的状态），所以当我们修改完一个对象之后，应该立即对该对象进行解绑，以防止后面的命令可能对该对象进行超出预期的修改，否则我们应该始终注意我们所修改的状态属于哪个对象。OpenGL并没有诸如glUnbind之类的命令用来解绑，我们只能通过绑定其他对象到该目标来解除当前对象的绑定，如果我们不再需要对任何对象进行修改，则可以绑定到每种目标对应的默认对象，即名称为0的对象。
 
 当我们不再使用一个对象的时候，使用以下签名的命令删除它：
 
@@ -161,7 +151,7 @@ void glDelete*(GLsizei n​, const GLuint *objects​);
 \caption{OpenGL中的对象类型。}
 \label{t:api-object-types}
 \centering
-\begin{tabular}{>{\small}p{0.4\textwidth}|>{\small}p{0.4\textwidth}|>{\small}p{0.17\textwidth}}
+\begin{tabular}{>{\small}p{0.5\textwidth}|>{\small}p{0.3\textwidth}|>{\small}p{0.17\textwidth}}
 \hline 
    标识符 & 对象类型 & 是否容器  \\
     \hline  
@@ -181,7 +171,7 @@ void glDelete*(GLsizei n​, const GLuint *objects​);
 \end{tabular}
 \end{table}
 
-综合本节的知识，我们可以看出一个对象有类型和用途两种属性，其中类型基本上定义一个对象在接口层面的用法，比如所有缓存对象的用法都是一致的，所有对象类型如表\ref{t:api-object-types}所示；另一方面，一个对象在OpenGL具体被用来做什么，它还需要被绑定到一个用途对于的绑定目标上，例如表\ref{t:api-buffer-target}列出了一个缓存类型的对象可以被绑定的绑定目标。
+综合本节的知识，我们可以看出一个对象有类型和用途两种属性，其中类型基本上定义一个对象在接口层面的用法，比如所有缓存对象的用法都是一致的，所有对象类型如表\ref{t:api-object-types}所示；另一方面，一个对象在OpenGL具体被用来做什么，它还需要被绑定到一个用途对应的绑定目标上，例如表\ref{t:api-buffer-target}列出了一个缓存类型的对象可以被绑定的绑定目标。
 
 本节讨论了所有OpenGL对象通用的一些知识，在接下来的几节我们将单独讲述几种比较重要的OpenGL对象，它们的用途以及其他一些特征。
 
@@ -190,7 +180,7 @@ void glDelete*(GLsizei n​, const GLuint *objects​);
 
 
 \section{缓存对象}\label{sec:api-buffer-object}
-缓存对象（Buffer objects）\index{缓存对象buffer object}\index[en]{buffer object缓存对象}是GPU中一块具有任意尺寸的，无格式的线性内存区域，它是一个byte数组，可以用来存储顶点数组，从图像或者帧缓存获取的像素数据，或者其他数据，缓存对象在OpenGL中具有广泛的用途，它可以被绑定到多种目标上，见表\ref{t:api-buffer-target}所示。
+缓存对象（Buffer objects）\index{缓存对象buffer object}\index[en]{buffer object缓存对象}是GPU中一块具有任意尺寸的，无格式的线性内存区域，它是一个字节（byte）数组，可以用来存储顶点数组，从图像或者帧缓存获取的像素数据，或者其他数据，缓存对象在OpenGL中具有广泛的用途，它可以被绑定到多种目标上，见表\ref{t:api-buffer-target}所示。
 
 缓存对象是OpenGL中最重要的对象类型之一，也是使用最复杂的对象类型，因为它无格式要求，因此它几乎可以用来存储OpenGL使用的大部分数据类型（纹理除外）；然而也因为它在分配的时候无格式要求的灵活性，使得它在使用的时候却变更复杂，使用者可能需要去区分一个缓存对象中的哪一段数据表示什么样的信息。为了避免在（着色器或OpenGL管线中）使用缓存对象时数据的解析工作，使用缓存对象大部分的复杂性在于需要通过另外一层绑定操作来将告知缓存对象中的各个部分表示什么样的数据，例如当一个缓存用来存储常量数据时，它可以将多个常量以常量块的形式存储在一个缓存对象中。
 
@@ -208,7 +198,7 @@ void glBindBuffer​(enum target, uint bufferName);
 
 其中，bufferName为缓存对象的名称，target为表\ref{t:api-buffer-target}中的目标名称之一，缓存对象作为任何一种用途的数据存储分配的方式都是一致的，所以本小节讨论的内容独立于任何目标名称。同其他OpenGL对象一样，如果该对象第一次被绑定，OpenGL会为其分配该目标对应的状态列表并赋予这些状态默认值，本节讨论的缓存对象数据存储的分配实际上也是缓存对象状态的一部分，参见表\ref{t:api-buffer-state}第一行的数据缓存。
 
-缓存对象在上传数据或被使用之前必须首先为期分配内存，有两种方法可以为缓存对象分配存储：可改变的存储和不可改变的存储。但是不要被这里的名称欺骗，这里的可改变性只是宿主程序与OpenGL的一种约定，它们实际的存储方式是一样的。
+缓存对象在上传数据或被使用之前必须首先为其分配内存，有两种方法可以为缓存对象分配存储：可改变的存储和不可改变的存储。但是不要被这里的名称欺骗，这里的可改变性只是宿主程序与OpenGL的一种约定，它们实际的存储方式是一样的。
 
 
 
@@ -229,11 +219,11 @@ pData = new char[700];                  //重新分配内存，不合法
 void glBufferStorage​(GLenum target​, GLsizeiptr size​, const GLvoid * data​, GLbitfield flags​);
 \end{lstlisting}
 
-其中，target为使用目标，size表示我们想为缓存对象分配多少byte，data表示指向一个具有size长度的byte数组的指针，OpenGL会在初始化阶段复制data中的数据到GPU，如果data为NULL，则缓存对象的初始数据是未定义的。flags是一个位域（bit field）\index{位域bit field}\index[en]{bit field位域}，它用来设定一个宿主程序和OpenGL之间的约定，其描述宿主程序会怎样获取或修改缓存对象的数据。但是，flags的值只会限制客户端对数据存储的修改操作，服务端（server-side）的操作则是始终可用的，所以不管flags的设置是什么，以下操作始终合法：
+其中，target为使用目标，size表示我们想为缓存对象分配多少字节，data表示指向一个具有size长度的字节数组的指针，OpenGL会在初始化阶段复制data中的数据到GPU，如果data为NULL，则缓存对象的初始数据是未定义的。flags是一个位域（bit field）\index{位域bit field}\index[en]{bit field位域}，它用来设定一个宿主程序和OpenGL之间的约定，其描述宿主程序会怎样获取或修改缓存对象的数据。但是，flags的值只会限制客户端对数据存储的修改操作，服务端（server-side）的操作则是始终可用的，所以不管flags的设置是什么，以下操作始终合法：
 
 \begin{itemize}
-	\item 在渲染管线内的任何阶段均可以对缓存对象进行写操作，这包括变换反馈，图像加载/存储，原子计数器以及着色器存储缓存对象。
-	\item 清除缓存对象的操作，因为该操作只涉及少数byte数据的传输，所以它不被认为是“客户端”修改操作。
+	\item 在渲染管线内的任何阶段均可以对缓存对象执行写操作，这包括变换反馈，图像加载/存储，原子计数器以及着色器存储缓存对象。
+	\item 清除缓存对象的操作，因为该操作只涉及少数字节数据的传输，所以它不被认为是“客户端”修改操作。
 	\item 缓存对象之间的复制，因为这始终发生在服务端。
 	\item 使缓存对象失效的操作，同清除操作一样，它仅涉及少数数据的传输，所以仍然被认为是“服务端”的操作。
 	\item 使用glGetBufferSubData读回缓存对象部分数据到到CPU始终合法。
@@ -242,12 +232,12 @@ void glBufferStorage​(GLenum target​, GLsizeiptr size​, const GLvoid * dat
 flags位平面的值是如下列表中的值按位或（OR）的结果：
 
 \begin{itemize}
-	\item GL\_DYNAMIC\_STORAGE\_BIT 仅当此位被设置时，缓存对象数据存储的数据可以通过BufferSubData命令进行更新，当然缓存对象始终可以被服务端的调用如ClearBufferSubData和CopyBufferSubData命令修改。
-	\item GL\_MAP\_READ\_BIT 缓存对象的数据存储可以被客户端读映射，映射返回给客户端的指针仅可用于读操作。
-	\item GL\_MAP\_WRITE\_BIT 缓存对象的数据存储可以被客户端写映射，映射返回给客户端的指针仅可用于写操作。 
-	\item GL\_PERSISTENT\_BIT 允许缓存对象在被映射的时候被使用，如果此位没有设置，则当缓存对象被映射之后的任何操作都会导致错误，当设置此位的时候也必须同时设置其他任意一个与映射相关的位。 
-	\item GL\_COHERENT\_BIT 在缓存对象的映射期间，客户端的获取与服务端的使用是连贯一致的。
-	\item GL\_CLIENT\_STORAGE\_BIT 建议OpenGL接口实现将数据存储在客户端。
+	\item GL\_DYNAMIC\_STORAGE\_BIT：仅当此位被设置时，缓存对象数据存储的数据可以通过BufferSubData命令进行更新，当然缓存对象始终可以被服务端的调用（如ClearBufferSubData和CopyBufferSubData命令）修改。
+	\item GL\_MAP\_READ\_BIT：缓存对象的数据存储可以被客户端读映射，映射返回给客户端的指针仅可用于读操作。
+	\item GL\_MAP\_WRITE\_BIT：缓存对象的数据存储可以被客户端写映射，映射返回给客户端的指针仅可用于写操作。 
+	\item GL\_PERSISTENT\_BIT：允许缓存对象在被映射的时候被使用，如果此位没有设置，则当缓存对象被映射之后的任何操作都会导致错误，当设置此位的时候也必须同时设置其他任意一个与映射相关的位。 
+	\item GL\_COHERENT\_BIT：在缓存对象的映射期间，客户端的获取与服务端的使用是连贯一致的。
+	\item GL\_CLIENT\_STORAGE\_BIT：建议OpenGL接口实现将数据存储在客户端。
 \end{itemize}
 
 
@@ -260,7 +250,7 @@ flags位平面的值是如下列表中的值按位或（OR）的结果：
 void glBufferData​(enum target, sizeiptr size, const void *data, enum usage);
 \end{lstlisting}
 
-前面三个参数都和glBufferStorage是一致的，如果data为NULL，则缓存对象的初始数据是未定义的。由于缓存对象可以以多种方式（用途）被使用，所以usage参数用来给OpenGL实现一种提示，使其能够以更灵活，高性能的方式存储各种特定用途的缓存对象。
+前面三个参数都和glBufferStorage是一致的，如果data为NULL，则缓存对象的初始数据是未定义的。由于缓存对象可以以多种方式（或用途）被使用，所以usage参数用来给OpenGL实现一种提示，使其能够以更灵活，高性能的方式存储各种特定用途的缓存对象。
 
 usage用来描述该缓存对象将被怎样使用，它由两个独立的部分组成：即缓存对象将被怎样读和写，以及缓存对象被修改的频率。根据缓存对象将会被怎样读取或写入可以将这些用途分为三类：
 
@@ -294,7 +284,7 @@ void glBufferSubData​(enum target, intptr offset, sizeiptr size, const void *d
 
 其中，offset表示一个对缓存对象开始更新的整型位置，size则是更新的范围，也即是将从data对象中复制数据的范围，这里data对象不能为空。
 
-虽然glBufferSubData能够用来方便的更新缓存对象的部分或全部内容，但是它会导致OpenGL进行一次数据的拷贝操作，这回带有一定的资源浪费。例如，宿主程序中可能有一种算法可以用来产生缓存对象需要的数据（例如从文件中读取的数据），但是我们首先得在CPU内存中为这些数据分配一个临时的内存区域用来存储它，然后将这个数据的指针作为data传输给glBufferSubData。使用glGetBufferSubData读回数据也会遇到类似的问题。
+虽然glBufferSubData能够用来方便的更新缓存对象的部分或全部内容，但是它会导致OpenGL进行一次数据的拷贝操作，这会带有一定的资源浪费。例如，宿主程序中可能有一种算法可以用来产生缓存对象需要的数据（例如从文件中读取的数据），但是我们首先得在CPU内存中为这些数据分配一个临时的内存区域用来存储它，然后将这个数据的指针作为data传输给glBufferSubData。使用glGetBufferSubData读回数据也会遇到类似的问题。
 
 然而，如果能够得到一个缓存对象的“指针”，我们就可以直接将算法产生的数据赋值给这个指针，而不需要一个专门的临时内存区域用来存储整个数据对象。在OpenGL中，我们可以通过如下命令实现一种称为映射的方式来得到一个缓存对象的指针：
 
@@ -324,22 +314,22 @@ void *glMapBufferRange​(GLenum target​, GLintptr offset​, GLsizeiptr lengt
 
 当我们使用完了缓存对象映射指针之后，必须使用以下命令解除映射指针以使缓存对象变得重新可用：
 
-\begin{lstlisting}
+\begin{lstlisting}[language=C++]
 GLboolean glUnmapBuffer(GLenum target​);
 \end{lstlisting}
 
 当我们解除缓存对象映射指针后，该指针将失效不再可用。
 
-缓存对象的部分或全部数据也可以被清除，通常我们将其填充为一个特定的值，清楚操作使用以下命令：
+缓存对象的部分或全部数据也可以被清除，通常我们将其填充为一个特定的值，清除操作使用以下命令：
 
 \begin{lstlisting}[language=C++]
 void glClearBufferData​(GLenum target​​, GLenum internalformat​, GLenum format​, GLenum type​, const void * data​);
 void glClearBufferSubData​(GLenum target​, GLenum internalformat​, GLintptr offset​, GLsizeiptr size​, GLenum format​, GLenum type​, const void * data​);
 \end{lstlisting}
 
-其中，glClearBufferData用于清除全部数据，而glClearBufferSubData用于清除部分或全部数据，这些命令都不会对缓存对象的存储进行重新分配。这些命令的工作机制类似于后面会讲述的像素传输操作，internalformat用于定于数据在缓存对象中的格式，format和type用于定义data中数据的格式，这里data不是包含整个缓存对象大小的数据，而仅是一个“像素”的大小，这些方法会重复复制data的数据直至填充满整个缓存对象，更多关于像素传输及其格式的内容，参见后面第\ref{sec:api-textures}节的内容。
+其中，glClearBufferData用于清除全部数据，而glClearBufferSubData用于清除部分或全部数据，这些命令都不会对缓存对象的存储进行重新分配，这些命令的工作机制类似于后面会讲述的像素传输操作。internalformat用于定于数据在缓存对象中的格式，format和type用于定义data中数据的格式，这里data不是包含整个缓存对象大小的数据，而仅是一个“像素”的大小，这些方法会重复复制data的数据直至填充满整个缓存对象，更多关于像素传输及其格式的内容，参见后面第\ref{sec:api-textures}节的内容。
  
-缓存对象的数据也可以从另一个缓存对象（或同一个缓存对象的不同部分）复制。为了在缓存对象之间进行数据复制，我们首先需要绑定赋值源（source）和复制目的地（destination）缓存对象到对应的目标（target），然后使用以下命令用于缓存对象之间的数据复制：
+缓存对象的数据也可以从另一个缓存对象（或同一个缓存对象的不同部分）复制。为了在缓存对象之间进行数据复制，我们首先需要绑定复制源（source）和复制目的地（destination）缓存对象到对应的目标（target），然后使用以下命令用于缓存对象之间的数据复制：
 
 \begin{lstlisting}[language=C++]
 void glCopyBufferSubData​(GLenum readtarget​, GLenum writetarget​, GLintptr readoffset​, GLintptr writeoffset​, GLsizeiptr size​);
@@ -351,13 +341,12 @@ OpenGL提供了一种使缓存对象无效的机制，如果一个缓存对象�
 
 无效的概念来源于这样一个简单的机制，它使OpenGL简单地对一个缓存对象（或者部分区域）后续的操作重新分配一块新的存储区域，这样在该缓存对象失效之前的命令仍然能够访问到该缓存对象原始的数据，因此通过失效的机制我们可以很方便地对缓存对象设置新的数据，而不需要考虑其他命令对原始数据的读取操作导致的数据同步的需求，这也使其成为一种后面即将讲述的流式更新数据的方法。
 
-有三种方法可以用于使缓存对象无效，对于可改变的缓存对象，可以使用glBufferData​命令并相应相同的尺寸以及使用NULL作为data参数；也可以在映射时使用GL\_MAP\_INVALIDATE\_BUFFER\_BIT和GL\_MAP\_INVALIDATE\_RANGE\_BIT作为glMapBufferRange​的参数使其全部或部分无效；最后可以使用以下命令显示地声明一个对象失效：
+有三种方法可以用于使缓存对象无效，对于可改变的缓存对象，可以使用glBufferData​命令并使用相同的尺寸以及使用NULL作为data参数；也可以在映射时使用GL\_MAP\_INVALIDATE\_BUFFER\_BIT和GL\_MAP\_INVALIDATE\_RANGE\_BIT作为glMapBufferRange​的参数使其全部或部分无效；最后可以使用以下命令显示地声明一个对象失效：
 
 \begin{lstlisting}[language=C++]
 void glInvalidateBufferData​(GLuint buffer​);
 void glInvalidateBufferSubData​(GLuint buffer​, GLintptr offset​, GLsizeiptr length​);
 \end{lstlisting}
-
 
 
 
@@ -397,24 +386,20 @@ OpenGL缓存对象流式更新的基本机制是是一个缓存对象在被OpenG
 
 虽然OpenGL不处理同步问题，但是宿主程序必须保证数据和执行的同步，例如如果宿主程序直接修改缓存数据的部分数据，而这部分数据还会被之前OpenGL命令访问，则该数据在被访问的时候是未定义的，因为这种方法完全是对同一块数据进行修改（而不是之前的缓存孤立的机制）。
 
-这种方案的基本用法是，宿主程序对同一个缓存对象进行渐进更新，每次更新一小块（部分）数据，然后调用OpenGL渲染管线使用这块数据，同时开始更新下一块数据，如此重复，每次更新的数据之间是不重叠的，所以不会有同步的问题。然而一旦整个缓存对象的数据被填充完（即缓存对象的最后一块数据被修改后），则需要一种机制来使该过程可以重新开始，这可以通过两种方法来实现：其一是使用前面的缓存孤立方法重新分配一块新的数据并使之前的数据区域失效，另一种方法是使用OpenGL的同步机制。
-
-
+这种方案的基本用法是，宿主程序对同一个缓存对象进行渐进式更新，每次更新一小块（部分）数据，然后调用OpenGL渲染管线使用这块数据，同时开始更新下一块数据，如此重复，每次更新的数据之间是不重叠的，所以不会有同步的问题。然而一旦整个缓存对象的数据被填充完（即缓存对象的最后一块数据被修改后），则需要一种机制来使该过程可以重新开始，这可以通过两种方法来实现：其一是使用前面的缓存孤立方法重新分配一块新的数据并使之前的数据区域失效，另一种方法是使用OpenGL的同步机制。
 
 
 
 
 
 \subsection{绑定缓存对象到索引目标}\label{sec:api-indexed-target}
-在OpenGL中，有些缓存目标的绑定可以存在多个绑定点，即是多个缓存对象可以用来做类似的事情，例如着色器全局变量（Uniform）可以被划分为多个组，每个组表示本章后面即将讨论的一个接口块，每个接口块的数据用一个单独的缓存对象（或者缓存对象的一部分区域）存储。这时，相同的的目标就具有多个绑定点，此时我们不光要将缓存对象绑定在绑定目标上，还需要将其绑定在这个特定的接口块上，OpenGL会为每个接口块分配一个整型的位置，我们称这样的目标为索引目标（Indexed targets）\index{索引目标indexed targets}\index[en]{indexed targets索引目标}上，它通过以下的命令实现：
+在OpenGL中，有些缓存目标的绑定可以存在多个绑定点，即是多个缓存对象可以用来做类似的事情，例如着色器全局变量（Uniform）可以被划分为多个组，每个组表示本章后面即将讨论的一个接口块，每个接口块的数据用一个单独的缓存对象（或者缓存对象的一部分区域）存储。这时，相同的的目标就具有多个绑定点，此时我们不光要将缓存对象绑定在绑定目标上，还需要将其绑定在这个特定的接口块上，OpenGL会为每个接口块分配一个整型的位置，我们称这样的目标为索引目标（Indexed targets）\index{索引目标indexed targets}\index[en]{indexed targets索引目标}，它通过以下的命令实现：
 
 \begin{lstlisting}[language=C++]
 void BindBufferRange(enum target, uint index, uint buffer, intptr offset, sizeiptr size);void BindBufferBase(enum target, uint index, uint buffer);
 \end{lstlisting}
 
-其中，target必须是ATOMIC\_COUNTER\_BUFFER, SHADER\_STORAGE\_BUFFER, TRANSFORM\_FEEDBACK\_BUFFER 和 UNIFORM\_BUFFER之一。这些变量都是可以在着色器中声明的，它们的具体用途将在本章后面讲述。当这些变量被定义在着色器中之后，在着色器的编译和链接阶段将会为每个接口块分配一个索引值，这个索引值就作为index参数的值，而offset和size用来指定缓存对象的哪部分数据被用来绑定到该接口块上。
-
-
+其中，target必须是ATOMIC\_COUNTER\_BUFFER, SHADER\_STOR-\\AGE\_BUFFER, TRANSFORM\_FEEDBACK\_BUFFER 和 UNIFORM\_BU- FFER之一。这些变量都是可以在着色器中声明的，它们的具体用途将在本章后面讲述。当这些变量被定义在着色器中之后，在着色器的编译和链接阶段将会为每个接口块分配一个索引值，这个索引值就作为index参数的值，而offset和size用来指定缓存对象的哪部分数据被用来绑定到该接口块上。
 
 
 
@@ -424,7 +409,7 @@ OpenGL渲染管线中的其中一些阶段是可编程的，例如图\ref{f:api-
 
 着色器对象和着色器程序对象是一类特殊的OpenGL对象，它们用来封装这些可执行程序（即着色器），以及执行这些着色器需要的各种状态配置。但是这些对象并不遵循一般的OpenGL对象的一些使用方式，如内存分配及绑定等操作。
 
-在OpenGL中，一个着色器对象（Shader object）\index{着色器对象shader object}\index[en]{shader object着色器对象}封装一个特定类型的着色器程序，这段程序由OpenGL着色语言（OpenGL shading language，GLSL）\index{OpenGL着色语言(OpenGL shading language)}\cite{b:TheOpenGLShadingLanguage}编写，这段程序构成一个字符串。同其他应用程序一样，着色器程序也需要经过编译以生成及其语言。在OpenGL中，我们可以通过以下这些命令来完成上述操作：
+在OpenGL中，一个着色器对象（Shader object）\index{着色器对象shader object}\index[en]{shader object着色器对象}封装一个特定类型的着色器程序，这段程序由OpenGL着色语言（OpenGL shading language，GLSL）\index{OpenGL着色语言(OpenGL shading language)}\cite{b:TheOpenGLShadingLanguage}编写，这段程序构成一个字符串。同其他应用程序一样，着色器程序也需要经过编译以生成其对应语言的程序片段。在OpenGL中，我们可以通过以下这些命令来完成上述操作：
 
 \begin{lstlisting}[language=C++]
 GLuint glCreateShader​(GLenum shaderType​);
@@ -434,7 +419,7 @@ void glCompileShader​(GLuint shader​);
 
 这里首先glCreateShader创建一个shaderType类型的着色器对象，shaderType表示OpenGL中的一个可编程阶段，它必须是GL\_VERTEX\_SHADER, GL\_TESS\_CONTROL\_SHADER, GL\_TESS\_EVALUATION\_SHADER, GL\_GEOMETRY\_SHADER, GL\_FRAGMENT\_SHADER和GL\_COMPUTE\_SHADER中的值之一，该命令返回一个整型的着色器名称；glShaderSource用来指定着色器程序的源代码，其中count表示字符串数组string的长度，length表示取字符串数组string中着色器源代码的长度数组，如果length为NULL则表示取整个字符串；最后，glCompileShader用来编译着色器程序。
 
-一个着色器程序就像C++中的各个单独的源文件，要想被OpenGL执行，我们还必须将所有的着色器程序链接起来，形成一个可执行文件。在OpenGL中这个可执行文件有着色器程序对象（Shader program object）\index{着色器程序对象shader program object}\index[en]{shader program object着色器程序对象}封装，一个着色器程序对象通过以下命令创建并将这些着色器对象附属在一起:
+一个着色器程序就像C++中的各个单独的源文件，要想被OpenGL执行，我们还必须将所有的着色器程序链接起来，形成一个可执行文件。在OpenGL中这个可执行文件由着色器程序对象（Shader program object）\index{着色器程序对象shader program object}\index[en]{shader program object着色器程序对象}封装，一个着色器程序对象通过以下命令创建并将这些着色器对象附属在一起:
 
 \begin{lstlisting}[language=C++]
 GLuint glCreateProgram​();
@@ -467,13 +452,14 @@ void glLinkProgram( uint program );
 这三种访问方式如下：
 \begin{itemize}
 	\item \emph{全局变量 }全局变量是可以被所有着色器访问的变量，在OpenGL中相同类型的全局变量通常被存储在一个缓存对象中，每个变量名称都会被分配一个整型的位置，然后每个变量位置被分别绑定到缓存对象的各个区域。关于全局变量的具体内容详见后面第\ref{sec:api-interface-block}节的内容。
-	\item \emph{顺序访问 }有些缓存对象的内容会被着色器顺序访问，这些缓存对象的数据本身是某种固定格式的数据（如顶点缓存对象保存的某个顶点属性的值，以及帧缓存上的颜色缓存保存的一个像素的颜色值），每个着色器实例通常按照某种顺序访问这类数组数据的一个元素。这种情况只需要为每个变量分配一个位置，当这个位置被绑定到一个缓存对象之后OpenGL就可以根据相应的格式为每个着色器实例获取到对应数据。例如每个顶点着色器读取顶点数组中的一个顶点的数据，每个片元着色器写入一个颜色值到颜色缓存对象。这类变量包括如图\ref{f:api-locations}中的顶点数组缓存，变换反馈缓存以及帧缓存中的颜色缓存。
-	\item \emph{乱序访问 }对于纹理这种对象，着色器必须有随机访问的能力，因此着色器中的每个纹理变量也会被分配一个位置，这个位置用于绑定到某个纹理对象上。但是与顺序访问不同的是，着色器可以随机访问纹理的数据\footnote{这也是访问顶点数据和访问纹理对象的方式不同的原因，每个顶点着色器读取的顶点数据是由着色器实例的顺序决定的，实例的顺序实际上就是访问顶点数组的索引值，所以OpenGL直接传给着色器一个顶点属性变量值；而纹理的访问则是需要通过一个方法来实现，因为着色器需要传入纹理坐标来获取纹理值，这个纹理坐标实际上构成纹理数组的一个索引。}。
+	\item \emph{顺序访问 }有些缓存对象的内容会被着色器顺序访问，这些缓存对象的数据本身是某种固定格式的数据（如顶点缓存对象保存的某个顶点属性的值，以及帧缓存上的颜色缓存保存的一个像素的颜色值），每个着色器实例通常按照某种顺序访问这类数组数据的一个元素。这种情况只需要为每个变量分配一个位置，当这个位置被绑定到一个缓存对象之后OpenGL就可以根据相应的格式为每个着色器实例获取到对应数据\footnote{这实际上就是上一章介绍的内存访问合并的概念。}。例如每个顶点着色器读取顶点数组中的一个顶点的数据，每个片元着色器写入一个颜色值到颜色缓存对象。这类变量包括如图\ref{f:api-locations}中的顶点数组缓存，变换反馈缓存以及帧缓存中的颜色缓存。
+	\item \emph{乱序访问 }对于纹理对象，着色器必须有随机访问的能力，因此着色器中的每个纹理变量也会被分配一个位置，这个位置用于绑定到某个纹理对象上。但是与顺序访问不同的是，着色器可以随机访问纹理数据\footnote{这也是访问顶点数据和访问纹理对象的方式不同的原因，每个顶点着色器读取的顶点数据是由着色器实例的顺序决定的，实例的顺序实际上就是访问顶点数组的索引值，所以OpenGL直接传给着色器一个顶点属性变量值；而纹理的访问则是需要通过一个方法来实现，因为着色器需要传入纹理坐标来获取纹理值，这个纹理坐标实际上构成纹理数组的一个索引。}。
 \end{itemize}
 
 \begin{figure}
-\sidecaption
-	\includegraphics[width=0.6\textwidth]{figures/api/locations}
+\begin{center}
+	\includegraphics[width=0.75\textwidth]{figures/api/locations}
+\end{center}
 	\caption{OpenGL渲染管线各个阶段的着色器分散在各自独立的程序中，而这些程序必须从GPU的内存中读取/写入数据，不同阶段的着色器之间也存在联系，所以着色器程序对象的链接必须要处理这些变量和内存之间的关系。}
 	\label{f:api-locations}
 \end{figure}
@@ -529,7 +515,7 @@ uniform MatrixBlock
 
 在基于缓存的接口块中，整个块中的数据被存储在一个缓存对象（或对象的部分区域）中，并且同一着色器可以包含多个同类型的接口块，为了绑定这些具有相同绑定目标的接口块到多个缓存对象上，OpenGL使用了前面讲述的索引目标的机制，它为每个接口块单独设置一个索引位置，然后将缓存对象同时绑定到绑定目标和索引目标上，参见第\ref{sec:api-indexed-target}节的内容。
 
-uniform和buffer类型接口块中的变量使用的绑定目标分别为GL\_UNIFORM\_BUFFER和GL\_SHADER\_ STORAGE\_BUFFER，在着色器程序链接之后，每个接口块会被分配一个块索引值，这可以通过以下命令查询：
+uniform和buffer类型接口块中的变量使用的绑定目标分别为GL\_UNIF-\\ORM\_BUFFER和GL\_SHADER\_ STORAGE\_BUFFER，在着色器程序链接之后，每个接口块会被分配一个块索引值，这可以通过以下命令查询：
 
 \begin{lstlisting}[language=C++]
 GLuint glGetUniformBlockIndex​(GLuint program​​, const char *name​​);
@@ -550,8 +536,8 @@ void glShaderStorageBlockBinding​(GLuint program​​, GLuint storageBlockInd
 这里uniformBlockIndex和storageBlockIndex分别是对应program链接后产生的块索引值，uniformBlockBinding和storageBlockBinding的值可以分别通过以下方法调用查询得到：
 
 \begin{lstlisting}[language=C++]
-glGetActiveUniformBlockiv( program, uniformBlockIndex, GL\_UNIFORM\_BLOCK\_BINDING, &uniformBlockBinding );
-glGetActiveUniformBlockiv( program, storageBlockIndex, GL\_SHADER\_STORAGE\_BINDING, &storageBlockBinding );
+glGetActiveUniformBlockiv( program, uniformBlockIndex, GL_UNIFORM_BLOCK_BINDING, &uniformBlockBinding );
+glGetActiveUniformBlockiv( program, storageBlockIndex, GL_SHADER_STORAGE_BINDING, &storageBlockBinding );
 \end{lstlisting}
 
 接口块块索引值也可以直接通过着色器内部设置，例如：
@@ -592,7 +578,7 @@ void glGetUniformIndices(GLuint program​, GLsizei uniformCount​, const GLcha
 void glGetActiveUniformsiv(GLuint program​, GLsizei uniformCount​, const GLuint *uniformIndices​, GLenum pname​, GLint *params​);
 \end{lstlisting}
 
-该命令查询索引数组uniformIndices中的uniformCount个索引值表示的变量的状态名称为pname的值，这些值的查询结果存储在数组params中。params的值可以是GL\_UNIFORM\_SIZE和GL\_UNIFORM\_OFFSET，它们分别表示该变量的大小以及变量的数据在缓存对象中的偏移值，这些值可以用来帮助宿主程序向缓存对象填充数据，例如我们可以使用memcpy函数来向缓存对象复制值到对应的区域。该命令还可以查询其他一些状态信息，例如GL\_UNIFORM\_NAME\_LENGTH，GL\_UNIFORM\_BLOCK\_INDEX，GL\_UNIFORM\_ARRAY\_STRIDE，GL\_UNIFORM\_MATRIX\_STRIDE，GL\_UNIFORM\_IS\_ROW\_MAJOR，GL\_UNIFORM\_ATOMIC\_COUNTER\_BUFFER\_INDEX，相关的内容读者可以阅读\cite{b:OpenGL4.5CoreProfile}。
+该命令查询索引数组uniformIndices中的uniformCount个索引值表示的变量的状态名称为pname的值，这些值的查询结果存储在数组params中。params的值可以是GL\_UNIFORM\_SIZE和GL\_UNIFORM\_OFFSET，它们分别表示该变量的大小以及变量的数据在缓存对象中的偏移值，这些值可以用来帮助宿主程序向缓存对象填充数据，例如我们可以使用memcpy函数来向缓存对象复制值到对应的区域。该命令还可以查询其他一些状态信息，例如GL\_UNIFORM\_NAME\_LENGTH，GL\_UNIFORM\_BLOCK\_INDEX，GL\_UNIFORM\_ARRAY\_STRIDE，GL\_UNIFORM\_MATRIX\_STRIDE，GL\_UNIFORM\_IS\_ROW\_MAJOR，GL\_UNIFORM\_ATOMIC\_COUNTER\_B- UFFER\_INDEX，相关的内容读者可以阅读\cite{b:OpenGL4.5CoreProfile}。
 
 当然所有这些命令同样可以用在buffer块上，uniform块与buffer块最大的区别在于，着色器存储缓存可以在着色器中读写，通过缓存块写入存储数据的内容也可以被其他着色器请求使用，并且可以读回到应用程序。
 
@@ -605,7 +591,7 @@ void glGetActiveUniformsiv(GLuint program​, GLsizei uniformCount​, const GLu
 
 接口匹配主要涉及两个或多个着色器内部某些接口块的定义保持一致，它包含两方面的匹配：一个是相邻两个阶段的着色器内in/out块之间的匹配，另一个是多个着色器内uniform和buffer块的匹配。
 
-首先，多个阶段的着色器的链接要求所有前一阶段着色器输出的接口块必须被后一阶段的着色器消费，反之，所有后一阶段着色器中的输入值必须匹配前一阶段着色器的输出值（顶点着色器除外）。这个匹配工作是必须的，因为存储这些输入输出值的缓存对象是渲染管线的一些中间产物，它并不需要我们手动去维护（例如分配和绑定）这些缓存对象（最后阶段输出的颜色缓存除外），这样相邻两个着色器对这些中间缓存对象的使用必须遵循一些规则，才能使OpenGL知道怎么去使用这样缓存对象，例如使用匹配的接口块定义则可以让OpenGL知道每个着色器实例的每个接口块对应于缓存对象的哪一段数据，以及每个接口块内部的每个变量的数据来自缓存对象的哪一段范围。
+首先，多个阶段的着色器的链接要求所有前一阶段着色器输出的接口块必须被后一阶段的着色器消费，反之，所有后一阶段着色器中的输入值必须匹配前一阶段着色器的输出值（顶点着色器除外）。这个匹配工作是必须的，因为存储这些输入输出值的缓存对象是渲染管线的一些中间产物，它并不需要我们手动去维护（例如分配和绑定）这些缓存对象（最后阶段输出的颜色缓存除外），这样相邻两个着色器对这些中间缓存对象的使用必须遵循一些规则，才能使OpenGL知道怎么去使用这些缓存对象，例如使用匹配的接口块定义则可以让OpenGL知道每个着色器实例的每个接口块对应于缓存对象的哪一段数据，以及每个接口块内部的每个变量的数据来自缓存对象的哪一段范围。
 
 输入输出接口块匹配的规则如下：
 
@@ -661,8 +647,6 @@ layout(location = 1) out vec3 three;
 
 
 
-
-
 \section{纹~~理}\label{sec:api-textures}
 缓存对象可以用来存储任意格式的数据，只要OpenGL知道以怎样的方式从缓存对象的存储中去读取这些数据，例如它既可以用来存储结构化的顶点数组数据，也可以在着色器中以buffer块的形式存储完全自由结构的数据。缓存对象的使用通常只需要OpenGL与宿主程序之间建立一种格式协议，这种协议用来给每个变量获取一个地址，在使用的时候，OpenGL就可以直接从这个地址读取缓存对象存储中的数据。因此缓存对象在OpenGL眼里就是一个变量。
 
@@ -710,7 +694,7 @@ layout(location = 1) out vec3 three;
 void glGenTextures(GLsizei n, GLuint* textures);
 \end{lstlisting}
 
-当纹理的名称被创建后，它还没有维数和类型，只有第一次绑定到目标后才能决定其类型，初始绑定的目标决定了创建的纹理类型，从这时起，纹理将只会被绑定到这个目标上，直到没销毁为止。
+当纹理的名称被创建后，它还没有维数和类型，只有第一次绑定到目标后才能决定其类型，初始绑定的目标决定了创建的纹理类型，从这时起，纹理将只会被绑定到这个目标上，直到被销毁为止。
 
 纹理的绑定使用如下命令：
 
@@ -720,7 +704,7 @@ void glBindTexture(GLenum target, GLuint texture);
 
 其中，target为表\ref{t:api-texture-type}中的目标类型之一。
 
-在OpenGL着色器中可以使用多个纹理，类似于前面讲述的索引目标，OpenGL为每个纹理分配一个整数的索引，称为纹理单元（Texture unit）\index{纹理单元texture unit}\index[en]{texture unit纹理单元}，所以和索引目标一样，每个纹理对象还必须绑定到对应的纹理单元。这是纹理单元的绑定方式则和索引目标不一样，要绑定纹理对象到某个纹理单元，我们需要在glBindTexture命令之前使用以下命令：
+在OpenGL着色器中可以使用多个纹理，类似于前面讲述的索引目标，OpenGL为每个纹理分配一个整数的索引，称为纹理单元（Texture unit）\index{纹理单元texture unit}\index[en]{texture unit纹理单元}，所以和索引目标一样，每个纹理对象还必须绑定到对应的纹理单元。但是纹理单元的绑定方式则和索引目标不一样，要绑定纹理对象到某个纹理单元，我们需要在glBindTexture命令之前使用以下命令：
 
 \begin{lstlisting}[language=C++]
 void glActiveTexture(GLenum texture);
@@ -738,8 +722,8 @@ uniform sampler2D tex1;uniform sampler2D tex2;
 
 \begin{lstlisting}[language=C++]glUseProgram(prog);
 
-GLint tex1\_uniform\_loc = glGetUniformLocation(prog, "tex1");glUniform1i(tex1\_uniform\_loc, 0);glActiveTexture(GL\_TEXTURE0);glBindTexture(GL\_TEXTURE\_2D, tex1);
- 	GLint tex2\_uniform\_loc = glGetUniformLocation(prog, "tex2");glUniform1i(tex2\_uniform\_loc, 1);glActiveTexture(GL\_TEXTURE1);glBindTexture(GL\_TEXTURE\_2D, tex2);
+GLint tex1_uniform_loc = glGetUniformLocation(prog, "tex1");glUniform1i(tex1_uniform_loc, 0);glActiveTexture(GL_TEXTURE0);glBindTexture(GL_TEXTURE_2D, tex1);
+ 	GLint tex2_uniform_loc = glGetUniformLocation(prog, "tex2");glUniform1i(tex2_uniform_loc, 1);glActiveTexture(GL_TEXTURE1);glBindTexture(GL_TEXTURE_2D, tex2);
 \end{lstlisting}
 
 不同于索引目标被OpenGL自动分配（当然也可以通过在着色器中使用location手动分配），纹理单元需要手动分配，纹理单元的值是OpenGL定义的一系列枚举值，分别命名为GL\_TEXTURE$i$，其中$i$在0到$k-1$范围，$k$表示纹理单元的最大数目，所以GL\_TEXTURE$i$的值等于GL\_TUXTURE0+$i$。这里的代码首先将纹理的变量通过glUniform1i设置为一个纹理单元的值，然后再将该纹理单元激活以使后面的纹理对象被绑定到该纹理单元上。
@@ -805,7 +789,7 @@ GLint internalFormat, GLenum format​, GLenum type​, void *data​
 
 这里data是一个客户内存的指针或者一个缓存对象的偏移值，当进行像素解码操作的时候，该缓存对象的绑定目标必须是GL\_PIXEL\_UNPACK\_BUFFER，当进行像素编码操作的时候，该缓存对象的绑定目标必须是GL\_PIXEL\_PACK\_BUFFER。为了方便，以下我们仅称其为“客户内存”，不管其是客户内存的指针还是缓存对象的偏移。
 
-内部格式（Internal format）\index{内部格式internal format}\index[en]{internal format内部格式}决定了OpenGL在设备内存存储纹理的格式，完整的内部格式有基本格式的标识符，一个或更多大小的标识符和可选的数据类型组成，即GL\_[components][size]\_[type]。基本格式决定了提供的纹理分量，例如以GL\_R开头的格式只有红色分量，以GL\_RG开始的格式有红色和绿色分量，完整的基本格式参见表\ref{t:api-texture-base-internal-format}。
+内部格式（Internal format）\index{内部格式internal format}\index[en]{internal format内部格式}决定了OpenGL在设备内存存储纹理的格式，完整的内部格式由基本格式的标识符，一个或更多大小的标识符和可选的数据类型组成，即GL\_[components][size]\_[type]。基本格式决定了提供的纹理分量，例如以GL\_R开头的格式只有红色分量，以GL\_RG开始的格式有红色和绿色分量，完整的基本格式参见表\ref{t:api-texture-base-internal-format}。
 
 \begin{table}
 \caption{内部基本格式像颜色，深度和模板分量的转换}
@@ -829,6 +813,7 @@ GLint internalFormat, GLenum format​, GLenum type​, void *data​
 
 大小标识符决定了用来存储纹理数据的位数，如表\ref{t:api-texture-sized-internal-format}所示，在许多情况下只包括一个大小参数，也可以分别为每个分量指定大小。OpenGL默认以无符号归一化格式存储纹理，当数据以无符号归一化数据存储时，纹素在内存中以整数存储，整数在读进着色器时转化为浮点数，并且用整数对应的可以表示的最大值来除，这将生成传递给着色器的范围在[0.0,1.0]的数据。如果内部格式提供的是\_SNORM（Signed normalized）修饰符，数据是有符号的归一化，在这种情况下，内存中的数据是有符号整数，同样在返回给着色器时，转化为浮点数，生成范围在[-1.0,1.0]的浮点数据。
 
+\newpage
 \begin{longtable}{>{\small}p{0.28\textwidth}|>{\small}p{0.15\textwidth}|>{\small}p{0.1\textwidth}|>{\small}p{0.1\textwidth}|>{\small}p{0.1\textwidth}|>{\small}p{0.1\textwidth}|>{\small}p{0.1\textwidth}}
 \caption{OpenGL纹理完整的内部格式定义，包括基本格式标识符，大小标识符以及可选的数据类型}
 \label{t:api-texture-sized-internal-format}\\
@@ -918,7 +903,7 @@ GLint internalFormat, GLenum format​, GLenum type​, void *data​
 
 由此我们也可以看出，在着色器中通过浮点数采样器获得的纹素值的取值范围由其数据类型决定，默认情况无符号的内部格式纹素值取值范围为[0.0,1.0]，带有\_SNORM的有符号的内部格式其纹素值取值范围为[-1.0,1.0]，浮点型的内部格式其取值范围完全由客户端提供的数据决定。
 
-像素传输操作的另外两个参数format和type定了了客户内存中数据的格式，我们通常也称作这个格式为外部格式（External format）\index{外部格式external format}\index[en]{external format外部格式}。format由表示分量的组成部分及其顺序，以及可选的INTEGER格式指示符组成，如表\ref{t:api-data-format}所示。如果提供了\_INTEGET后缀，那么传给OpenGL的值被看做没有归一化的整数数据，因此不需要做数据转换，如果纹理的内部格式是浮点格式，则这些整数值将被直接转换为浮点数；如果内部格式是带有I或UI的整数整型格式，则在着色器可以直接使用这些整数值，但需要使用相应的整数采样器。
+像素传输操作的另外两个参数format和type定义了客户内存中数据的格式，我们通常也称作这个格式为外部格式（External format）\index{外部格式external format}\index[en]{external format外部格式}。format由表示分量的组成部分及其顺序，以及可选的INTEGER格式指示符组成，如表\ref{t:api-data-format}所示。如果提供了\_INTEGET后缀，那么传给OpenGL的值被看做没有归一化的整数数据，因此不需要做数据转换，如果纹理的内部格式是浮点格式，则这些整数值将被直接转换为浮点数；如果内部格式是带有I或UI的整数整型格式，则在着色器可以直接使用这些整数值，但需要使用相应的整数采样器。
 
 \begin{table}
 \caption{客户内存中的像素格式，第二列给出了像素分量的数量和顺序，除了以i开头的表示为整数，其他每个分量都是浮点数，}
@@ -997,7 +982,7 @@ GLint internalFormat, GLenum format​, GLenum type​, void *data​
 
 \begin{figure}
 \sidecaption
-	\includegraphics[width=0.55\textwidth]{figures/api/unpack}
+	\includegraphics[width=0.65\textwidth]{figures/api/unpack}
 	\caption{OpenGL中纹理数据由客户内存传输到设备内存中的解码过程。}
 	\label{f:api-unpack}
 \end{figure}
@@ -1011,15 +996,14 @@ void glPixelStoref(GLenum pname​, GLfloat param​);
 void glPixelStorei(GLenum pname​, GLint param​);
 \end{lstlisting}
 
-这些命令影响大部分像素数据的编码和解码操作，其中pname表示各个参数的名称，param表示参数设置的值，pname的名称具有GL\_PACK\_或GL\_UNPACK\_作为前缀以分别对应像素编码和解码操作。这才参数可以用来设置整体传输数据的布局，例如可以只传输目标纹理一部分子区域的数据，如图\ref{f:api-pixel-store}所示。
+这些命令影响大部分像素数据的编码和解码操作，其中pname表示各个参数的名称，param表示参数设置的值，pname的名称具有GL\_PACK\_或GL\_UNPACK\_作为前缀以分别对应像素编码和解码操作。这些参数可以用来设置整体传输数据的布局，例如可以只传输目标纹理一部分子区域的数据，如图\ref{f:api-pixel-store}所示。
 
 \begin{figure}
 \sidecaption
-	\includegraphics[width=0.5\textwidth]{figures/api/PixelStore}
+	\includegraphics[width=0.6\textwidth]{figures/api/PixelStore}
 	\caption{从一个图形传输一个子区域，这些参数的名称以前缀UNPACK\_(针对TexImage*）和PACK\_(针对ReadPixels）开头。}
 	\label{f:api-pixel-store}
 \end{figure}
-
 
 
 
@@ -1031,11 +1015,11 @@ void glPixelStorei(GLenum pname​, GLint param​);
 1996年，斯坦福大学的Andrew Beers，Maneesh Agrawala和Navin Chaddha共同发表了一篇论文\cite{a:RenderingfromCompressedTextures}，提出了一种基于GPU的纹理压缩方法，该方法使得GPU可以直接从压缩纹理中采样进行渲染。由于纹理在设备内存中以压缩格式存在，所以此方法不仅能减少资源的大小，同时能减少内存的占用。
 
 \subsubsection{压缩纹理的特点}
-在这篇论文中提出纹理压缩技术相较于其他图像压缩技术如JPG具有以下4个方面的特征：
+在这篇论文中提出纹理压缩技术相较于其他图像压缩技术（如JPG）具有以下4个方面的特征：
 
 \begin{itemize}
 	\item 解压速度快：为了使渲染系统可以直接从压缩纹理中读取数据，该压缩技术必须具有快速的解压速度，以不影响渲染系统的性能。传统的压缩技术主要针对存储或者文件传输的需求的进行设计，并不具备快速的解压速度。
-	\item 随机读取：由于纹理中的任何位置可能会被图元映射，因此片元着色器可能随机读取纹理的任何位置的纹素，这就要求该压缩技术必须能够被随机读取。传统的压缩技术如JPEG使用可变的压缩比率，读取某个像素的信息可能要解压很大一部分相关的像素信息。压缩纹理技术则使用固定的压缩比率，访问纹素时可以根据索引快速读取某一小块的内容，从而可以高效地实现随机读取。
+	\item 随机读取：由于纹理中的任何位置可能会被图元映射，因此片元着色器可能随机读取纹理中任何位置的纹素，这就要求该压缩技术必须能够被随机读取。传统的压缩技术如JPEG使用可变的压缩比率，读取某个像素的信息可能要解压很大一部分相关的像素信息。压缩纹理技术则使用固定的压缩比率，访问纹素时可以根据索引快速读取某一小块的内容，从而可以高效地实现随机读取。
 	\item 压缩率和图像质量：传统的图像压缩技术，大多要考虑图像的质量，因为这些压缩图像自身会作为一个整体被查看和使用。而对于纹理压缩技术，每个纹理只是场景的一部分，整体场景渲染质量的重要性大于单个图片的质量重要性，所以压缩纹理通常使用有损压缩\footnote{无损压缩通常用于数据文件，它们需要被精确恢复；而有损压缩通常用于一些表示函数的采样数据，这样的数据本身是包含噪声，并且在一定范围内人是无法感知的，例如声音，视频，图像等文件。}。
 	\item 编码速度：压缩纹理的压缩过程通常发生在应用程序之外，因此并不需要较高的编码速度，使用压缩纹理的核心制约因素是解压速度。
 
@@ -1053,8 +1037,9 @@ void glPixelStorei(GLenum pname​, GLint param​);
 所以，压缩纹理使用一个固定的压缩比率，它首先按照这个比率将纹理分成很多的像素块(block)，每个像素块包含如2$\times$2或4$\times$4个像素，然后对每个像素块进行压缩。每个被压缩后的像素信息存储在一个像素块集合(Codebook)\index{像素块集合codebook}\index[en]{codebook像素块集合}中，而一个块索引图(Index Map)存储了每个x=像素块的索引位置，在读取的时候首先根据块索引找到像素块，然后解压该像素块读取偏移值的信息。这称作为基于块(block-based)的压缩算法，如图\ref{f:api-compression}所示。
 
 \begin{figure}
-\sidecaption
-	\includegraphics[width=0.65\textwidth]{figures/api/compression}
+\begin{center}
+\includegraphics[width=0.81\textwidth]{figures/api/compression}
+\end{center}
 	\caption{压缩纹理使用固定的压缩比率进行压缩，一个固定大小的块内的像素被压缩以便于快速读取。}
 	\label{f:api-compression}
 \end{figure}
@@ -1064,7 +1049,7 @@ void glPixelStorei(GLenum pname​, GLint param​);
 \begin{enumerate}
 	\item 首先将纹理坐标转化为块索引值，并计算出块索引值，以及该坐标在该像素块内的偏移值。
 	\item 根据块索引值在像素块集合(Codebook)中查找对应的像素块。
-	\item 在这一段像素块中查找纹理坐标(i,j)的颜色值。
+	\item 在这一段像素块中查找纹理坐标$(i,j)$的颜色值。
 \end{enumerate}
 
 通过对固定数量的像素块进行压缩，压缩纹理就能够更快速的读取，实际在操作的时候对于一个像素块的数据还可以根据实际情况进行缓存。这种快速解压的速度使得图形渲染管线可以不依赖于CPU的解压就可以实现实时渲染，将压缩纹理直接保存在GPU内存中，既减少了资源在磁盘的存储大小，也大大节省了内存占用，还减少了纹理在传输过程中所占用的带宽。
@@ -1074,7 +1059,7 @@ void glPixelStorei(GLenum pname​, GLint param​);
 
 
 \subsubsection{在OpenGL中使用压缩纹理}
-在OpenGL中使用压缩纹理有两种方法，一种是让OpenGL为我们压缩，在这种情况下，使用前面讲述的数据存储分配方法glTexImage*提供未压缩的原始纹理数据，同时指定纹理内部格式为表\ref{t:api-compression-internal-format}中的压缩纹理格式，这样OpenGL将会为我们实现纹理压缩。由于这是一个实时的过程，为了保证速度，OpenGL实现的压缩算法导致的纹理图像可能很低。另外一种是把使用一些离线工具把纹理数据提取压缩好，然后直接传递压缩过纹理数据给OpenGL，使用这种方法，我们可以花费更多的时间来获取更好的压缩质量，而不需要牺牲运行时时间。
+在OpenGL中使用压缩纹理有两种方法，一种是让OpenGL为我们压缩，在这种情况下，使用前面讲述的数据存储分配方法glTexImage*提供未压缩的原始纹理数据，同时指定纹理内部格式为表\ref{t:api-compression-internal-format}中的压缩纹理格式，这样OpenGL将会为我们实现纹理压缩。由于这是一个实时的过程，为了保证速度，OpenGL实现的压缩算法导致的纹理精度可能很低。另外一种是使用一些离线工具把纹理数据提前压缩好，然后直接传递压缩过的纹理数据给OpenGL，使用这种方法，我们可以花费更多的时间来获取更好的压缩质量，而不需要牺牲运行时时间。
 
 需要注意的是，表\ref{t:api-compression-internal-format}中的很多格式是由OpenGL扩展支持的，所以在实践中我们需要首先查询不同的OpenGL实现支持哪些扩展的压缩纹理格式。
 
@@ -1132,11 +1117,11 @@ void glCompressedTexImage3D(GLenum target, GLint level, GLenum internalFormat, G
 
 
 \subsection{采样器对象}
-纹理一个分布函数，当我们在获取某个位置的纹素时，需要对其进行重采样，所以着色器中获取到的通常并不一定是纹理中的数据。为了支持这种采样操作，纹理对象需要设置一些采样相关的参数。
+纹理是一个分布函数，当我们在获取某个位置的纹素时，需要对其进行重采样，所以着色器中获取到的通常并不一定是纹理中的真实数据。为了支持这种采样操作，纹理对象需要设置一些采样相关的参数。
 
 \begin{figure}
 \sidecaption
-	\includegraphics[width=0.5\textwidth]{figures/api/texture-anatomy}
+	\includegraphics[width=0.6\textwidth]{figures/api/texture-anatomy}
 	\caption{一个纹理对象的状态可以分为两个部分：与纹理尺寸，维度，图像等相关的状态，以及与采样相关的状态。}
 	\label{f:api-sampler-parameter}
 \end{figure}
@@ -1158,7 +1143,7 @@ void SamplerParameter{if}( uint sampler, enum pname, T param );void SamplerPara
 
 这里pname表示参数名称，param和params分别用来设置单个值的参数和数组值的参数。采样器参数名称的可选值包括：GL\_TEXTURE\_WRAP\_S, GL\_TEXTURE\_WRAP\_T, GL\_TEXTURE\_WRAP\_R, GL\_TEXTURE\_MIN\_FILTER, GL\_TEXTURE\_MAG\_FILTER, GL\_TEXTURE\_MIN\_LOD, GL\_TEXTURE\_MAX\_LOD, GL\_TEXTURE\_LOD\_BIAS, GL\_TEXTURE\_COMPARE\_MODE和GL\_TEXTURE\_COMPARE\_FUNC。以下按类别分别讲述这些参数。
 
-采样器最重要的参数是用来对离散函数进行重采样的滤波器的设置，这包括信号的放大和缩小。对于放大过滤器（Magnification filter）\index{放大过滤器magnification filter}\index[en]{magnification filter放大过滤器}，其对应的参数名称为 GL\_TEXTURE\_MAG\_FILTER，可选的值为GL\_LINEAR和GL\_NEAREST，分别表示使用线性插值和使用最近点作为采样值；对于缩小过滤器（Minification filter）\index{缩小过滤器minification filter}\index[en]{minification filter缩小过滤器}，采样参数的设置还涉及mipmap的选择，我们可以选择不选择更小的mipmap级别，或者我们也可以选择对mipmap进行采样，这些可选的值如表\ref{t:api-minification-filter}所示。
+采样器最重要的参数是用来对离散函数进行重采样的滤波器的设置，这包括信号的放大和缩小。对于放大过滤器（Magnification filter）\index{放大过滤器magnification filter}\index[en]{magnification filter放大过滤器}，其对应的参数名称为 GL\_TEXTURE\_MAG\_FILTER，可选的值为GL\_LINEAR和GL\_NEAREST，分别表示使用线性插值和使用最近点作为采样值；对于缩小过滤器（Minification filter）\index{缩小过滤器minification filter}\index[en]{minification filter缩小过滤器}，采样参数的设置还涉及mipmap的选择，我们可以选择不使用更小的mipmap级别，或者我们也可以选择对mipmap进行采样（插值），这些可选的值如表\ref{t:api-minification-filter}所示。
 
 \begin{table}
 \caption{OpenGL中的缩小滤波器的可选值及其意义}
@@ -1181,15 +1166,15 @@ void SamplerParameter{if}( uint sampler, enum pname, T param );void SamplerPara
 
 这些值的意义可以参见第一章的内容，需要注意的是，纹理的重采样是硬件支持的功能，它们能够高效地满足着色器的随机存储，这也是纹理对象和一般缓存对象不同的地方。
 
-采样器的另一些参数用来控制存储深度值的纹理的比较模式（Comparison mode）\index{比较模式comparison mode}\index[en]{comparison mode比较模式}。如果纹理是用来存储的深度值，通常它的作用是用来进行深度比较（就行OpenGL自身对深度缓存的使用方式），所以当我们想要对一个深度纹理进行采样时，往往我们并不是希望获取它作为一个纹理的纹素值，而是希望获取一个它与某个参考值进行比较的结果作为采样值。跟OpenGL渲染管线本身的深度比较一样，我们需要设置一个比较模式（GL\_TEXTURE\_COMPARE\_MODE参数）和一个比较函数(GL\_TEXTURE\_COMPARE\_FUN参数)同时来进行工作，由于它和渲染管线深度比较的工作方式一致，我们将在本章后面讲述深度比较的方法。此外，存储深度值的纹理也可以像一般纹理那样使用滤波器获取一个普通的采样值。
+采样器的另一些参数用来控制存储深度值的纹理的比较模式（Comparison mode）\index{比较模式comparison mode}\index[en]{comparison mode比较模式}。如果纹理是用来存储的深度值，通常它的作用是用来进行深度比较（就像OpenGL自身对深度缓存的使用方式），所以当我们想要对一个深度纹理进行采样时，往往我们并不是希望获取它作为一个纹理的纹素值，而是希望获取一个它与某个参考值进行比较的结果作为采样值。跟OpenGL渲染管线本身的深度比较一样，我们需要设置一个比较模式（GL\_TEXTURE\_COMPARE\_MODE参数）和一个比较函数(GL\_TEXTURE\_COMPARE\_FUN参数)同时来进行工作，由于它和渲染管线深度比较的工作方式一致，我们将在本章后面讲述深度比较的方法。此外，存储深度值的纹理也可以像一般纹理那样使用滤波器获取一个普通的采样值。
 
-使用一些采样器参数用来控制对边缘值的采样（Edge value sampling），虽然纹理坐标使用归一化的值其范围在0.0和1.0之间，但是OpenGL并不组织其使用该范围以外的浮点值，这有时候是非常有用的。当一个纹理坐标的值超出[0,1]的范围时，OpenGL需要知道该怎样进行采样。
+使用一些采样器参数用来控制对边缘值的采样（Edge value sampling），虽然纹理坐标使用归一化的值其范围在0.0和1.0之间，但是OpenGL并不阻止其使用该范围以外的浮点值，这有时候是非常有用的。当一个纹理坐标的值超出[0,1]的范围时，OpenGL需要知道该怎样进行采样。
 
 纹理坐标的每个维度都可以分别设置不同的边缘采样模式，参数GL\_TEXTURE\_WRAP\_S, GL\_TEXTURE\_WRAP\_T, 和 GL\_TEXTURE\_WRAP\_R分别用来设置纹理坐标S, T和 R轴的值，这些可选的值包括：
 
 \begin{itemize}
 	\item GL\_REPEAT: 纹理坐标缠绕着纹理，比如纹理坐标为$-0.2$时相当于其坐标为0.8。	
-	\item GL\_MIRRORED\_REPEAT: 纹理坐标以镜面的形式围绕纹理缠绕，例如纹理坐标为-0.2时等效于纹理坐标为0.2，当纹理坐标为$-1.2$时等效于纹理坐标为0.8。
+	\item GL\_MIRRORED\_REPEAT: 纹理坐标以镜面的形式围绕纹理缠绕，例如纹理坐标为$-0.2$时等效于纹理坐标为0.2，当纹理坐标为$-1.2$时等效于纹理坐标为0.8。
 	\item GL\_CLAMP\_TO\_EDGE: 所有纹理坐标被限制在[0,1]范围，即所有纹理坐标大于1时为1，小于0时为0。
 	\item GL\_CLAMP\_TO\_BORDER: 所有纹理坐标被限制在[0,1]的范围，但是边缘的纹理值将是和一个常数值进行混合的结果。
 	\item GL\_MIRROR\_CLAMP\_TO\_EDGE: 纹理坐标被限制在$[-1,1]$的范围，但是负数部分与正数部分呈镜面对称，所以它的结果使整个纹理以镜面的形式两倍于原纹理大小。
@@ -1209,11 +1194,11 @@ void SamplerParameter{if}( uint sampler, enum pname, T param );void SamplerPara
 
 显然，如果使用3D纹理存储一个三维空间的的某种分布数据（如颜色值），这将是一个巨大的挑战，所以在本书后面的内容我们将看到，游戏开发或其他图形应用程序中往往并不会直接使用3D纹理存储完整的空间分布。对于3D空间域的分布函数，我们往往需要分析其分布函数的特征，然后考虑能不能以其他更低空间域（例如2D甚至1D）或更低的分辨率来表示，例如本书后面将会讨论的一些3D空间的分布函数具有较低的频率域（如间接光），因此可以使用很低的分辨率来存储这些值，另一些3D分布函数存在大量的空值，则可以使用一些特殊的数据结构来使3D纹理仅仅被用来保存一些局部信息。
 
-立方体纹理（Cubemap texture）就是一种特殊的3D分布函数。我们发现，对于物体周围的反射光源，如果这些环境离观察点的距离很远，那么观察点的位置对反射光的影响可以忽略不计，因此3D空间分布被简化为一个方向分布，我们可以使用任意一种能够包括全部方向的一个“薄面”结构来代替这种3D分布，例如一个球体，一个立方体，或者任意其他能够包围一个环境的结构。球体显然是最理想的选择，但是立方体具有更简单的采样方式因此被一般的图形硬件支持。
+立方体纹理（Cubemap texture）\myindex{立方体纹理}{cubemap texture}就是一种特殊的3D分布函数。我们发现，对于物体周围的反射光源，如果这些环境离观察点的距离很远，那么观察点的位置对反射光的影响可以忽略不计，因此3D空间分布被简化为一个方向分布，我们可以使用任意一种能够包括全部方向的一个“薄面”结构来代替这种3D分布，例如一个球体，一个立方体，或者任意其他能够包围一个环境的结构。球体显然是最理想的选择，但是立方体具有更简单的采样方式因此被一般的图形硬件支持。
 
 \begin{figure}
 \sidecaption
-	\includegraphics[width=0.5\textwidth]{figures/api/cube-map}
+	\includegraphics[width=0.65\textwidth]{figures/api/cube-map}
 	\caption{左下角的图表示原始场景，将观察点置于场景中的小黑点的位置。上面的图表示从观察点渲染或者看到的6个方向的2D图像，它们形成立方体纹理的6个面。最后右下角的场景中，新加入的中间的白色立方体使用前面的立方体纹理对其进行环境映射，就是该物体看起来可以反射周围的环境(图片来自Wikipedia)。}
 	\label{f:api-cube-map}
 \end{figure}
@@ -1222,12 +1207,12 @@ void SamplerParameter{if}( uint sampler, enum pname, T param );void SamplerPara
 
 立方体纹理对象的绑定目标为GL\_TEXTURE\_CUBE\_MAP，但是立方体纹理的存储和数据分配使用一种特殊的方式，即它的数据传输命令中的每个目标需要分别设置每一个面所代表的一个特殊的目标，这6个面的目标值分别是：GL\_TEXTURE\_CUBE\_MAP\_POSITIVE\_X, GL\_TEXTURE\_CUBE\_MAP\_NEGATIVE\_X, GL\_TEXTURE\_CUBE\_MAP\_POSITIVE\_Y, GL\_TEXTURE\_CUBE\_MAP\_NEGATIVE\_Y, GL\_TEXTURE\_CUBE\_MAP\_POSITIVE\_Z以及 GL\_TEXTURE\_CUBE\_MAP\_NEGATIVE\_Z。
 
-立方体6个2D的面都有自己的mipmap，这跟一般的2D纹理一样可以通过glTexImage2D来设置。立方体纹理的采样器使用gsamplerCube或gsamplerCubeShadow类型，这里g代表立方体纹理中的数据类型，可以是i（有符号）,ui（无符号）或f（浮点数），立方体纹理坐标是一个3D的矢量，其表示一个方向，所以立方体的纹理坐标不一定需要归一化。gsamplerCubeShadow的纹理坐标是一个4D的矢量，其第四个分量表示进行深度比较的一个比较值。
+立方体6个2D的面都有自己的mipmap，这跟一般的2D纹理一样可以通过glTexImage2D来设置。立方体纹理的采样器使用gsamplerCube或gsamplerCubeShadow类型，这里g代表立方体纹理中的数据类型，可以是i（有符号），ui（无符号）或f（浮点数），立方体纹理坐标是一个3D的矢量，其表示一个方向，所以立方体的纹理坐标不一定需要归一化。gsamplerCubeShadow的纹理坐标是一个4D的矢量，其第四个分量表示进行深度比较的一个比较值。
 
-使用立方体纹理对环境进行映射的一个缺点是，6个面之间的连接处会存储不连续的缺陷。传统的纹理滤波器技术只在每个2D纹理内部工作，而不能对这种情况进行处理。但是但是现代的硬件能够直接在相邻的纹理间进行插值，这可以通过以下设置来使用这样特性：
+使用立方体纹理对环境进行映射的一个缺点是，6个面之间的连接处会存储不连续的缺陷。传统的纹理滤波器技术只在每个2D纹理内部工作，而不能对这种情况进行处理。但是现代的硬件能够直接在相邻的纹理间进行插值，这可以通过以下设置来使用这种特性：
 
 \begin{lstlisting}[language=C++]
-glEnable(GL\_TEXTURE\_CUBE\_MAP\_SEAMLESS)​;
+glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS)​;
 \end{lstlisting}
 
 此外，在本书后面的具体例子中，还会介绍一些其他的方法来解决立方体纹理每个面之间映射不连续的情况。
@@ -1243,7 +1228,7 @@ glEnable(GL\_TEXTURE\_CUBE\_MAP\_SEAMLESS)​;
 
 数组纹理适用于在一次绘制中需要用到多种同等尺寸的纹理，例如对一个角色使用多层纹理（散射颜色，法线贴图等具有相同尺寸的纹理），或者多个不同的角色使用不同的皮肤等，这些纹理可以存储为一个数组纹理，在贴图的时候可以独立选择任意一个单独纹理（切片）。
 
-数组纹理的基础类型只能来自于1D，2D或立方体纹理，其对应的绑定目标类型分别为GL\_TEXTURE\_1D\_ARRAY，GL\_TEXTURE\_2D\_ARRAY和GL\_TEXTURE\_CUBE\_MAP\_ARRAY。数组纹理也可以具有mipmap，但是每个切片具有的mipmap的级数必须相等。此外，数组纹理数据的分配方式需要使用其下一个更高维度对于的数据分配命令，例如一个2D的数组纹理需要使用3D纹理的数据分配命令：
+数组纹理的基础类型只能来自于1D，2D或立方体纹理，其对应的绑定目标类型分别为GL\_TEXTURE\_1D\_ARRAY，GL\_TEXTURE\_2D\_ARRAY和GL\_TEXTURE\_CUBE\_MAP\_ARRAY。数组纹理也可以具有mipmap，但是每个切片具有的mipmap的级数必须相等。此外，数组纹理数据的分配方式需要使用其下一个更高维度对应的数据分配命令，例如一个2D的数组纹理需要使用3D纹理的数据分配命令：
 
 
 \begin{lstlisting}[language=C++]
@@ -1260,13 +1245,13 @@ glTexImage3D(GL_TEXTURE_2D_ARRAY, 2, format, width/4, height/4, num_layers, ...)
 
 
 \section{帧缓存}\label{sec:api-framebuffer}
-帧缓存（Framebuffer）\index{帧缓存framebuffer}\index[en]{framebuffer帧缓存}是OpenGL渲染管线的最终目标，由于我们使用图形渲染管线的目的是得到一张2D图像，因此不难想象帧缓存是由一个2维的矩形像素数组构成图像，它的分辨率和当前设备的（或部分）显示分辨率一致。因此我们想要得到任何渲染结果，都必须通过帧缓存对象，这包括提交图像给输出设备显示，或者读取渲染结果回宿主程序供其他使用目的（如制作视频流）。
+帧缓存（Framebuffer）\index{帧缓存framebuffer}\index[en]{framebuffer帧缓存}是OpenGL渲染管线的最终目标，由于我们使用图形渲染管线的目的是得到一张2D图像，因此不难想象帧缓存是由一个2维的矩形像素数组构成的图像，它的分辨率和当前设备的（或部分）显示分辨率一致。因此我们想要得到任何渲染结果，都必须通过帧缓存对象，这包括提交图像给输出设备显示，或者读取渲染结果回宿主程序供其他使用目的（如制作视频流）。
 
 在OpenGL中，帧缓存对象分为两种类别，虽然它们的内部结构很相似，但是它们的使用差别有很大不同。第一种称为默认帧缓存（Default framebuffer），它是由宿主程序在创建OpenGL上下文的时候形成，默认帧缓存仅供显示使用，应用程序不能做太多控制；相反，第二种应用程序创建的帧缓存（Application-created framebuffer）完全受应用程序控制，但是它的渲染结果不能直接被显示，它可以用于将渲染结果保存到纹理对象，甚至用于离线渲染将渲染结果保存回宿主供其他使用。随着延迟渲染等渲染方法的兴起，一次完整的渲染往往需要使用多次渲染管线（或计算着色器）的计算，应用程序创建的帧缓存被大量使用以用来将一些中间过程计算结果保存到纹理中，最终才将最后的计算结果显示出来。为了简化，在以下的内容中，我们将直接称应用程序创建的帧缓存为帧缓存。
 
-帧缓存对象是一个普通的OpenGL对象，因此我们任然使用一般的glGenFramebuffers和glDeleteFramebuffers来创建和删除帧缓存对象，并使用glBindFramebuffer来绑定要使用的帧缓存对象到当前上下文。帧缓存的绑定目标有三个：GL\_FRAMEBUFFER, GL\_READ\_FRAMEBUFFER和GL\_DRAW\_FRAMEBUFFER，其中GL\_READ\_FRAMEBUFFER将帧缓存绑定为一个只读的对象，而GL\_DRAW\_FRAMEBUFFER可以接受所有绘制命令（包括清除），如果我们希望同时可以执行两种操作\footnote{GL\_READ\_FRAMEBUFFER可以用来防止在复制数据到客户内存（或其他缓存对象）期间帧缓存数据被其他绘制命令修改。}，则使用GL\_FRAMEBUFFER。
+帧缓存对象是一个普通的OpenGL对象，因此我们仍然使用一般的glGenFramebuffers和glDeleteFramebuffers来创建和删除帧缓存对象，并使用glBindFramebuffer来绑定要使用的帧缓存对象到当前上下文。帧缓存的绑定目标有三个：GL\_FRAMEBUFFER, GL\_READ\_FRAMEBUFFER和GL\_DRAW\_FRAMEBUFFER，其中GL\_READ\_FRAMEBUFFER将帧缓存绑定为一个只读的对象，而GL\_DRAW\_FRAMEBUFFER可以接受所有绘制命令（包括清除），如果我们希望同时可以执行两种操作\footnote{GL\_READ\_FRAMEBUFFER可以用来防止在复制数据到客户内存（或其他缓存对象）期间帧缓存数据被其他绘制命令修改。}，则使用GL\_FRAMEBUFFER。
 
-上述我们假想的认为“一个帧缓存包含一个2D的图像”并不对，帧缓存实际上是一个容器对象，它包含多个具有相同尺寸的2D图像。帧缓存以附加点（Attachment points）\index{附加点attachment points}\index[en]{attachment points附加点}的方式让应用程序可以管理这里2D图像，应用程序可以把一个对应的可附加的对象附加到这些附加点，这些附加点的名称可以分为4类，分别用来存储颜色，深度，模板值，如\ref{t:api-attachment-points}所示，其中具有多个用来储存颜色的附加点。
+上述我们假想的认为“一个帧缓存包含一个2D的图像”并不对，帧缓存实际上是一个容器对象，它包含多个具有相同尺寸的2D图像。帧缓存以附加点（Attachment points）\index{附加点attachment points}\index[en]{attachment points附加点}的方式让应用程序可以管理这些2D图像，应用程序可以把一个对应的可附加的对象附加到这些附加点，这些附加点的名称可以分为4类，分别用来存储颜色，深度，模板值，如表\ref{t:api-attachment-points}所示，其中具有多个用来储存颜色的附加点。
 
 \begin{table}
 \caption{帧缓存附加点，其中GL\_COLOR\_ATTACHMENT$i$中的$i$的取值范围从0到GL\_MAX\_COLOR\_ATTACHMENTS之间，所有OpenGL实现保证GL\_MAX\_COLOR\_ATTACHMENTS的最小值为8。}
@@ -1291,7 +1276,7 @@ glTexImage3D(GL_TEXTURE_2D_ARRAY, 2, format, width/4, height/4, num_layers, ...)
 
 在OpenGL中，可被附加到帧缓存的每个附加点的对象类型有两种：渲染缓存或纹理。它们都可以用来实现离线渲染，即将渲染结果读回到客户内存中，在这方面，渲染缓存是一个更好的被优化的渲染目标；然而当渲染结果需要被着色器重采样（被着色器读取）时，则只能选择渲染到纹理中。
 
-渲染缓存（Renderbuffer）\index{渲染缓存renderbuffer}\index[en]{renderbuffer渲染缓存}对象是一个OpenGL对象，它使用glGenRenderbuffers和glDeleteRenderbuffers​来创建和删除一个渲染缓存对象，并使用glBindRenderbuffer来绑定渲染缓存对象，其绑定的目标必须是GL\_RENDERBUFFER。
+渲染缓存（Renderbuffer）\index{渲染缓存renderbuffer}\index[en]{renderbuffer渲染缓存}对象是一个OpenGL对象，它使用glGenRenderbuffers和glDeleteRenderbuffers​来创建和删除一个渲染缓存对象，并使用glBindRenderbuffer来绑定渲染缓存对象，其绑定的目标必须是GL\_RENDER- BUFFER。
 
 渲染缓存使用以下命令来分别存储：
 
@@ -1308,13 +1293,13 @@ void glRenderbufferStorageMultisample​(GLenum target​, GLsizei samples​, G
 void FramebufferRenderbuffer( enum target, enum attachment, enum renderbuffertarget, uint renderbuffer );
 \end{lstlisting}
 
-这里target是GL\_DRAW\_FRAMEBUFFER, GL\_READ\_FRAMEBUFFER或FRAMEBUFFER，renderbuffertarget必须是GL\_FRAMEBUFFER，renderbuffer是渲染缓存的名称，attachment是帧缓存的一个附加点名称。实际上，在OpenGL中渲染缓存唯一被使用的方式就是附加到一个帧缓存对象上。
+这里target是GL\_DRAW\_FRAMEBUFFER, GL\_READ\_FRAMEBU- FFER或FRAMEBUFFER，renderbuffertarget必须是GL\_FRAMEBUFFER，renderbuffer是渲染缓存的名称，attachment是帧缓存的一个附加点名称。实际上，在OpenGL中渲染缓存唯一被使用的方式就是被附加到一个帧缓存对象上。
 
 对于纹理对象的附件，由于帧缓存中的每个附加点只存储一个2D图像，并且纹理实际上是一个图像的集合，此外，纹理还可能拥有多个级别的mimap，所以有一些规则用来限制纹理的绑定，这些规则如下：
 
 \begin{itemize}
 	\item 当一个1D纹理被附加到帧缓存时，它被当做一个2D的图像，其垂直高度为1。1D纹理中的每个图像可以用一个mipmap的级别表示\footnote{纹理对象在结构上虽然可以由多个图像构成，但是图像的数量其实是由OpenGL控制的，而不是由应用程序控制的，例如1D和2D纹理的每个mipmap级别都只有1个图像，立方体纹理每个级别固定有6个图像。}。
-	\item 2D纹理中的图像被正常使用，其每个图像可以用mipmap级别唯一表示。
+	\item 2D纹理中的图像则可以被正常使用，其每个图像可以用mipmap级别唯一表示。
 	\item 3D纹理被认为是一个2D纹理的集合，其Z轴（或深度）中的每个整数索引被认为是一个层（layer），在附加的时候需要指定使用哪一层级，同样立方体纹理也需要指定mipmap的级别。
 	\item 长方体纹理只包含一个2D纹理，所以只需要使用mipmap为0就可以标识该2D纹理。
 	\item 立方体纹理拥有6个2D图像，因此需要使用一个表示立方体面的目标和mipmap级别来定位一个唯一的2D图像，立方体纹理的面同3D纹理纹理一样用一个层来标识。
@@ -1342,7 +1327,7 @@ layout (location=0) out vec4 color;
 layout (location=1) out vec4 normal;
 \end{lstlisting}
 
-这两个片元着色器中的输出参数就会被对应到GL\_COLOR\_ATTACHMENT0和GL\_COLOR\_ATTACHMENT1附加点上，所以在执行片元着色器后这两个值就会被写入对应的缓存对象中。如果当前绑定的帧缓存附加点与当前绑定的片元着色器之间没有完全匹配，那么那些未对应的数据会直接被忽略。
+这两个片元着色器中的输出参数就会被对应到GL\_COLOR\_ATTACHM- ENT0和GL\_COLOR\_ATTACHMENT1附加点上，所以在执行片元着色器后这两个值就会被写入对应的缓存对象中。如果当前绑定的帧缓存附加点与当前绑定的片元着色器之间没有完全匹配，那么那些未对应的数据会直接被忽略。
 
 同样，如果我们没有在片元着色器中直接显式定义位置，也可以像其他变量一样在着色器程序链接之前手动设置这种对应关系，这使用以下命令：
 
@@ -1366,7 +1351,7 @@ void glFramebufferTexture1D​(GLenum target​, GLenum attachment​, GLuint te
 
 这里texture参数可以是一个具有多切片的纹理，例如数组纹理或立方体纹理\footnote{当然它也可以是只有一个图像的纹理，此时它的功能和前面的附加命令类似。}。帧缓存可以使用分层渲染技术在几何着色器中将结果输出到一个纹理的多个切片中，这将在几何着色器部分介绍。
 
-渲染到纹理的机制使得渲染管线不再是一个单一的渲染通道，我们可以对整个渲染工作的流程进行逻辑划分，在前面和中间的流程中可以一些中间结果渲染到纹理中，然后这里纹理可以被后面的流程灵活地使用，这种思路是现代实时渲染技术的重要基础。
+渲染到纹理的机制使得渲染管线不再是一个单一的渲染通道，我们可以对整个渲染工作的流程进行逻辑划分，在前面和中间的流程中可以将一些中间结果渲染到纹理中，然后这些纹理可以被后面的流程灵活地使用，这种思路是现代实时渲染技术的重要基础。
 
 最后，帧缓存中的数据可以被读回到客户内存中，这通过以下命令来实现：
 
@@ -1384,10 +1369,10 @@ void glReadPixels(GLint x​, GLint y​, GLsizei width​, GLsizei height​, G
 \section{顶点处理}\label{sec:api-vertex-phase}
 在本章前面的内容中，我们讨论了很多OpenGL核心的概念，这些概念是理解OpenGL图形接口的重要内容，从本节起，我们将开始按顺序讲述OpenGL渲染管线中的各个阶段及其每个阶段相关的一些概念。
 
-OpenGL渲染管线主要包括两个阶段：顶点处理阶段和片元处理阶段，连接两个阶段的则是光栅化。每一帧一个场景的渲染包括两个方面的内容，即重新计算运动部分物体的坐标，以及对每个物体的每个像素点进行着色，这两个方面正好对应于渲染管线的顶点处理阶段和片元处理阶段。因此我们可以理解为顶点处理阶段是用来处理“应用程序”方面的需求，这包括对移动的物体重新计算坐标，对可视区域之外的几何体执行裁剪，几何体级别的细分等，这些操作可以认为它们不是真正着色的一部分\footnote{当然这只是一种粗略的划分，在一些渲染处理中，顶点着色器仍然被用于执行部分光照计算。}，它们“本应该”在CPU端执行，只不过由于这些操作具有高度的并行性而被放入到GPU执行。当然实际上这些概念并不是这么简单，但是这样的一种对顶点处理功能的认识将对理解渲染管线是有益的，如图\ref{f:api-vertex-pixel}所示。
+OpenGL渲染管线主要包括两个阶段：顶点处理阶段和片元处理阶段，连接两个阶段的则是光栅化。在每一帧中，一个场景的渲染包括两个方面的内容，即重新计算运动部分物体的坐标，以及对每个物体的每个像素点进行着色，这两个方面正好对应于渲染管线的顶点处理阶段和片元处理阶段。因此我们可以理解为顶点处理阶段是用来处理“应用程序”方面的需求，这包括对移动的物体重新计算坐标，对可视区域之外的几何体执行裁剪，几何体级别的细分等，这些操作可以认为它们不是真正着色的一部分\footnote{这只是一种粗略的划分，在一些渲染处理中，顶点着色器仍然被用于执行部分光照计算。}，它们“本应该”在CPU端执行，只不过由于这些操作具有高度的并行性而被放入到GPU执行。当然实际上这些概念并不是这么简单，但是这样的一种对顶点处理功能的认识将对理解渲染管线是有益的，如图\ref{f:api-vertex-pixel}所示。
 
 \begin{figure}
-	\includegraphics[width=1.\textwidth]{figures/api/vertex-pixel}
+	\includegraphics[width=\textwidth]{figures/api/vertex-pixel}
 	\caption{OpenGL渲染管线的概念可以“简化”为顶点处理和片元处理，其中顶点处理着重于处理应用程序方面的需求，而片元处理着重于真正的着色计算。}
 	\label{f:api-vertex-pixel}
 \end{figure}
@@ -1429,7 +1414,7 @@ layout(location = 0) in vec4 vPosition;
 
 当得到顶点属性的索引值之后，我们就可以设置每个顶点属性的值。默认情况下，每个顶点属性的值是一个常数，称为静态顶点属性，此时任何顶点着色器实例获得该顶点属性的值都是一样的，它相当于一个该顶点属性默认值，我们可以直接通过glVertexAttrib*相关的命令设置静态顶点属性的值\footnote{这种情况下的顶点属性数据也可以使用uniform变量代替。}。
 
-静态顶点属性的值是直接存储在VAO中（而不是后面讲述的顶点缓存对象中）的，它为每个顶点属性分配一个具有4个分量的存储空间\footnote{这里的存储空间只是VAO专门用来存储静态顶点属性预留的一个4分量的数组空间，后面的顶点缓存对象并不遵循这样的约束。}，其默认值为[0.0,0.0,0.0,1.0]，因此一个标量顶点属性和一个vec4变量一样会占据一个完整的存储空间，所以通常我们倾向于尽可能将顶点数据合并进一个4分量矢量的大小，对于矩阵顶点属性，如$2\times 2, 2\times 3$或$4\times 4$矩阵等，其每个列都会占据一个独立的存储空间。
+静态顶点属性的值是直接存储在VAO中（而不是后面讲述的顶点缓存对象中）的，它为每个顶点属性分配一个具有4个分量的存储空间\footnote{这里的存储空间只是VAO专门用来存储静态顶点属性预留的一个4分量的数组空间，后面的顶点缓存对象并不遵循这样的约束。}，其默认值为[0.0,0.0,0.0,1.0]，因此一个标量顶点属性和一个vec4变量一样会占据一个完整的存储空间，所以通常我们倾向于尽可能将顶点数据合并进一个4分量矢量的大小，对于矩阵顶点属性，如$2\times 2$，$2\times 3$或$4\times 4$矩阵等，其每个列都会占据一个独立的存储空间。
 
 但顶点属性更通常的使用方式是使用一个数组来对每个顶点存储不同的数据，OpenGL提供一个状态开关来开启顶点属性的数组形式，如图\ref{f:api-vertex-array}所示。​通过以下命令可以自两种状态之间切换：
 
@@ -1461,18 +1446,12 @@ void glVertexAttribLPointer​(GLuint index​, GLint size​, GLenum type​, G
 
 这里offset即是绑定至目标为GL\_ARRAY\_BUFFER的缓存对象的偏移值，index表示顶点属性索引值，size表示的是每个顶点属性变量的尺寸，它表示的是其分量的数量（1，2，3，4），顶点缓存对象中每个分量的数据类型是由type决定的，type和size的可选值如表\ref{t:api-glVertexAttribPointer}所示。
 
-顶点缓存对象中的顶点数据以type参数对应的数据类型存储，type对应的每个分量所占存储的位数如表\ref{t:api-glVertexAttribPointer-type}所示，这些数据在被读进着色器的时候，会被不同的命令glVertexAttribPointer，glVertexAttribIPointer及glVertexAttribLPointer分别转化为三种对应的着色器中的数据类型：浮点型，整型及双精度浮点型，着色器数据类型和缓存中的数据类型并不是一一对应的，这些着色器中的数据类型和可匹配的顶点缓存数据类型的对应关系如表\ref{t:api-glVertexAttribPointer}所示，如果类型不匹配则会发生数据隐式转换。
-
-\begin{myshaded}
-这里顶点着色器中的顶点属性变量的类型只能是浮点型，整型或者双精度浮点型，实际上这和纹理数据在被读进着色器时进行的数据转换是类似的机制，GPU中通常只包含32位的寄存器，而不像CPU一样具有多种不同数据类型和大小的寄存器，所以GPU中更常使用的是32位的整数或32位的浮点数，其中对于有符号整数，它的其中一位用来存储符号，所以只有31位用来存储数据，对于双精度浮点数，它使用两个32位的寄存器来存储。由此可知，32位的浮点数只有很少的位数用来存储整数部分，如果整数部分取值范围比较大，最好直接使用整数存储或使用双精度的浮点数。
-\end{myshaded}
-
-
 \begin{table}
+\begin{fullwidth}
 \caption{设置顶点数组属性变量时指定的（每顶点）顶点数组尺寸及其每个顶点属性的数据类型，BGRA是一个特殊的标识符用来存储压缩数据类型（packed）。}
 \label{t:api-glVertexAttribPointer}
 \centering
-\begin{tabular}{>{\small}p{0.3\textwidth}|>{\small}P{0.2\textwidth}|>{\small}p{0.17\textwidth}|>{\small}p{0.3\textwidth}}
+\begin{tabular}{>{\small}p{0.3\thewidth}|>{\small}P{0.2\thewidth}|>{\small}p{0.17\thewidth}|>{\small}p{0.3\thewidth}}
 \hline 
    命令名称 & sizes参数及其分量顺序 &整数处理 & 类型types参数  \\
     \hline  
@@ -1483,11 +1462,41 @@ void glVertexAttribLPointer​(GLuint index​, GLint size​, GLenum type​, G
 
  \hline 
 \end{tabular}
+\end{fullwidth}
 \end{table}
+
+顶点缓存对象中的顶点数据以type参数对应的数据类型存储，type对应的每个分量所占存储的位数如表\ref{t:api-glVertexAttribPointer-type}所示，这些数据在被读进着色器的时候，会被不同的命令glVertexAttribPointer，glVertexAttribIPointer及glVertexAttribLPointer分别转化为三种对应的着色器中的数据类型：浮点型，整型及双精度浮点型，着色器数据类型和缓存中的数据类型并不是一一对应的，这些着色器中的数据类型和可匹配的顶点缓存数据类型的对应关系如表\ref{t:api-glVertexAttribPointer}所示，如果类型不匹配则会发生数据隐式转换。
+
+\begin{myshaded}
+顶点着色器中的顶点属性变量的类型只能是浮点型，整型或者双精度浮点型，实际上这和纹理数据在被读进着色器时进行的数据转换是类似的机制，GPU中通常只包含32位的寄存器，而不像CPU一样具有多种不同数据类型和大小的寄存器，所以GPU中更常使用的是32位的整数或32位的浮点数，其中对于有符号整数，它的其中一位用来存储符号，所以只有31位用来存储数据，对于双精度浮点数，它使用两个32位的寄存器来存储。由此可知，32位的浮点数只有很少的位数用来存储整数部分，如果整数部分取值范围比较大，最好直接使用整数存储或使用双精度的浮点数。
+\end{myshaded}
 
 对于glVertexAttribPointer命令，其顶点着色器中的数据类型为单精度浮点型，顶点缓存中的数据在被读进着色器的时候将根据normalized确定是否进行归一化。对于整数的归一化，它们分别被除以该数据类型可以包含的最大值\footnote{有符号整数要除去一位符号位。}，根据type是否有无符号，而被转化到[0,1.0]和[-1.0,1.0]的范围，这和前面纹理数据读进着色器时的归一化是一样的方式；如果着色器中顶点属性变量类型和type的类型同时都是浮点数，则normalized始终为GL\_FLASE。此外，如果缓存对象中存储的是64位的双精度浮点型，则会被强制转化为32位的单精度浮点型。
 
-glVertexAttribIPointer则不包含normalized参数，因为它直接将整数读进着色器，当然这也要求其缓存对象中的数据类型为整型，如表\ref{t:api-glVertexAttribPointer}所示；glVertexAttribLPointer也不包含normalized参数，因为归一化只发生在整型上，它有有限固定的数据范围，浮点型本身进行归一化则没有太大意义。
+glVertexAttribIPointer则不包含normalized参数，因为它直接将整数读进着色器，当然这也要求其缓存对象中的数据类型为整型，如表\ref{t:api-glVertexAttribPointer}所示；glVertexAttribLPointer也不包含normalized参数，因为归一化只发生在整型上，它有有限且固定的数据范围，浮点型本身进行归一化则没有太大意义。
+
+stride参数用来表示数组中两个连续元素之间的字节偏移数，如果stride的值为0，则表示顶点缓存对象中的顶点属性是紧密排列的，所以OpenGL会根据分量的数量及数据类型来计算实际的偏移值，例如size为3，type为GL\_FLOAT，则OpenGL计算出的stride为12（每个浮点数占据4个字节，每个顶点属性变量具有3个分量 ）。
+
+stride和offset可以用来支持两种不同的定义顶点数组的方式，它们在C++中的数据结构类似如下：
+
+\begin{lstlisting}[language=C++]
+struct StructOfArrays
+{
+	GLfloat positions[VERTEX_COUNT * 3];
+	GLfloat normals[VERTEX_COUNT * 3];
+	GLubyte colors[VERTEX_COUNT * 4];
+};
+StructOfArrays structOfArrays;
+
+struct Vertex
+{
+	GLfloat position[3];
+	GLfloat normal[3];
+	Glubyte color[4];
+};
+
+Vertex vertices[VERTEX_COUNT];
+\end{lstlisting}
 
 \begin{table}
 \caption{glVertexAttriPoint()的数据类型标识符}
@@ -1515,29 +1524,8 @@ glVertexAttribIPointer则不包含normalized参数，因为它直接将整数读
 \end{tabular}
 \end{table}
 
-stride参数用来表示数组中两个连续元素之间的字节偏移数，如果stride的值为0，则表示顶点缓存对象中的顶点属性是紧密排列的，所以OpenGL会根据分量的数量及数据类型来计算实际的偏移值，例如size为3，type为GL\_FLOAT，则OpenGL计算出的stride为12（每个浮点数占据4个字节，每个顶点属性变量具有3个分量 ）。
 
-stride和offset可以用来支持两种不同的定义顶点数组的方式，它们在C++中的数据结构类似如下：
-
-\begin{lstlisting}[language=C++]
-struct StructOfArrays
-{
-	GLfloat positions[VERTEX_COUNT * 3];
-  	GLfloat normals[VERTEX_COUNT * 3];
-  	GLubyte colors[VERTEX_COUNT * 4];
-};
-StructOfArrays structOfArrays;
-
-struct Vertex
-{
-	GLfloat position[3];
-  	GLfloat normal[3];
-  	Glubyte color[4];
-};
-Vertex vertices[VERTEX_COUNT];
-\end{lstlisting}
-
-structOfArrays对象中每个顶点属性所有的数据分布构成一个数组，然后不同属性的数组存储在一个缓存对象中；而vertices数组中每个元素同时包含3个顶点属性；这样我们可以通过设置stride参数来精确告诉OpenGL该怎么获取每个顶点属性的数据。需要注意的是，这两种方式看起来是差不多的，但是它们之间的性能确实不一样的，后者能够充分利用第\ref{chp:hardware}中学习的全局变量合并访问的机制，而前者导致每个相邻的顶点着色器实例读取的内存地址并不连续，所以性能较差。所以，实践中，我们应该对每个顶点属性定义紧密排列的缓存对象。
+structOfArrays对象中每个顶点属性所有的数据分布构成一个数组，然后不同属性的数组存储在一个缓存对象中；而vertices数组中每个元素同时包含3个顶点属性；这样我们可以通过设置stride参数来精确告诉OpenGL该怎么获取每个顶点属性的数据。需要注意的是，这两种方式看起来是差不多的，但是它们之间的性能却是不一样的，后者能够充分利用第\ref{chp:hardware}章中学习的全局变量合并访问的机制，而前者导致每个相邻的顶点着色器实例读取的内存地址并不连续，所以性能较差。所以，在实践中，我们应该对每个顶点属性定义紧密排列的缓存对象。
 
 
 
@@ -1547,7 +1535,7 @@ structOfArrays对象中每个顶点属性所有的数据分布构成一个数组
 \subsubsection{绘~~制}
 定义好顶点数组后，OpenGL可以按照顶点数据中顶点元素的顺序进行渲染，然而这种由数组本身决定的顶点顺序并不灵活，例如一个人物会分为多个关节，各个关节之间会共享一些顶点数据，如果使用顶点数组本身的顺序来表示绘制时顶点的顺序，就会导致在渲染不同关节（或部分）的时候会出现重复的顶点数据，一个顶点可能包含多个顶点属性变量，因此这样的存储浪费极大；另一种情况是修改顶点的顺序则需要修改所有顶点属性对应的顶点缓存对象。
 
-所以OpenGL使用单独的一个整型的数组来表示顶点的顺序，这称为索引数组，索引数组中元素的类型只能是UNSIGNED\_BYTE（[0,255]）, UNSIGNED\_SHORT（[0,65535]）或UNSIGNED\_INT（[0,$2^{32}-1$]），宿主程序可以根据顶点的数量选择占用存储更少的整数类型。索引数组中的元素可以是重复的，这就是上述描述的顶点重复的部分，通过重复一个整型的索引值而不是重复多个顶点属性变量可以有效地减少存储空间的浪费。
+所以OpenGL使用单独的一个整型的数组来表示顶点的顺序，这称为索引数组，索引数组中元素的类型只能是UNSIGNED\_BYTE（[0，255]）, UNSIGNED\_SHORT（[0，65535]）或UNSIGNED\_INT（[0，$2^{32}-1$]），宿主程序可以根据顶点的数量选择占用存储更少的整数类型。索引数组中的元素可以是重复的，这就是上述描述的顶点重复的部分，通过重复一个整型的索引值而不是重复多个顶点属性变量可以有效地减少存储空间的浪费。
 
 OpenGL提供两种方式来定义顶点索引数组，一种是直接将客户内存中的顶点索引数组指针作为参数传递给绘制命令，另一种是将顶点索引数组存储在一个绑定到目标GL\_ELEMENT\_ARRAY\_BUFFER的缓存对象\footnote{顶点索引数组相关的绑定状态也被记录在VAO对象中。}，这两种方式使用的绘制命令分别如下：
 
@@ -1575,7 +1563,7 @@ void glDrawArrays​(GLenum mode​, GLint first​, GLsizei count​);
 \paragraph{多次合并绘制}
 分析图\ref{f:api-primitives}中的下面的三个图元类型，其中GL\_TRIANGE\_STRIP和GL\_TRIANGE\_FAN类型充分利用图元的相邻性来重用顶点（这也是使用顶点索引数组的好处），而GL\_TRIANGES则对每个图元都完整定义每个顶点，其顶点重复率很高，在这种类型中，顶点索引数组中顶点的顺序和顶点数组本身的顺序是一致的。
 
-这种利用之前的共享顶点来构成新图元的方式虽然节省了存储空间，但也带来了一个新的问题：即这些图元必须是相邻的。如果有多个物体使用完全一样的着色器及图元类型，但是它们分别属于不同的物体，这却不得不分别调用多次绘制命令，因为共享顶点的图元类型没法将它们从几何空间上分开（非共享的GL\_TRIANGES虽然可以任意从空间分开各个图元，但是又造成极大的存储空间浪费），而一次新的绘制导致的VAO的绑定和修改的成本都是极高的。
+这种利用之前的共享顶点来构成新图元的方式虽然节省了存储空间，但也带来了一个新的问题：即这些图元必须是相邻的。如果有多个物体使用完全一样的着色器及图元类型，但是它们分别属于不同的物体，这却不得不分别调用多次绘制命令，因为共享顶点的图元类型没法将它们从几何空间上分开（非共享的GL\_TRIANGES虽然可以任意从空间分开各个图元，但又造成极大的存储空间浪费），而一次新的绘制导致的VAO的绑定和修改的成本都是极高的。
 
 为了优化这种多次相似的绘制（使用相同的着色器及图元类型），例如场景中存在大量相同类型的物体分布在空间中不同的地方，这些物体可以使用以下命令进行一次性绘制：
 
@@ -1604,11 +1592,10 @@ void glMultiDrawArrays( GLenum mode, GLint *first, GLsizei *count, GLsizei primc
 void glMultiDrawElements​( GLenum mode​, GLsizei *count​, GLenum type​, void **indices​, GLsizei primcount​ );
 \end{lstlisting}
 
-利用图元重启的机制也可以实现类似的功能，该机制向OpenGL提供一个索引值，如果该索引值在顶点索引数组中被找到，则OpenGL将该索引顶点抛弃，并且从该顶点的下一个索引顶点开始重新计算新的图像，如图\ref{f:api-primitive-restart}所示。但是该机制今年处理两个空间上分离的物体。
+利用图元重启的机制也可以实现类似的功能，该机制向OpenGL提供一个索引值，如果该索引值在顶点索引数组中被找到，则OpenGL将该索引顶点抛弃，并且从该顶点的下一个索引顶点开始重新计算新的图像，如图\ref{f:api-primitive-restart}所示。但是该机制只能处理两个空间上分离的物体。
 
 \begin{figure}
-	\sidecaption
-	\includegraphics[width=0.65\textwidth]{figures/api/primitive-restart}
+\includegraphics[width=\textwidth]{figures/api/primitive-restart}
 	\caption{使用图元重启动的特性打断三角形条带}
 	\label{f:api-primitive-restart}
 \end{figure}
@@ -1625,7 +1612,7 @@ void glPrimitiveRestartIndex(GLuint index​);
 
 
 \paragraph{多实例绘制}
-多次合并绘制适合多个独立物体“相似”的绘制，每个物体拥有独立的顶点数据用来保证每个物体被正确绘制。假设现有多个完全相同的物体，它们拥有完全一样的顶点属性数据，只是具有少量不同的部分（例如不同的位置属性），如果我们使用多次合并绘制则需要分别在一个顶点缓存对象中存储各自对应的顶点数据（这些几乎完全是重复的），虽然我们可以对每次绘制设置相同的顶点数组的位置来使用同一套顶点数据，但是那样我们几乎完全不无法在着色器中区分不同的实例，因此无法对其不同的部分作出相应的修改。
+多次合并绘制适合多个独立物体“相似”的绘制，每个物体拥有独立的顶点数据用来保证每个物体被正确绘制。假设现有多个完全相同的物体，它们拥有完全一样的顶点属性数据，只是具有少量不同的部分（例如不同的位置属性），如果我们使用多次合并绘制则需要分别在一个顶点缓存对象中存储各自对应的顶点数据（这些几乎完全是重复的），虽然我们可以对每次绘制设置相同的顶点数组的位置来使用同一套顶点数据，但是那样我们几乎完全无法在着色器中区分不同的实例，因此无法对其不同的部分作出相应的修改。
 
 多实例绘制（Instanced rendering）\index{多实例绘制instanced rendering}\index[en]{instanced rendering多实例绘制}对完全相同的顶点数据绘制多次，但是它在着色器内提供一个几何体实例变量gl\_InstanceID来使着色器可以决定对不同的实例进行适当的修改（例如读取uniform/buffer块数据中的某个表数据），多实例绘制使用以下命令对同一套顶点属性数据绘制多次：
 
