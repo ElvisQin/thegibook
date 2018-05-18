@@ -1176,12 +1176,12 @@ $\gamma$值的大小决定了AABB方差包围盒的大小，$\gamma$越大，重
 \begin{figure}
 \begin{fullwidth}
 	\includegraphics[width=1.\thewidth]{figures/shade/subpixels}
-	\caption{子像素特征是现代复杂游戏场景的重要特征，图中的树叶，桌布等红色的区域包含非常多的细节，每个像素可能包含多大七八个三角形图元。}
+	\caption{子像素特征是现代复杂游戏场景的重要特征，图中的树叶，桌布等红色的区域包含非常多的细节，每个像素可能包含多达七八个三角形图元。}
 	\label{f:shade-subpixels}
 \end{fullwidth}
 \end{figure}
 
-然而，我们已经，能够有效处理子像素特征的SSAA技术对延迟着色管线并不友好，由于每个子像素都需要存储对应的G-buffer数据，并且延迟着色计算阶段要读取所有G-buffer中的数据，因此，除了SSAA本身的着色计算外，内存占用以及读取G-buffer导致的带宽占用严重制约了SSAA在延迟着色中的使用。
+然而，我们已经知道，能够有效处理子像素特征的SSAA技术对延迟着色管线并不友好，由于每个子像素都需要存储对应的G-buffer数据，并且延迟着色计算阶段要读取所有G-buffer中的数据，因此，除了SSAA本身的着色计算外，内存占用以及读取G-buffer导致的带宽占用严重制约了SSAA在延迟着色中的使用。
 
 为了减少延迟着色计算阶段读取多个子像素的几何数据带来的高带宽占用，Cyril Crassin\cite{a:AggregateG-BufferAnti-Aliasing}等从纹理的预过滤（pre-filtering）\index{预过滤pre-filtering}\index[en]{pre-filtering预过滤}得到启发：如果多个子像素的几何数据能够像多级纹理一样使用预过滤的方式提前将过滤的结果计算出来，那么延迟着色阶段就可以和非SSAA渲染一样仅需要读取一次几何数据便可以计算包含子像素的特征，这样的思路将对几何数据采样的采样率和着色计算的频率分离开来，不但减少了SSAA带来着色计算量，也大大减少了读取多个子像素几何数据带来的带宽占用。
 
