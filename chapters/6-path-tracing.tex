@@ -839,7 +839,7 @@ public:
 
 虽然镜面表面的假设简化了光线微分的计算，然而它也限制了光线微分的使用：不能作用于光泽表面和漫反射表面。于是\cite{a:Pathdifferentialsandapplications}在光线微分的基础上将其扩展至任意表面。
 
-光线微分技术在计算光线的反射或折射时，光线新的方向由反射和折射定理计算而出，因此在光线的传播过程中不会增加新的影响足迹传播的量。然而，为了支持非镜面表面，光线的反射或折射方向同时由当前光线和对另一个函数（例如BRDF或光源分布）进行采样来获得，这样光线微分就会同时受屏幕空间$(x,y)$以及其他所有参与方向采样的变量的影响。如图\ref{f:pt-path-differentials}所示，镜面反射的光线为$\mathbf{R}$，但是由于BRDF分布的影响，新的反射方向应该为$\mathbf{D}$，设BRDF分布可以由两个随机变量$(x_j)$和$y_j$（$j$表示路径上第$j$个顶点）采样获得，那么光线微分将由$ \cfrac{\mathbf{D}^{'}}{{\rm \partial} x_j,y_j}$和$ \cfrac{\mathbf{D}^{'}}{{\rm \partial} x,y}$共同决定。
+光线微分技术在计算光线的反射或折射时，光线新的方向由反射和折射定理计算而出，因此在光线的传播过程中不会增加新的影响足迹传播的量。然而，为了支持非镜面表面，光线的反射或折射方向同时由当前光线和对另一个函数（例如BRDF或光源分布）进行采样来获得，这样光线微分就会同时受屏幕空间$(x,y)$以及其他所有参与方向采样的变量的影响。如图\ref{f:pt-path-differentials}所示，镜面反射的光线为$\mathbf{R}$，但是由于BRDF分布的影响，新的反射方向应该为$\mathbf{D}$，设BRDF分布可以由两个随机变量$x_j$和$y_j$（$j$表示路径上第$j$个顶点）采样获得，那么光线微分将由$ \cfrac{\mathbf{D}^{'}}{{\rm \partial} x_j,y_j}$和$ \cfrac{\mathbf{D}^{'}}{{\rm \partial} x,y}$共同决定。
 
 \begin{figure}
 	\sidecaption
@@ -858,7 +858,7 @@ public:
 \noindent 其中，$x,y$为两个新引入的变量，则我们可以写出两个新变量的微分形式，它们连同$\mathbf{D}$和$\mathbf{P}$的微分（已知的），就可以求出$\mathbf{D}^{'}$的各个分量的偏导数，然后就可以求出每个偏移光线的微分。假设对于路径中的某个顶点$\mathbf{P}$有：
 
 \begin{equation}
-	\mathbf{P}=g(x_1,x_2,\cdots, x_k)=g_(X_k)
+	\mathbf{P}=g(x_1,x_2,\cdots, x_k)=g(X_k)
 \end{equation}
 
 \noindent 这里$g$称为路径生成函数（path generation function）\myindex{路径生成函数}{path generation function}，$k$为顶点$\mathbf{P}$依赖的变量的数量。假设每个变量分量的微分为$\Delta x_j$，则该点的位置微分可由以下一阶泰勒近似计算：
@@ -876,7 +876,7 @@ public:
 	\label{f:pt-differential-vectors}
 \end{figure}
 
-在式\ref{e:pt-differential-vector}计算微分矢量的公式中，新引入的变量必须要求$\Delta x_j$已知，我们知道对于屏幕空间的两个变量$x,y$，其对应的该两个分量的扰动$\Delta x$和$\Delta y$分别为一个像素大小\footnote{实际上理想情况下，屏幕空间坐标的扰动应该由相邻两条光线的距离决定，由于光线追踪技术并不会仅仅对每个像素发射一条光线，所以一个像素的扰动会导致图像过于模糊，RenderMan中选择使用$1/2$像素尺寸作为扰动大小，这是一个经验值，他们发现小于$1/2$也不会导致图像更加锐化，读者可参考：\url{https://renderman.pixar.com/resources/current/RenderMan/integratorRef.html}了解更多信息。}，但是其他变量的扰动应该怎样决定呢？
+在式\ref{e:pt-differential-vector}计算微分矢量的公式中，新引入的变量必须要求$\Delta x_j$已知，我们知道对于屏幕空间的两个变量$x,y$，其对应的该两个分量的扰动$\Delta x$和$\Delta y$分别为一个像素大小\footnote{实际上理想情况下，屏幕空间坐标的扰动应该由相邻两条光线的距离决定，由于光线追踪技术并不会仅仅对每个像素发射一条光线，所以一个像素的扰动会导致图像过于模糊，RenderMan中选择使用$1/2$像素尺寸作为扰动大小，这是一个经验值，他们发现小于$1/2$也不会导致图像更加锐化。}，但是其他变量的扰动应该怎样决定呢？
 
 \cite{a:Pathdifferentialsandapplications}给出了一个简单的启发式（heuristic）用来决定$\Delta x_j$的大小，该启发式基于这样一个观察：即足迹的大小应该反向正比于该点处采样点的密度。例如如果对每个像素均匀发射$N$条光线，则每两条光线之间的距离为$1/\sqrt{N}$，因此采样数量越少，则扰动越大，光线越发散，足迹越大，所以我们也称其为光线发散系数（ray spread）\myindex{光线发散系数}{ray spread factor}。
 
@@ -885,7 +885,7 @@ public:
 
 \cite{a:Pathdifferentialsandapplications}还介绍一种使用每个微分矢量相对于该点整个光照贡献的梯度值来限定$\Delta x_j$的大小，该方法将屏幕空间的过滤函数随光线一起传播，然后以此可以计算微分矢量的梯度变化。
 
-然而，由于路径微分需要对每个顶点做过多微分计算，计算成本比较高，更多的实践方案是以光线微分算法为基础，采取路径微分的发射系数的概念来调整足迹的大小，以满足BRDF分布的影响，这样不需要对每个顶点做太多的积分计算。例如Pixar\footnote{参见：\url{https://renderman.pixar.com/resources/current/RenderMan/integratorRef.html}}就直接根据表面的曲率以及粗糙度来计算发射系数，这样就可以简单地将光线微分扩展至任意表面。
+然而，由于路径微分需要对每个顶点做过多微分计算，计算成本比较高，更多的实践方案是以光线微分算法为基础，采取路径微分的发射系数的概念来调整足迹的大小，以满足BRDF分布的影响，这样不需要对每个顶点做太多的积分计算。例如Pixar就直接根据表面的曲率以及粗糙度来计算发射系数，这样就可以简单地将光线微分扩展至任意表面。
 
 
 
@@ -911,7 +911,7 @@ public:
 	L_{\mathcal{I}}={\rm \int}_{\Omega_I\times\mathcal{P}_I}s^{0}_{\mathcal{I}}(\mathbf{x},\omega_{o})L(\mathbf{x},\omega_{o}){\rm d}\omega_{o}{\rm d}\mathbf{x}
 \end{equation}
 
-\noindent 为了便于查询和对照原始论文，这里使用了与之相对应的一套标记：$s^{0}_{\mathcal{I}}(\mathbf{x},\omega)$表示像素$\mathcal{I}$处的过滤器，称为一个像素过滤函数（pixel filter function）\myindex{像素过滤函数}{pixel filter function}，$\Omega_I\times\mathcal{P}_I$为该像素过滤器的空间-方向（spatial-angular）积分作用域，它由穿过像素$\mathcal{I}$的所有方向以及像素$\mathcal{I}$区域内的所有位置构成。
+为了便于查询和对照原始论文，这里使用了与之相对应的一套标记：$s^{0}_{\mathcal{I}}(\mathbf{x},\omega)$表示像素$\mathcal{I}$处的过滤器，称为一个像素过滤函数（pixel filter function）\myindex{像素过滤函数}{pixel filter function}，$\Omega_I\times\mathcal{P}_I$为该像素过滤器的空间-方向（spatial-angular）积分作用域，它由穿过像素$\mathcal{I}$的所有方向以及像素$\mathcal{I}$区域内的所有位置构成。
 
 如果用$\tilde{\rho}(\mathbf{x},\omega_o,\omega)=\rho (\mathbf{x},\omega_o,\omega)\max{((\mathbf{n}\cdot\omega),0)}$表示余弦加权的BRDF分布（cosine-weighted BRDF）\myindex{余弦加权的BRDF }{cosine-weighted BRDF}，并代入渲染方程至式\ref{e:pt-pixel-filter}得到：
 
@@ -919,13 +919,13 @@ public:
 	L_{\mathcal{I}}=L^{0}_{\mathcal{I}}+{\rm \int}\int s^{0}_{\mathcal{I}}(\mathbf{x},\omega_{o})L(\mathbf{y},-\omega)\tilde{\rho}(\mathbf{x},\omega_o,\omega){\rm d}\mathbf{x}{\rm d}\omega_o {\rm d}\omega
 \end{equation}
 
-\noindent 这里$L^{0}_{\mathcal{I}}=\langle s^{0}_{\mathcal{I}},L_0\rangle$表示像素$\mathcal{I}$处的自发光。观察上式，我们可以将$s^{0}_{\mathcal{I}}$和余弦加权的BRDF项提前计算出来，该计算结果形成了一个新的间接像素过滤器（indirect pixel filter）\myindex{间接像素过滤器}{indirect pixel filter}，以此类推，我们得到一个从摄像机出发$k-$次反弹的间接过滤器：
+\noindent 这里$L^{0}_{\mathcal{I}}=\langle s^{0}_{\mathcal{I}},L_0\rangle$表示像素$\mathcal{I}$处的自发光。我们可以将$s^{0}_{\mathcal{I}}$和余弦加权的BRDF项提前计算出来，该计算结果形成了一个新的间接像素过滤器（indirect pixel filter）\myindex{间接像素过滤器}{indirect pixel filter}，以此类推，得到一个从摄像机出发$k-$次反弹的间接过滤器：
 
 \begin{equation}\label{e:pt-indirect-filter}
 	s^{k}_{\mathcal{I}}(\mathbf{y},\omega)={\rm \int} s^{k-1}_{\mathcal{I}}(\mathbf{x},\omega_o)\tilde{\rho}(\mathbf{x},\omega_o,\omega){\rm d}\omega_o
 \end{equation}
 
-\noindent 上式是一个非常有意义的公式，它说明我们可以让一个初始像素过滤器$s^{0}_{\mathcal{I}}$跟随着光线路径一起在场景中传播，路径中每个顶点处的BRDF分布函数会对传播的间接过滤器进行修改，修改后的过滤器将被用于正确的对纹理以及光源进行过滤。
+上式是一个非常有意义的公式，它说明可以让一个初始像素过滤器$s^{0}_{\mathcal{I}}$跟随着光线路径一起在场景中传播，路径中每个顶点处的BRDF分布函数会对传播的间接过滤器进行修改，修改后的过滤器将被用于对纹理以及光源进行过滤。
 
 这是一个非常抽象的解释，具体我们怎样利用上式来对纹理或光源进行过滤呢？在传统的路径追踪技术中，反走样依赖于超采样，即对每个像素发射大量的光线，每条光线都需要经历完整的传播过程（即该光线路径上的每个点都需要与场景进行相交计算以决定光线的下一个传播方向）。在该方法中，对于每一条光线，式\ref{e:pt-indirect-filter}中的$s^{k}_{\mathcal{I}}$只是一个普通的权重标量值，它唯一决定了对每个顶点处纹理的一个采样位置，光线追踪算法要保证足够的光线数量才能使得对纹理的采样不会出现走样。
 
@@ -939,7 +939,7 @@ public:
 	\ell(\mathbf{z})=(x,y,\theta,\phi)
 \end{equation}
 
-\noindent 局部光照场的示意图如图\ref{f:pt-local-light-field}所示，在该图中只有一条称为中心光线（central ray）\myindex{中心光线}{central ray}的真实光线，其他都是虚拟的偏移光线，这些光线各自具有不同的位置和方向，它们构成一个局部光照场，局部光照场的所有光线都位于同一平面，该平面垂直于中心光线（即光线传播方向）。
+局部光照场的示意图如图\ref{f:pt-local-light-field}所示，在该图中只有一条称为中心光线（central ray）\myindex{中心光线}{central ray}的真实光线，其他都是虚拟的偏移光线，这些光线各自具有不同的位置和方向，它们构成一个局部光照场，局部光照场的所有光线都位于同一平面，该平面垂直于中心光线（即光线传播方向）。
 
 \begin{figure}
 	\includegraphics[width=\textwidth]{figures/pt/local-light-field}
@@ -951,8 +951,7 @@ public:
 
 因此式\ref{e:pt-pixel-filter}中的$s^{0}_{\mathcal{I}}$并不像前面讨论的传统路径追踪算法中的权重函数一样，那里的$h(p)$仅是一个2D的空间分布函数，它对屏幕空间每个位置的光照值给予一个权重值，这里的像素过滤器$s^{0}_{\mathcal{I}}$还需要包含一个方向，对于初始的$s^{0}_{\mathcal{I}}$的值，它就是$h(p)$中的各个位置，加上从摄录像出发经过这些位置的方向。
 
-那里怎么计算光照场的传播过程呢？\cite{a:AFrequencyAnalysisofLightTransport}通过将光照场变换到傅里叶空间，然后将传输过程中的直线传播，遮挡计算，光线与表面的BRDF交互等过程转变成一些线性变换函数，这些函数与傅里叶空间的光照场进行对应的卷积或者内积等计算。在Durand的原始论文中，他们使用一个能够包含局部光照场的一个盒子形状来表示局部光照场，如图\ref{f:pt-local-light-field-representation}左二图所示，这个盒子可以使用一个频宽矢量（bandwidth vector）$[B_x,B_u]$表述，然后这个矢量在光线传输中被执行上述线性变换，从而计算局部光照场的传输，其他一些方法如\cite{a:FrequencyAnalysisandShearedReconstructionforRenderingMotionBlur}则使用一个切变形状表述，如图\ref{f:pt-local-light-field-representation}右二图所示。这些表述虽然比较高效，但是这些形状不能完全反应局部光照场的面积扩展情况，我们在本节将要讨论的是另一种更加精确的计算方法，它用一个椭圆形形状来近似局部光照场的扩展形状，如图\ref{f:pt-local-light-field-representation}右边小图所示，这个椭圆形高斯分布可以使用局部光照场的协方差矩阵来表示，所以对该形状的一些传输操作转变为各种矩阵变换，因此计算精度更高，同时也相对比较高效。
-
+那里怎么计算光照场的传播过程呢？\cite{a:AFrequencyAnalysisofLightTransport}通过将光照场变换到傅里叶空间，然后将传输过程中的直线传播，遮挡计算，光线与表面的BRDF交互等过程转变成一些线性变换函数，这些函数与傅里叶空间的光照场进行对应的卷积或者内积等计算。在Durand的原始论文中，他们使用一个能够包含局部光照场的一个盒子形状来表示局部光照场，如图\ref{f:pt-local-light-field-representation}(b)所示，这个盒子可以使用一个频宽矢量（bandwidth vector）$[B_x,B_u]$表述，然后这个矢量在光线传输中被执行上述线性变换，从而计算局部光照场的传输，其他一些方法如\cite{a:FrequencyAnalysisandShearedReconstructionforRenderingMotionBlur}则使用一个切变形状表述，如图\ref{f:pt-local-light-field-representation}(c)所示。这些表述虽然比较高效，但是这些形状不能完全反应局部光照场的面积扩展情况，我们在本节将要讨论的是另一种更加精确的计算方法，它用一个椭圆形形状来近似局部光照场的扩展形状，如图\ref{f:pt-local-light-field-representation}(d)所示，这个椭圆形高斯分布可以使用局部光照场的协方差矩阵来表示，所以对该形状的一些传输操作转变为各种矩阵变换，因此计算精度更高，同时也相对比较高效。
 
 \begin{figure}
 \begin{fullwidth}
@@ -961,7 +960,6 @@ public:
 	\label{f:pt-local-light-field-representation}
 \end{fullwidth}
 \end{figure}
-
 
 由光照场的定义也可以看出，光照场仅表示一个空间-方向分布函数，它与真正的光照值是无关的，因此任意的空间-方向分布都可以表示该分布代表的几何区域的尺寸，因此光照场相关的技术也可以用于传播双向路径追踪技术中的光源路径，因为光源分布也可以表示为一个空间方向分布，我们会在后面详细讨论相应的内容。
 
@@ -974,7 +972,7 @@ public:
 
 \begin{figure}
 	\sidecaption
-	\includegraphics[width=0.6\textwidth]{figures/pt/elliptical-filter}
+	\includegraphics[width=0.61\textwidth]{figures/pt/elliptical-filter}
 	\caption{屏幕空间的圆形的过滤器在经过光线路径传播之后，会以接近椭圆形的形状投影在纹理空间，因此在光照传播过程中需要使用一种支持椭圆形形状的过滤器，椭圆形高斯过滤器就是其中一种比较理想的选择，它基于一个对称矩阵来构造，而协方差矩阵就是一个很好的选择}
 	\label{f:pt-elliptical-filter}
 \end{figure}
@@ -1001,16 +999,16 @@ public:
 在光照传播过程中，初始光照场随着光线一起传播，由于光照场是一个关于空间-方向的分布，所以传播过程中的这些操作都可以转化为对方向和空间位置的某种线性变换操作，它们各自分别可以用一个线性变换矩阵表述。如果我们把光照场传播过程中的每种原子操作定义为一个独立的操作数，这些操作数串联起来就构成了光照场随着光线路径的整个传播公式。例如以下是一条$LSDE$路径的传输操作：
 
 \begin{equation}
-	LSDE\to\mathbf{L}_(d_1,d_2)\circ\mathbf{T}_{d1}\circ\mathbf{R}_{\rho d}\circ\mathbf{T}_{d2}\circ\mathbf{O}\circ\mathbf{T}_{d3}\circ\mathbf{R}_{\rho_s}\circ\mathbf{T}_{d4}(\hat{\ell})
+	LSDE\to\mathbf{L}(d_1,d_2)\circ\mathbf{T}_{d1}\circ\mathbf{R}_{\rho d}\circ\mathbf{T}_{d2}\circ\mathbf{O}\circ\mathbf{T}_{d3}\circ\mathbf{R}_{\rho_s}\circ\mathbf{T}_{d4}(\hat{\ell})
 \end{equation}
 
-\noindent 这里$LSDE$表示一条光线路径，$\mathbf{L}_(d_1,d_2), \mathbf{T}_d, \mathbf{R}_\rho$以及$\mathbf{O}$称为一些原子操作数，它们将一个光照场映射为另一个光照场，这些操作数各自分别对应于光线传播过程中的一个物理过程，例如直线传输，可见性剔除，反射，运动模糊（注意，本节讨论的光照场是一个包含时间维度的5D分布）等。以下简要描述每个传输操作数：
+这里$LSDE$表示一条光线路径，$\mathbf{L}(d_1,d_2), \mathbf{T}_d, \mathbf{R}_\rho$以及$\mathbf{O}$称为一些原子操作数，它们将一个光照场映射为另一个光照场，这些操作数各自分别对应于光线传播过程中的一个物理过程，例如直线传输，可见性剔除，反射，运动模糊（注意，本节讨论的光照场是一个包含时间维度的5D分布）等。以下简要描述每个传输操作数：
 
 \begin{itemize}
-	\item \textbf{直线传输 } 直线传输操作定义辐射亮度$\mathbf{L}$沿中心光线方向直线传输空间距离为$d$的距离直线传输操作记为$T_d$。
+	\item \textbf{直线传输 } 直线传输操作定义辐射亮度$\mathbf{L}$沿中心光线方向直线传输空间距离为$d$的距离，直线传输操作记为$T_d$。
 	\item \textbf{阴影遮挡 } 阴影遮挡定义当中心光线没有被任何物体遮挡，而局部光照场接近某个物体时可能产生的部分阴影遮挡，阴影遮挡操作记为$\mathbf{O}$。
 	\item \textbf{再参数化 } 如前所述，局部光照场的参数化是围绕中心光线来表述的，当中心光线与表面相交时，如下面即将讨论的反射操作都是围绕表面法线来表述的，所以我们需要将局部光照场参数表述变换到表面的正切面，这称为再参数化（reparametrization）\myindex{再参数化}{reparametrization}，记为$\mathbf{Rot}_\alpha$和$\mathbf{P}_\alpha$。局部光照场的再参数化也使得后面的运动处理变得简单，因为当带有时间维度的局部光照场表述被再参数化到物体本地空间时，后续的所有操作可以忽略时间维度，使之变为一个静态的4D变换，因为运动都是相对的。
-	\item \textbf{曲面再参数化 } 当表面为曲面时，局部光照场中的光线可能并不位于中心光线所在交点的正切面上，此时我们需要考虑曲面曲率对局部光照场传输的影响，称操作称为曲面再参数化（curvature reparametrization）\myindex{曲面再参数化}{curvature reparametrization}，记为$\mathbf{C}_K$，此时通常曲面的曲率会被记录到变换矩阵中。
+	\item \textbf{曲面再参数化 } 当表面为曲面时，局部光照场中的光线可能并不位于中心光线所在交点的正切面上，此时需要考虑曲面曲率对局部光照场传输的影响，此操作称为曲面再参数化（curvature reparametrization）\myindex{曲面再参数化}{curvature reparametrization}，记为$\mathbf{C}_K$，此时通常曲面的曲率会被记录到变换矩阵中。
 	\item \textbf{反射，折射 } 反射和折射操作定义局部光照场在物体表面基于BRDF或BTDF反射分布$\rho$的反射或折射的过程，记为$\mathbf{R}_\rho$和$\mathbf{Tr}_\rho$。
 	\item \textbf{聚焦 } 聚焦定义局部光照场通过一个薄的透镜的过程，该操作有两种定义：一种在传感器上输出辐射照度，另一种输出辐射亮度（这样使得多个透镜可以被叠加使用），聚焦操作定义为$\mathbf{L}(d1,d2)$。
 	\item \textbf{参与媒介 } 当局部光照场通过参与媒介时，该过程被两种操作表述：即衰减操作$\mathbf{A}$和散射操作$\mathbf{S}\rho$（$\rho$为分段函数）。
@@ -1020,8 +1018,9 @@ public:
 \cite{a:AFrequencyAnalysisofLightTransportfromtheorytoimplementation}通过对上述的各个过程进行分析推导出了每个操作的矩阵表示，请读者参阅原始论文获取更详细的推导信息和形式，为了对这些操作建立直观的概念，我们这里仅分析直线传输操作。
 
 \begin{figure}
-\sidecaption
-	\includegraphics[width=0.65\textwidth]{figures/pt/travel}
+\begin{center}
+	\includegraphics[width=0.78\textwidth]{figures/pt/travel}
+\end{center}
 	\caption{给定局部光照场的参数化表述$(\delta x,\delta\theta)$，经过距离为$d$的直线传输后，通过坐标变换可以建立起直线传输的操作矩阵，它是一个切变变换}
 	\label{f:pt-travel}
 \end{figure}
@@ -1070,9 +1069,9 @@ public:
 	\item 协方差最终如何集成到传统以光线微分技术为基础的渲染器中？例如RenderMan和PBRT。
 \end{enumerate}
 
-本节我们将按照这些问题的顺序逐步分析协方差追踪在路径追踪技术中的运用。
+本节将按上述顺序逐步分析协方差追踪在路径追踪技术中的运用。
 
-前面我们已经讨论过摄像机路径的起始局部光照场，它就是每个像素$\mathcal{I}$处的过滤器$s^{0}_{\mathcal{I}}(\mathbf{x},\omega)$，跟一般的过滤器（只是空间位置的函数$h(p)$）不同的是，局部光照场是一个空间-方向分布，所以我们要需要记录每条偏移光线的方向。
+前面已经讨论过摄像机路径的起始局部光照场，它就是每个像素$\mathcal{I}$处的过滤器$s^{0}_{\mathcal{I}}(\mathbf{x},\omega)$，跟一般的过滤器（只是空间位置的函数$h(p)$）不同的是，局部光照场是一个空间-方向分布，所以我们还需要记录每条偏移光线的方向。
 
 设想双向路径追踪中路径的总长度为$n$，其中摄像机路径长度为$k$，以下我们用顶点表示方法，设我们已经求出$k$点处的摄像机方向的局部光照场$s^{k}_{\mathcal{I}}(\mathbf{x}_{k-1},\mathbf{x}_k)$，假定$k$点处来自光源路径（$k+1$点）的辐射亮度为$L^{n-k}(\mathbf{x}_{k},\mathbf{x}_{k+1})$，则该路径的总的辐射亮度贡献为：
 
@@ -1080,7 +1079,7 @@ public:
 	L^{n}_\mathcal{I}={\rm \int} s^{k}_{\mathcal{I}}(\mathbf{x}_{k-1},\mathbf{x}_k)\rho (\mathbf{x}_k)L^{n-k}(\mathbf{x}_{k},\mathbf{x}_{k+1}){\rm d}\mathbf{x}_{k-1}{\rm d}\mathbf{x}_{k}{\rm d}\mathbf{x}_{k+1}
 \end{equation}
 
-\noindent 由于光源路径是通过某个光源上的一个采样点的辐射亮度$L^{0}$通过与各个顶点的余弦加权的BRDF相乘得来的，因此和前面求摄像机路径局部光照场的思路类似，我们可以表示$k+1$点的辐射亮度为：
+由于光源路径是通过某个光源上的一个采样点的辐射亮度$L^{0}$通过与各个顶点的余弦加权的BRDF相乘得来的，因此和前面求摄像机路径局部光照场的思路类似，我们可以表示$k+1$点的辐射亮度为：
 
 \begin{equation}\label{e:pt-light-filter}
 \begin{aligned}
@@ -1088,7 +1087,7 @@ public:
 \end{aligned}
 \end{equation}
 
-\noindent 而最终光源路径的起始辐射亮度为某个光源上的一个采样点$L^{0}(\mathbf{x_n})$，同摄像机光线一样，这仍然是单个采样值，为了构建一个局部光照场，我们需要从$L^{0}(\mathbf{x_n})$附近选取多个虚拟的采样点用于构建局部光照场，这个局部光照场的空间-方向分布对应于光源本身的分布。
+而最终光源路径的起始辐射亮度为某个光源上的一个采样点$L^{0}(\mathbf{x_n})$，同摄像机光线一样，这仍然是单个采样值，为了构建一个局部光照场，我们需要从$L^{0}(\mathbf{x_n})$附近选取多个虚拟的采样点用于构建局部光照场，这个局部光照场的空间-方向分布对应于光源本身的分布。
 
 将式\ref{e:pt-pixel-filter}和式\ref{e:pt-light-filter}直接合并是不合适的，光源路径的局部光照场和摄像机路径的局部光照场的频率可能是不一样的，这就会导致合并的结果更模糊。\cite{a:AntialiasingComplexGlobalIlluminationEffectsinPath-space}使用了取两个路径的局部光照场的卷积的形式来计算合并后的局部光照场，即：
 
@@ -1104,7 +1103,7 @@ public:
 	\item 首先构造一条摄像机起始光线，它是以摄像机为起点，穿过屏幕区域某个位置$\mathcal{I}$的一条光线。
 	\item 以该光线为中心光线，同样以摄像机为起点发射几条偏移光线，这些偏移光线在屏幕区域的位置$(x,y)$和方向$(\theta,\phi)$构成一个4D的局部光照场$s^{0}_{\mathcal{I}}$，并求出该局部光照场的协方差矩阵。
 	\item 沿着光线与场景的第一个交点$\mathbf{x}_1$的方向按照相关的局部光照场传播操作数传播协方差矩阵。
-	\item 当协方差矩阵被传播至$\mathbf{x}_1$时，此时进入算法的重点，即对纹理进行采样，这是我们需要根据$\mathbf{x}_1$处的协方差矩阵求出一个过滤函数$h(p)$用于对纹理进行过滤。这个对纹理采样的结果就是得出该顶点的BRDF分布函数$\rho(\mathbf{x}_1,\omega_o,\omega)$。
+	\item 当协方差矩阵被传播至$\mathbf{x}_1$时，此时进入算法的重点，即对纹理进行采样，这时我们需要根据$\mathbf{x}_1$处的协方差矩阵求出一个过滤函数$h(p)$用于对纹理进行过滤。这个对纹理采样的结果就是得出该顶点的BRDF分布函数$\rho(\mathbf{x}_1,\omega_o,\omega)$。
 	\item 根据$\mathbf{x}_1$处的BRDF分布函数对反射或折射方向进行采样，这个过程即计算出$\tilde{\rho}(\mathbf{x}_1,\omega_o,\omega)$。
 	\item 将计算出的$\tilde{\rho}(\mathbf{x}_1,\omega_o,\omega)$代入式\ref{e:pt-pixel-filter}计算出反射/折射后的协方差矩阵，然后重复上述过程直到该条路径追踪结束。
 \end{enumerate}
@@ -1121,7 +1120,7 @@ public:
 
 在光线微分算法中，一个顶点处的光线微分是通过该点处光线$(\mathbf{P},\mathbf{D})$相对于屏幕空间坐标$(x,y)$的偏导数来求的，即：$({\rm \partial}\mathbf{P}/{\rm \partial} x,{\rm \partial}\mathbf{P}/{\rm \partial} y)$和$({\rm \partial}\mathbf{D}/{\rm \partial} x,{\rm \partial}\mathbf{D}/{\rm \partial} y)$。由于一个协方差矩阵包含了该点处的局部光照场，即是该点某个空间-方向分布函数，所以我们可以从这个$4\times 4$协方差矩阵提取出计算光线微分需要的这些偏导数。
 
-假设局部光照场表示为高斯过滤器，有前面的定义可知，我们需要首先求出协方差矩阵的逆矩阵$C=\sum^{-1}$，对$C$的第一个$2\times 2$块组成的矩阵进行特征分解可以用于计算空间偏导数：
+假设局部光照场表示为高斯过滤器，由前面的定义可知，我们需要首先求出协方差矩阵的逆矩阵$C=\sum^{-1}$，对$C$的第一个$2\times 2$块组成的矩阵进行特征分解可以用于计算空间偏导数：
 
 \begin{equation}
 	\begin{aligned}
