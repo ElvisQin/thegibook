@@ -1149,15 +1149,15 @@ public:
 
 
 \section{降噪技术}\label{sec:pt-denoising}
-上一节我们讨论了路径追踪算法中在路径的每个顶点处由于对纹理的采样不足导致的纹理走样（texture aliasing）\myindex{纹理走样}{texture aliasing}，以及怎样通过跟踪光线的足迹大小来提供一个过滤范围参考值，从而有效地对纹理进行过滤以消除纹理走样。
+上一节我们讨论了路径追踪算法中在路径的每个顶点处由于对纹理的采样不足导致的纹理走样（texture aliasing）\myindex{纹理走样}{texture aliasing}，以及怎样通过跟踪光线足迹大小来提供一个过滤范围参考值，从而有效地对纹理进行过滤以消除纹理走样。
 
-不同于一般的信号采样，它们通常使用一个固定的采样率，因此走样\myindex{走样}{aliasing}来源于由于采样率不能覆盖原始信号的频率带宽（这相当于使用一个均匀分布采样的蒙特卡洛方法），通常蒙特卡洛方法使用的采样并不是均匀分布的，这些随机数的统计特征还引入了方差，而方差导致了图像中的噪点，因此在路径追踪技术中除了需要处理由于采样不足导致的走样（这通过过滤来实现），还需要减少由于随机变量方差导致的噪点。虽然一些方法通过改善路径采样方法（如重要性采样，双向路径追踪，梅特波利斯光照传输等）来控制方差，本节将要介绍的却是一种与采样技术无关的控制方差的方法，我们称这些特定的与采样方法无关的控制方差的方法为降噪技术\footnote{降噪技术本意通常仅指针对图像的局部误差特征分布进行适应性的图像重建，但正如本节即将看到的，适应性采样和适应性重建图像是组合使用的，所以本节讨论的降噪技术同时包含适应性采样和适应性重建。}（denoising）\myindex{降噪技术}{denoising}。
+不同于一般的信号采样，它们通常使用一个固定的采样率，因此走样\myindex{走样}{aliasing}来源于由于采样率不能覆盖原始信号的频率带宽（这相当于使用一个均匀分布采样的蒙特卡洛方法），通常蒙特卡洛方法使用的采样并不是均匀分布的，这些随机数的统计特征还引入了方差，而方差导致了图像中的噪点，因此在路径追踪技术中除了需要处理由于采样不足导致的走样（这通过过滤来实现），还需要减少由于随机变量方差导致的噪点。虽然一些方法通过改善路径采样方法（如重要性采样，双向路径追踪，梅特波利斯光照传输等）来控制方差，本节将要介绍的却是一种与采样技术无关的控制方差的方法，我们称这些特定的与采样方法无关的控制方差的方法为降噪（denoising）\myindex{降噪}{denoising}技术\footnote{降噪技术本意通常仅指针对图像的局部误差特征分布进行适应性的图像重建，但正如本节即将看到的，适应性采样和适应性重建图像是组合使用的，所以本节讨论的降噪技术同时包含适应性采样和适应性重建。}。
 
-本节讨论的降噪技术涉及适应性采样和适应性重建两个概念。由于图像的方差分布通常是随着图像的局部特征而变化的，因此适应性采样（adaptive sampling）\myindex{适应性采样}{adaptive sampling}就是根据前序步骤计算的图像的局部特征来适应性的调整后续采样的密度分布，以满足图像的方差特征，因此它是一个迭代的过程，它由前面的采样结果来决定后续采样的密度分布，这种采样方法区分于一般的对整个图像使用预先设定的固定的概率密度函数的采样方法。
+本节讨论的降噪技术涉及适应性采样和适应性重建两个概念。由于图像的方差分布通常是随着图像的局部特征而变化的，因此适应性采样（adaptive sampling）\myindex{适应性采样}{adaptive sampling}就是根据前序步骤计算图像的局部特征来适应性的调整后续采样的密度分布，以满足图像的方差特征，因此它是一个迭代的过程，它由前面的采样结果来决定后续采样的密度分布，这种采样方法区分于一般的对整个图像使用预先设定的固定的概率密度函数的采样方法。
 
 适应性重建（adaptive reconstruction）\myindex{适应性重建}{adaptive reconstruction}通过分析图像的局部特征来构造不同的重建过滤器，也称为适应性过滤（adaptive filtering）\myindex{适应性过滤}{adaptive filtering}。由于图像的局部特征差异，对整个图像使用相同的过滤器会使得高频部分过于模糊，它们应该使用更小范围的过滤器来避免这种模糊，因此适应性重建通过共享像素之间的信息来减少方差。适应性采样和适应性重建通常是同时存在的，例如适应性采样的结果通常需要进行适应性重建，但是有时适应性重建也可以根据其他信息来进行过滤范围选择。
 
-根据适应性采样的策略不一样，我们将降噪技术分为两大类：第一种方法通过直接对光照传输过程进行分析来指导适应性采样，它们不需要通过考虑其他样本值来提供适应性采样信息，因此称为先验方法（a priori methods）\myindex{先验方法}{a priori methods}\footnote{在英语中，"a priori"表示用已知真实的事实或原则去推断可能出现的结果，即由因及果，这里表示我们从光照传输过程（即路径采样算法）本身着手分析图像的特征分布；而后面的"a posteriori"则与之相反，它是从已知事实推断可能导致该事实的原因，即由果及因，所以后验方法表示从光照传输的结果（即图像）着手分析导致该图像（结果）的光照传输特征。}，先验方法可以通过微分几何的方法来分析光线传输的局部特征，也可以通过频率域分析的方式来分析和表述光照传输的局部特征，本节我们将重点讨论后者，但是它们两者的基本思路是一致的，先验方法由于直接对光照传输进行分析，因此可以从更高维度分析走样，从而可以比较容易地处理运动模糊（时间维度），聚焦（方向维度）等效果；与之相反，后验方法（a posteriori methods）\myindex{后验方法}{a posteriori methods}则需要通过分析一些样本值的结果来获取适应性采样信息，这样的方法通常只能是基于图像空间（image space）的方法，因此通常具有更高的计算效率，这也是当前工业中（如Disney，Pixar和维塔数码等）比较流行的降噪技术，参见\cite{a:RecentAdvancesinAdaptiveSamplingandReconstructionforMonteCarloRendering}。
+根据适应性采样的策略不一样，我们将降噪技术分为两大类：第一种方法通过直接对光照传输过程进行分析来指导适应性采样，它们不需要通过考虑其他样本值来提供适应性采样信息，因此称为先验方法（a priori methods）\myindex{先验方法}{a priori methods}\footnote{在英语中，“a priori”表示用已知真实的事实或原则去推断可能出现的结果，即由因及果，这里表示我们从光照传输过程（即路径采样算法）本身着手分析图像的特征分布；而后面的"a posteriori"则与之相反，它是从已知事实推断可能导致该事实的原因，即由果及因，所以后验方法表示从光照传输的结果（即图像）着手分析导致该图像（结果）的光照传输特征。}，先验方法可以通过微分几何的方法来分析光线传输的局部特征，也可以通过频率域分析的方式来分析和表述光照传输的局部特征，本节我们将重点讨论后者，但是它们两者的基本思路是一致的，先验方法由于直接对光照传输进行分析，因此可以从更高维度分析走样，从而可以比较容易地处理运动模糊（时间维度），聚焦（方向维度）等效果；与之相反，后验方法（a posteriori methods）\myindex{后验方法}{a posteriori methods}则需要通过分析一些样本值的结果来获取适应性采样信息，这样的方法通常只能是基于图像空间（image space）的方法，因此通常具有更高的计算效率，这也是当前工业中（如Disney，Pixar和维塔数码等）比较流行的降噪技术，参见\cite{a:RecentAdvancesinAdaptiveSamplingandReconstructionforMonteCarloRendering}。
 
 
 
@@ -1225,13 +1225,13 @@ public:
 	I={\rm \int}^{1}_0 f(x){\rm d}x=\hat{f}(0)
 \end{equation}
 
-\noindent 而根据蒙特卡洛积分，该积分估计（integral estimator）\mathindex{积分估计}{integral estimator}为$N$个随机数对应函数值的加权平均值：
+而根据蒙特卡洛积分，该积分估计（integral estimator）\mathindex{积分估计}{integral estimator}为$N$个随机数对应函数值的加权平均值：
 
 \begin{equation}\label{eq:pt-setimator-sum}
 	I_N=\sum w_i f(x_i)
 \end{equation}
 
-\noindent 我们可以将上述的数值模型用采样理论来表述：即首先按照一定的随机数分布对原始函数进行采样，然后求这些采样函数值的加权平均。与前面的采样理论类似，定义采样函数（sampling function）\mathindex{采样函数}{sampling function}为：
+我们可以将上述的数值模型用采样理论来表述：即首先按照一定的随机数分布对原始函数进行采样，然后求这些采样函数值的加权平均。与前面的采样理论类似，定义采样函数（sampling function）\mathindex{采样函数}{sampling function}为：
 
 \begin{equation}
 	S(x)=\sum w_i\delta(x-x_i)
@@ -1245,19 +1245,19 @@ public:
 	I_N={\rm \int} S(x)f(x){\rm d}x
 \end{equation}
 
-\noindent 根据切片定理，上式可以转换为被积函数$S(x)f(x)$在其傅里叶变换空间DC处的值，根据傅里叶变换的属性，即两个函数内积的傅里叶变换等于两个函数傅里叶变换的卷积，即：
+根据切片定理，上式可以转换为被积函数$S(x)f(x)$在其傅里叶变换空间DC处的值，根据傅里叶变换的属性，即两个函数内积的傅里叶变换等于两个函数傅里叶变换的卷积，即：
 
 \begin{equation}
 	\widehat{S\cdot f}=\hat{S}\otimes\hat{f}
 \end{equation}
 
-\noindent 这和第1章讨论的采样函数是一样的，即采样的过程是在原始函数$f$的傅里叶空间拷贝其频谱的过程，采样定理（sampling theorem）\mathindex{采样定理}{sampling theorem}说明，如果以均匀间隔进行采样，为了避免走样，采样函数至少应该以频率域最高频率2倍的采样率进行采样，原始函数才能被完美重建，即奈奎斯特采样率（Nyquist rate）\mathindex{奈奎斯特采样率}{Nyquist rate}。然而本节我们要讨论的是非均匀间隔采样，根据上式，式\ref{e:pt-sampling-1}表示的估计可以写为：
+\noindent 这和第1章讨论的采样函数是一样的，即采样的过程是在原始函数$f$的傅里叶空间拷贝其频谱的过程，采样定理（sampling theorem）\mathindex{采样定理}{sampling theorem}说明，如果以均匀间隔进行采样，为了避免走样，采样函数至少应该以频率域最高频率2倍的采样率进行采样，原始函数才能被完美重建，即奈奎斯特采样率（Nyquist rate）\mathindex{奈奎斯特采样率}{Nyquist rate}。然而本节要讨论的是非均匀间隔采样，根据上式，式\ref{e:pt-sampling-1}表示的估计可以写为：
 
 \begin{equation}
 	I_N=\bigg(\hat{S}\otimes\hat{f}\bigg)(0)
 \end{equation}
 
-\noindent 上式可以总结为：蒙特卡洛积分的估计值等于其采样函数$S$的傅里叶变换与原始函数$f$的傅里叶变换的卷积在DC处（频率为0）的值，如图\ref{f:pt-sampling}中右下角的图中的红色粗线。
+上式可以总结为：蒙特卡洛积分的估计值等于其采样函数$S$的傅里叶变换与原始函数$f$的傅里叶变换的卷积在DC处（频率为0）的值，如图\ref{f:pt-sampling}中右下角的图中的红色粗线。
 
 有了上述蒙特卡洛积分的频率域表述之后，我们应该怎样用频率域来分析或者表述蒙特卡洛估计的误差呢，因为这是本节的关键，我们希望找到走样（aliasing）\mathindex{走样}{aliasing}和蒙特卡洛方法之间的关系，从而可以通过避免走样而得到的采样分布来减少蒙特卡洛估计的误差。
 
@@ -1267,7 +1267,7 @@ public:
 	I_N-I=\hat{f}(0)-\bigg(\hat{S}\otimes\hat{f}\bigg)(0)
 \end{equation}
 
-\noindent 观察图\ref{f:pt-sampling}，首先考虑如果$\sum w_i=1$，本节前面已经分析过此时$\hat{S}(0)=1$，那么式\ref{e:pt-mc-aliasing}中$\hat{f}$在DC处的拷贝将与$\hat{f}(0)$项（积分真实值）抵消，因此蒙特卡洛估计的误差来源于非DC处的$\hat{f}$频谱的拷贝在DC处的值，即此时蒙特卡洛估计的误差与采样形成的走样是等效的，它们在图\ref{f:pt-sampling}右下角的图中表现为其他非DC处的拷贝（绿色拷贝）与频率为0的红色线相交，因此采样走样导致了蒙特卡洛估计的误差，换句话说，采样模式与被积函数频谱之间的相关性导致了估计的误差。当然如果$\sum w_i\neq 0$时，蒙特卡洛估计的误差还来源于$\hat{f}$项本身。
+观察图\ref{f:pt-sampling}，首先考虑如果$\sum w_i=1$，本节前面已经分析过此时$\hat{S}(0)=1$，那么式\ref{e:pt-mc-aliasing}中$\hat{f}$在DC处的拷贝将与$\hat{f}(0)$项（积分真实值）抵消，因此蒙特卡洛估计的误差来源于非DC处的$\hat{f}$频谱的拷贝在DC处的值，即此时蒙特卡洛估计的误差与采样形成的走样是等效的，它们在图\ref{f:pt-sampling}右下角的图中表现为其他非DC处的拷贝（绿色拷贝）与频率为0的红色线相交，因此采样走样导致了蒙特卡洛估计的误差，换句话说，采样模式与被积函数频谱之间的相关性导致了估计的误差。当然如果$\sum w_i\neq 0$时，蒙特卡洛估计的误差还来源于$\hat{f}$项本身。
 
 \begin{figure}
 	\sidecaption
@@ -1280,7 +1280,7 @@ public:
 
 上述我们是在讨论一个积分值的估计的误差，然而通常我们对积分值并不感兴趣，而是通过计算积分值的蒙特卡洛方法来获取每个随机采样从而用于重建原始函数的分布，而从这个角度看，尽管整个积分值可能因为各个频谱拷贝在DC处不相交而结果是正确的，但是其函数的重建则会因为重建区域内多个频谱叠加出现走样，这也正是走样（aliasing）\mathindex{走样}{aliasing}的定义。因此传统的采样定理（sampling theorem）\mathindex{采样定理}{sampling theorem}要求，采样率必须大于原始函数傅里叶变换频谱的最大频率的两倍，这样才能保证原始函数的完美重建。
 
-然而因为积分值本身的估计只要求其频谱拷贝在DC处不相交，因此针对积分值估计，例如下一节将要讨论的针对时间域和方向域的积分，传统的采样定理的要求则可以放松，即只要满足采样率只需要大于最大频率即可以保证积分值的估计不会出现走样，这即是奈奎斯特采样率（Nyquist rate）\mathindex{奈奎斯特采样率}{Nyquist rate}的一半，这称为修正的采样定理（revised sampling theorem）\mathindex{修正的采样定理}{revised sampling theorem}，我们将会将此定理运用于下一节适应性采样中涉及的积分值估计的过程，读者可以参考\cite{a:AFrequencyAnalysisofMonteCarloandotherNumericalIntegrationSchemes,a:5DCovarianceTracingforEfficientDefocusandMotionBlur}等阅读阅读更详细的相关信息。
+然而因为积分值本身的估计只要求其频谱拷贝在DC处不相交，因此针对积分值估计，例如下一节将要讨论的针对时间域和方向域的积分，传统的采样定理的要求则可以放松，即只要满足采样率大于最大频率即可以保证积分值的估计不会出现走样，这即是奈奎斯特采样率（Nyquist rate）\mathindex{奈奎斯特采样率}{Nyquist rate}的一半，这称为修正的采样定理（revised sampling theorem）\mathindex{修正的采样定理}{revised sampling theorem}，我们将会将此定理运用于下一节适应性采样中涉及的积分值估计的过程，读者可以参考\cite{a:AFrequencyAnalysisofMonteCarloandotherNumericalIntegrationSchemes,a:5DCovarianceTracingforEfficientDefocusandMotionBlur}等阅读更详细的相关信息。
 
 
 
@@ -1304,10 +1304,10 @@ public:
 \cite{a:5DCovarianceTracingforEfficientDefocusandMotionBlur}介绍的利用协方差追踪实现适应性采样和适应性重建的方法首先从摄像机像图像平面发射一定数量均匀的光线，然后将这些光线与场景的交点与光源相连形成直接光照路径，然后通过该路径沿相反（即由光源到摄像机）的方向发射并跟踪局部光照场的协方差矩阵，如图\ref{f:pt-adaptive-sampling}(a)所示，最后这些协方差矩阵投射到图像屏幕并利用这些协方差矩阵来实现适应性采样和适应性重建。这主要包含以下四步（如图\ref{f:pt-adaptive-sampling}所示）：
 
 \begin{enumerate}
-	\item 首先，将由光源像摄像机发射得协方差矩阵在每个像素位置进行累加，这形成一个2D的协方差缓存对象（covariance matrix buffer）\mathindex{协方差缓存对象}{covariance matrix buffer}，每个协方差是一个5D（空间-方向-时间）的函数分布，如图\ref{f:pt-adaptive-sampling}(b)所示。
+	\item 首先，将由光源向摄像机发射的协方差矩阵在每个像素位置进行累加，这形成一个2D的协方差缓存对象（covariance matrix buffer）\mathindex{协方差缓存对象}{covariance matrix buffer}，每个协方差是一个5D（空间-方向-时间）的函数分布，如图\ref{f:pt-adaptive-sampling}(b)所示。
 	\item 然后，利用每个像素的协方差矩阵计算该像素范围内针对5D局部光照场分布的采样密度，以及一个2D的重建过滤器，如图\ref{f:pt-adaptive-sampling}(c)所示。
 	\item 接着，对每个像素按照上一步得出的采样密度进行采样，并将这些采样的结果存储在一个2D的数据结构中。
-	\item 最后，对于每个像素，我们对处于其对应重建过滤器区域内的所有采样进行加权计算，这可能包括来自附近相邻像素的采样值，如图\ref{f:pt-adaptive-sampling}(d)所示。
+	\item 最后，对每个像素，我们对处于其对应重建过滤器区域内的所有采样进行加权，这可能包括来自附近相邻像素的采样值，如图\ref{f:pt-adaptive-sampling}(d)所示。
 \end{enumerate}
 
 对于协方差矩阵的累加，根据协方差矩阵每一项的定义，其为分布函数傅里叶变换振幅的积分，不难推断出两个频谱和的协方差矩阵等于其各自协方差矩阵的和，\cite{a:5DCovarianceTracingforEfficientDefocusandMotionBlur}提出的近似协方差加权和为（如图\ref{f:pt-covariance-sum}所示）：
@@ -1358,15 +1358,15 @@ public:
 
 \noindent 为了执行过滤，我们需要基于采样的位置来对采样进行加权平均，这里使用高斯过滤器（Gaussian filter）\myindex{高斯过滤器}{Gaussian filter}来进行过滤。
 
-直观上，每个像素处协方差矩阵对应的频谱面积越大，表示该区域的频率变化越大，则该像素使用的采样数量越多，因此在图像空间对该像素应该使用更小的过滤范围；相反，如果协方差矩阵对应的频谱面积越小，则该区域的变化约小，使用的采样越稀疏，因此在图像空间应该使用更大范围的过滤器。这也是选择高斯过滤器的原因之一，因为高斯过滤器的局部变化在原始空间和傅里叶空间是相反的。
+直观上，每个像素处协方差矩阵对应的频谱面积越大，表示该区域的频率变化越大，则该像素使用的采样数量越多，因此在图像空间对该像素应该使用更小的过滤范围；相反，如果协方差矩阵对应的频谱面积越小，则该区域的变化越小，使用的采样越稀疏，因此在图像空间应该使用更大范围的过滤器。这也是选择高斯过滤器的原因之一，因为高斯过滤器的局部变化在原始空间和傅里叶空间是相反的。
 
-在数学形式上，\cite{a:Fast4DShearedFilteringforInteractiveRenderingofDistributionEffects}将一个2D过滤器表示两个1D高斯过滤器的乘积：
+在数学形式上，\cite{a:Fast4DShearedFilteringforInteractiveRenderingofDistributionEffects}将一个2D过滤器表示为两个1D高斯过滤器的乘积：
 
 \begin{equation}
 	h(x,y)={\rm e}^{-k_x(x-x_0)^{2}}{\rm e}^{-k_y(y-y_0(x,x_0))^{2}}
 \end{equation}
 
-\noindent 这里$y_0=\eta(x-x_0)$表示$y$轴过滤器的中心，这里的过滤器使用和协方差矩阵提供的频谱的图像空间相同的形状来度量，为了计算图像空间的高斯过滤器，这需要计算协方差矩阵的逆矩阵，因此上式结合协方差矩阵可以变化为：
+\noindent 这里$y_0=\eta(x-x_0)$表示$y$轴过滤器的中心，这里的过滤器使用和协方差矩阵提供的频谱的图像空间相同的形状来度量，为了计算图像空间的高斯过滤器，这需要计算协方差矩阵的逆矩阵，因此上式结合协方差矩阵可以变换为：
 
 \begin{equation}
 	h(x,y)={\rm e}^{-[x-x_0,y]\sum\nolimits^{-1}[x-x_0,t]^{T}},\text{ 其中 }\mathsmaller{\sum\nolimits^{-1}}=\begin{bmatrix}
@@ -1399,7 +1399,7 @@ public:
 
 
 \subsubsection{图像空间降噪技术的基本框架}\label{sec:pt-adaptive-framework}
-渲染图像的每个局部区域的方差通常是变化的\footnote{回想方差只和样本本身相关，与真实值无关，因此每个局部范围内的样本可能具有不同的方差。}，适应性采样的目的就是要通过让方差比较大的部分区域获得更多的采样数量，来降低方差。上节我们通过分析走样来分析局部方差大小，在那里将方差表示为走样，从而通过降低走样来减少方差，本节则将直接根据随机数的特征来分析图像局部区域的误差分布。
+渲染图像的每个局部区域的方差通常是变化的\footnote{回想方差只和样本本身相关，与真实值无关，因此每个局部范围内的样本可能具有不同的方差。}，适应性采样的目的就是要通过让方差比较大的部分区域获得更多的采样数量，来降低方差。上节通过分析走样来分析局部方差大小，在那里将方差表示为走样，从而通过降低走样来减少方差，本节则将直接根据随机数的特征来分析图像局部区域的误差分布。
 
 降噪技术的主要思路是将采样的过程划分成多个迭代的过程，对于图像空间的降噪技术，每个迭代由以下两个步骤组成，如图\ref{f:pt-demoising}所示，即：
 
@@ -1464,7 +1464,7 @@ public:
 \paragraph{过滤范围选择}
 通过上面的分析，过滤导致偏差\footnote{开始学习适应性采样和过滤时会产生的一个疑惑是，既然过滤导致偏差，那么降噪技术的运用会使路径采样变为有偏的吗？这里当然不会，适应性过滤仅被用来计算一个采样密度分布图，它并不会对所有样本产生任何影响，最终图像还是通过所有原始样本在像素内的平均值（即像素过滤器）生成的，所以其结果仍然是无偏的。}，因此过滤范围的选择必须平衡两个相冲突的目标：减少方差和阻止偏差（过度模糊），这样才能使得过滤后图像的均方差最小。
 
-要想知道过滤对于均方差的影响，必须首先将过滤器作用于采样采样集合，所以很显然我们不可能通过任何途径在过滤前能够计算出一个最优的过滤范围，而只有对其过滤的结果进行分析来指导过滤范围的选择。为了避免让用户手动输入一些参数来进行过滤范围的调整，在降噪技术中一般通过两种方式来进行过滤范围的自动选择：一种是直接估计，这些方法使用统计分析\cite{a:OnFilteringtheNoisefromtheRandomParametersinMonteCarloRendering}或机器学习\cite{a:AmachinelearningapproachforfilteringMonteCarlonoise}来指导选择过滤范围，在实践中这些方法的计算复杂度通常比较高；另一种比较常用且高效的方法称为基于选择的估计（selection-based estimate）\myindex{基于选择的估计}{selection-based estimate}，这些方法通常预先定义一些固定范围的过滤器，然后对比选择均方差最小的过滤器，以下以及本节后面我们将重点讨论此种方法。
+要想知道过滤对于均方差的影响，必须首先将过滤器作用于采样集合，所以很显然我们不可能通过任何途径在过滤前能够计算出一个最优的过滤范围，而只有对其过滤的结果进行分析来指导过滤范围的选择。为了避免让用户手动输入一些参数来进行过滤范围的调整，在降噪技术中一般通过两种方式来进行过滤范围的自动选择：一种是直接估计，这些方法使用统计分析\cite{a:OnFilteringtheNoisefromtheRandomParametersinMonteCarloRendering}或机器学习\cite{a:AmachinelearningapproachforfilteringMonteCarlonoise}来指导选择过滤范围，在实践中这些方法的计算复杂度通常比较高；另一种比较常用且高效的方法称为基于选择的估计（selection-based estimate）\myindex{基于选择的估计}{selection-based estimate}，这些方法通常预先定义一些固定范围的过滤器，然后对比选择均方差最小的过滤器，以下以及本节后面我们将重点讨论此种方法。
 
 基于选择的估计方法有两个问题需要解决，首先是确定选择使用什么样的过滤器，\cite{a:AdaptiveSamplingandReconstructionusingGreedyErrorMinimization}选择使用高斯过滤器，高斯过滤器是各向同性的过滤器，每个级别的过滤器被均匀缩放，因此每个预定义的范围就是一个缩放系数，其中最小的缩放因子为1，它等效于基本路径采样中的像素过滤器，因此是无偏的，同时也是精细度最高的过滤器。随着缩放因子增大，过滤的结果越模糊，或者平滑。
 
@@ -1477,10 +1477,10 @@ public:
 	\label{f:pt-fine-to-coarse}
 \end{figure}
 
-如图\ref{f:pt-var-and-bias}所示，随着过滤范围的增加，方差呈现单调递减，偏差呈现单调递增的趋势，而总的均方差呈现先减少后增加的趋势。根据这种单调性，则可以很容易地通过对过滤器进行从精细到模糊的方向进行遍历比较以寻找最小均方差。因此，他们首先对预制过滤器按照从精细到模糊的顺序排序，如图\ref{f:pt-fine-to-coarse}所示，然后分别对每个像素按照这个顺序进行过滤，并对每两个相邻的过滤结果进行方差比较，直到：
+如图\ref{f:pt-var-and-bias}所示，随着过滤范围的增加，方差呈现单调递减，偏差呈现单调递增的趋势，而总的均方差呈现先减少后增加的趋势。根据这种单调性，则可以很容易地通过对过滤器进行从精细到模糊的方向进行遍历比较以寻找最小均方差。因此，他们首先对预制过滤器按照从精细到模糊的排序，如图\ref{f:pt-fine-to-coarse}所示，然后分别对每个像素按照这个顺序进行过滤，并对每两个相邻的过滤结果进行方差比较，直到：
 
 \begin{equation}
-	\Delta MSE(fine\rightarrow coarse)=MSE[c]-MSE[f]>0
+	\Delta MSE({\rm fine}\rightarrow {\rm coarse})=MSE[c]-MSE[f]>0
 \end{equation}
 
 \noindent 时停止，这里$f$表示更精细（fine）的过滤器，而$c$表示更模糊（coarse）的过滤器。
@@ -1499,9 +1499,9 @@ public:
 \paragraph{采样分配}
 我们的目标是根据图像的局部误差特征计算出一个采样密度分布，用于指导下一迭代过程中的适应性采样。
 
-上述的适应性过滤的目的在于减少稀疏采样集合的误差，使得每个像素使用的过滤器对应的均方差最小。在经过适应性过滤之后，我们得到一个过滤后的图像，如图\ref{f:pt-demoising}中右下角的小图，该图还带有残留的方差以及由于过滤导致的偏差，通常在计算采样密度之前还需要使用其他方法来计算最终的误差估计（error estimation）\myindex{误差估计}{error estimation}，我们将在后面介绍一些具体方法，这里主要是理解怎样基于过滤后图像的误差估计计算出采样密度分布。
+上述的适应性过滤的目的在于减少稀疏采样集合的误差，使得每个像素使用的过滤器对应的均方差最小。在经过适应性过滤之后，我们得到一个过滤后的图像，如图\ref{f:pt-demoising}中右下角的小图，该图还带有残留的方差以及由于过滤导致的偏差，通常在计算采样密度之前还需要使用其他方法来计算最终的误差估计（error estimation）\myindex{误差估计}{error estimation}，我们将在后面介绍一些具体方法，这里首先来理解怎样基于过滤后图像的误差估计计算出采样密度分布。
 
-首先，有一个可能容易引起误解的概念，即用上述得到的误差估计直接推导出采样密度分布，因为误差越大的地方显然需要更多的采样。但是这个想法是错误的，因为这里每个像素的误差估计是通过该像素使用的过滤器范围来的采样来估计计算得出的，即是该过滤器范围内的像素对应的采样都对该像素有影响，除非每个像素的误差仅有该像素内的采样计算得出才可以直接使用误差估计作为采样密度分布的依据。因此，这里重点是要根据过滤范围计算出该范围内的采样对该像素有着怎样的影响。
+首先，有一个可能容易引起误解的概念，即用上述得到的误差估计直接推导出采样密度分布，因为误差越大的地方显然需要更多的采样。但是这个想法是错误的，因为这里每个像素的误差估计是通过该像素使用的过滤器范围来的采样来估计计算得出的，即是该过滤器范围内的像素对应的采样都对该像素有影响，除非每个像素的误差仅由该像素内的采样计算得出才可以直接使用误差估计作为采样密度分布的依据。因此，这里重点是要根据过滤范围计算出该范围内的采样对该像素有着怎样的影响。
 
 \begin{figure}
 	\includegraphics[width=1.0\textwidth]{figures/pt/denoising-results}
@@ -1509,7 +1509,7 @@ public:
 	\label{f:pt-denoising-results}
 \end{figure}
 
-在实践中通常使用相对均方差（relative MSE）\myindex{相对均方差}{relative MSE}，设像素$p$处的相对均方差为$E(p)$，因为一个像素的方差跟它的样本数量是成反比的，即是增加一个样本会导致其（相对）方差减少$1/(1+n_p)$，这里$n_p$表示像素$p$的过滤范围内样本的数量，极为$E(p)/(1+n_p)$。由于像素$p$过滤范围内的样本均会对$p$方差的减少产生贡献，因此其加权的误差减少为：
+在实践中通常使用相对均方差（relative MSE）\myindex{相对均方差}{relative MSE}，设像素$p$处的相对均方差为$E(p)$，因为一个像素的方差跟它的样本数量是成反比的，即是增加一个样本会导致其（相对）方差减少$1/(1+n_p)$，这里$n_p$表示像素$p$的过滤范围内样本的数量，即为$E(p)/(1+n_p)$。由于像素$p$过滤范围内的样本均会对$p$方差的减少产生贡献，因此其加权的误差减少为：
 
 \begin{equation}
 	W(p)E(p)= \cfrac{\sum\nolimits_{N(p)}w(p,q)}{1+n_p}E(p)
@@ -1528,7 +1528,7 @@ public:
 \subsubsection{非局部均值过滤器 }\label{sec:pt-image-processing}
 上一节讨论了图像空间降噪技术的一些基本原理和思路，在那里使用了一个简单的高斯过滤器，然而我们并没有讨论过滤过程中的一些细节，例如怎样计算每个像素的均方差，以及怎样估算过滤后图像残留的误差。这是因为在近几年工业实践中，单纯的高斯过滤器不能满足图像质量的需求，所以本节以工业中更流行的非局部均值过滤器为例来详细讨论过滤过程中的一些细节。
 
-传统的高斯过滤器（gaussian filter）\myindex{高斯过滤器}{gaussian filter}仅考虑空间距离，在周围相邻的像素中，距离中心像素越远，则其被混合的权重越小，在空间上它是一个各向同性的分布，而图像的空间分布特征通常是各向异性的，因此仅考虑空间距离的高斯过滤器就会导致图像的物体边缘等颜色变化区域变得模糊，从而增加和过滤的偏差，如图\ref{f:pt-gaussian-and-bilateral-filters}(b)所示。
+传统的高斯过滤器（gaussian filter）\myindex{高斯过滤器}{gaussian filter}仅考虑空间距离，在周围相邻的像素中，距离中心像素越远，则其被混合的权重越小，在空间上它是一个各向同性的分布，而图像的空间分布特征通常是各向异性的，因此仅考虑空间距离的高斯过滤器就会导致图像的物体边缘等颜色变化区域变得模糊，从而增加了过滤导致的偏差，如图\ref{f:pt-gaussian-and-bilateral-filters}(b)所示。
 
 \begin{figure}
 \sidecaption
@@ -1554,10 +1554,10 @@ public:
 	\label{f:pt-nl-means}
 \end{figure}
 
-非局部均值过滤器（non-local means filter, NL-Means）\myindex{non-local means filter}是双边过滤器的一般化，但是它计算的是围绕一个像素周围一个很小的块内部像素颜色之间距离的平均值，如图\ref{f:pt-nl-means}所示，非局部均值过滤器的权重计算公式如下：
+非局部均值过滤器（non-local means filter, NL-Means）\myindex{非局部均值过滤器}{non-local means filter}是双边过滤器的一般化，但是它计算的是围绕一个像素周围一个很小的块内部像素颜色之间距离的平均值，如图\ref{f:pt-nl-means}所示，非局部均值过滤器的权重计算公式如下：
 
 \begin{equation}
-	w_{nlm}(p,q)=\text{exp}\Biggl(  \cfrac{-||p-q||^{2}}{2\sigma^{2}_{s}}\Biggl)\text{exp}\Biggl(  \cfrac{-||\mathcal{P}_p-\mathcal{P}_q||^{2}}{k^22\sigma^{2}_{r}}\Biggl)
+	w_{\rm nlm}(p,q)=\text{exp}\Biggl(  \cfrac{-||p-q||^{2}}{2\sigma^{2}_{s}}\Biggl)\text{exp}\Biggl(  \cfrac{-||\mathcal{P}_p-\mathcal{P}_q||^{2}}{k^22\sigma^{2}_{r}}\Biggl)
 \end{equation}
 
 \noindent 这里$k$是一个用来控制过滤强度的参数，其中基于块的颜色距离的平方定义为：
@@ -1582,7 +1582,7 @@ public:
 	d(p,q)=||c_p-c_q||^{2}-2\sigma^{2}_r
 \end{equation}
 
-\noindent 然而，蒙特卡洛估计通常导致不均匀的噪点分布，这些噪点的类型和幅度随着场景的几何复杂度，物体材质，光照传输，透镜效果等而变化。\cite{a:AdaptiveRenderingwithNonLocalMeansFiltering}在此基础上提出了一种改进方法：
+然而，蒙特卡洛估计通常导致不均匀的噪点分布，这些噪点的类型和幅度随着场景的几何复杂度，物体材质，光照传输，透镜效果等而变化。\cite{a:AdaptiveRenderingwithNonLocalMeansFiltering}在此基础上提出了一种改进方法：
 
 \begin{equation}
 	d(p,q)= \cfrac{||c_p-c_q||^{2}-(Var_p+Var_{p,q})}{ \cfrac{\epsilon+Var_p+Var_q}{2\sigma^{2}_r}}
@@ -1600,7 +1600,7 @@ public:
 \paragraph{双缓存过滤}
 由于引入了颜色值的计算，非局部均值过滤器的权重值是和其原始输入信号相关的，即它会受到噪点的影响，而后续与之过滤相关的计算（例如后面即将讨论的过滤后图像的误差估计）过程也会受到这种相关性的影响。为此，\cite{a:AdaptiveRenderingwithNonLocalMeansFiltering}引入了双缓存过滤技术用来解决这个问题。
 
-输入信号虽然是有噪点的，但是这些样本本身是相互独立的。因此如果我们在每次迭代中将这些输入样本平均分成A和B两个图像缓存，它们分别用各自的样本计算出一组过滤器，然后对这些样本进行交叉过滤（cross filtering）\myindex{叉过滤}{cross filtering}：即用缓存A/B计算出的过滤器其对缓存B/A中对应位置的像素进行过滤，这样过滤器就与像素样本之间是独立的，因为该过滤器并不是通过使用参与过滤的那些颜色的值计算出来的（正如前面非局部均值过滤器的计算那样），这种技术称为双缓存过滤（dual-buffer filtering）\myindex{双缓存过滤}{dual-buffer filtering}。接下来我们将讨论双缓存过滤怎样被用来解决由于非局部均值过滤器引入颜色样本带来的相关性问题（过滤的过程保留的颜色样本噪点）。
+输入信号虽然是有噪点的，但是这些样本本身之间是相互独立的。因此如果我们在每次迭代中将这些输入样本平均分成A和B两个图像缓存，它们分别用各自的样本计算出一组过滤器，然后对这些样本进行交叉过滤（cross filtering）\myindex{叉过滤}{cross filtering}：即用缓存A/B计算出的过滤器其对缓存B/A中对应位置的像素进行过滤，这样过滤器就与像素样本之间是独立的，因为该过滤器并不是通过使用参与过滤的那些颜色的值计算出来的（正如前面非局部均值过滤器的计算那样），这种技术称为双缓存过滤（dual-buffer filtering）\myindex{双缓存过滤}{dual-buffer filtering}。接下来我们将讨论双缓存过滤怎样被用来解决由于非局部均值过滤器引入颜色样本带来的相关性问题（过滤的过程保留的颜色样本噪点）。
 
 
 
@@ -1609,7 +1609,7 @@ public:
 \paragraph{过滤范围选择}
 现在我们已经知道了非局部均值过滤器的表述形式（过滤权重系数公式），接下来我们要计算该过滤器作用于每个像素之后的均方差，进而用于指导选择适当范围的过滤器。
 
-由于非局部均值过滤器考虑了颜色之间的距离，因为它比单纯考虑空间距离的高斯过滤器要好得多，例如在实践中，设置$k=0.5$几乎能够很好地作用于大部分场景而不需要选择过滤的范围，但是有时候更大范围的过滤器是更可取的，所以\cite{a:NonlinearlyWeightedFirstorderRegressionforDenoisingMonteCarloRenderings}选择在$k=\{0.5,1.0\}$之间执行过滤范围选择。
+由于非局部均值过滤器考虑了颜色之间的距离，因此它比单纯考虑空间距离的高斯过滤器要好得多，例如在实践中，设置$k=0.5$几乎能够很好地作用于大部分场景而不需要选择过滤的范围，但是有时候更大范围的过滤器是更可取的，所以\cite{a:NonlinearlyWeightedFirstorderRegressionforDenoisingMonteCarloRenderings}选择在$k=\{0.5,1.0\}$之间执行过滤范围选择。
 
 在后面的内容中，我们将介绍一些直接估算均方差的方法，例如SURE\cite{a:SUREbasedOptimizationforAdaptiveSamplingandReconstruction}能够直接对一个非线性过滤器进行均方差估计，但是它要求计算过滤器的导数；\cite{a:AdaptiveRenderingbasedonWeightedLocalRegression}能够直接估算方差和偏差，但是它假设过滤器的权重系数是没有噪点（noise-free）的，因此也不适用于非局部均值过滤器。因此，\cite{a:NonlinearlyWeightedFirstorderRegressionforDenoisingMonteCarloRenderings}提出一种利用前面的双缓存过滤机制的更一般的估算均方差的方法。
 
@@ -1619,7 +1619,7 @@ public:
 	E[(C-F)^{2}-Var_C]=Bias^{2}_F+Var_F-2Cov_{C,F}
 \end{equation}
 
-\noindent 如果输入和过滤后的结果之间的无关的，则上式可以被用作对均方差的一个无偏估计。这对于非局部均值过滤器显然是不适应的，因为用于过滤的权重系数是和样本之间相关的，因此过滤的结果也是和样本相关的，但是这个问题却可以通过前面的双缓存过滤来解决。因此，使用前面讨论的交叉过滤，得到两个缓存的均方差估计：
+如果输入和过滤后的结果之间的无关的，则上式可以被用作对均方差的一个无偏估计。这对于非局部均值过滤器显然是不适应的，因为用于过滤的权重系数是和样本之间相关的，因此过滤的结果也是和样本相关的，但是这个问题却可以通过前面的双缓存过滤来解决。因此，使用前面讨论的交叉过滤，得到两个缓存的均方差估计：
 
 \begin{equation}
 	\begin{aligned}
@@ -1628,13 +1628,13 @@ public:
 	\end{aligned}
 \end{equation}
 
-\noindent 这里$Var_{C_1}=Var_{C_2}=2Var_C$，$Var_C$是所有两个缓存中样本的方差。在分别对两个缓存的均方差进行估计后，通过计算两个缓存的平均值来获得最终均方差，即：$F=(F_1+F_2)/2$。在这个合并的过程中，$F$的偏差是保持不变的，但是它们的方差减半了，所以最终的均方差估计为：
+这里$Var_{C_1}=Var_{C_2}=2Var_C$，$Var_C$是所有两个缓存中样本的方差。在分别对两个缓存的均方差进行估计后，通过计算两个缓存的平均值来获得最终均方差，即：$F=(F_1+F_2)/2$。在这个合并的过程中，$F$的偏差是保持不变的，但是它们的方差减半了，所以最终的均方差估计为：
 
 \begin{equation}
 	MSE_F= \cfrac{MSE_{F_1}+MSE_{F_2}}{2}-Var_F
 \end{equation}
 
-\noindent 上述的估计是无偏的，因为两个缓存之间是相互独立的。虽然交叉过滤会引入一些相关性，但是实践中这个相关性很小。在对过滤器进行均方差估计之后，就可以按照前面的框架进行过滤范围的选择。
+上述的估计是无偏的，因为两个缓存之间是相互独立的。虽然交叉过滤会引入一些相关性，但是实践中这个相关性很小。在对过滤器进行均方差估计之后，就可以按照前面的框架进行过滤范围的选择。
 
 
 
@@ -1651,15 +1651,15 @@ public:
 
 \begin{equation}
 	\begin{aligned}
-		w_{jbf}(p,q)=&w_{bf}(p,q)w_{aux}(p,q)\\
-		w_{jnlm}(p,q)=&w_{nlm}(p,q)w_{aux}(p,q)
+		w_{\rm jbf}(p,q)=&w_{\rm bf}(p,q)w_{\rm aux}(p,q)\\
+		w_{\rm jnlm}(p,q)=&w_{\rm nlm}(p,q)w_{\rm aux}(p,q)
 	\end{aligned}
 \end{equation}
 
-\noindent 这里$w_{aux}(p,q)$表示额外特征缓存的权重系数，给定$k$个特征缓存，$\mathbf{f}=(f_1,\cdots,f_k)$，该特征缓存的权重系数计算如下：
+\noindent 这里$w_{\rm aux}(p,q)$表示额外特征缓存的权重系数，给定$k$个特征缓存，$\mathbf{f}=(f_1,\cdots,f_k)$，该特征缓存的权重系数计算如下：
 
 \begin{equation}
-	w_{aux}(p,q)=\prod^{k}_{i=1}exp(-d_{f,i}(p,q))
+	w_{aux}(p,q)=\prod^{k}_{i=1}{\rm exp}(-d_{f,i}(p,q))
 \end{equation}
 
 \noindent 这里：
@@ -1670,7 +1670,7 @@ public:
 
 \noindent 由于特征缓存的噪点较小，所以通常直接使用双向过滤即可，不必使用如上面讨论的针对颜色值的非局部均值过滤。
 
-尽管特征信息的引入，在权重计算的形式上看起来并不太复杂，然而它也引入了新的问题。首先，特征缓存也是具有噪点的，这需要适当的方法进行控制；怎样估算新的联合过滤器的误差，以及怎样在特征信息描述的底噪信息和颜色值描述的图像颜色细节之间进行平衡。本节后面我们首先讨论这些问题，在第\ref{sec:pt-first-order-regression}节则会讨论怎样利用特征信息用来进行更精确的局部多项式回归。
+尽管特征信息的引入，在权重计算的形式上看起来并不太复杂，然而它也引入了新的问题。首先，特征缓存也是具有噪点的，这需要适当的方法进行控制；怎样估算新的联合过滤器的误差，以及怎样在特征信息描述的低噪信息和颜色值描述的图像颜色细节之间进行平衡。本节后面我们首先讨论这些问题，在第\ref{sec:pt-first-order-regression}节则会讨论怎样利用特征信息用来进行更精确的局部多项式回归。
 
 
 
@@ -1679,7 +1679,7 @@ public:
 
 
 \paragraph{特征缓存的降噪处理}
-\cite{a:OnFilteringtheNoisefromtheRandomParametersinMonteCarloRendering}指出，当处理如景深和运动模糊等效果时，这些特征缓存也有可能因为蒙特卡洛采样而引入噪点，因此其参与计算的权重系数也会使过滤后的图像误差更大。在那里，他们通过计算场景特征信息和蒙特卡洛随机数参数之间的依赖性（dependency），以及对高度依赖于随机数参数的特征样本设置更小的权重系数来解决这个问题。直观上，这其实仍然是在区分前面讨论的特征信息对图像细节的敏感性，例如在纹理边界或物体边缘部分，特征信息对蒙特卡洛随机数的依赖性更小，而在一些低频的区域（例如处于景深外和高度运动模糊的区域），特征信息会更容易受到随机数噪点的影响。然后\cite{a:OnFilteringtheNoisefromtheRandomParametersinMonteCarloRendering}的方法是在样本级别进行计算的，因此计算性能和内存占用都很高。
+\cite{a:OnFilteringtheNoisefromtheRandomParametersinMonteCarloRendering}指出，当处理如景深和运动模糊等效果时，这些特征缓存也有可能因为蒙特卡洛采样而引入噪点，因此其参与计算的权重系数也会使过滤后的图像误差更大。在那里，他们通过计算场景特征信息和蒙特卡洛随机数参数之间的依赖性（dependency），以及对高度依赖于随机数参数的特征样本设置更小的权重系数来解决这个问题。直观上，这其实仍然是在区分前面讨论的特征信息对图像细节的敏感性，例如在纹理边界或物体边缘部分，特征信息对蒙特卡洛随机数的依赖性更小，而在一些低频的区域（例如处于景深外和高度运动模糊的区域），特征信息会更容易受到随机数噪点的影响。然而\cite{a:OnFilteringtheNoisefromtheRandomParametersinMonteCarloRendering}的方法是在样本级别进行计算的，因此计算性能和内存占用都很高。
 
 \cite{a:SUREbasedOptimizationforAdaptiveSamplingandReconstruction}提出了另一种近似方法，它将像素$p$和$q$之间的距离（式\ref{e:pt-feature-distance}）除以两个像素内特征样本的方差，如下式：
 
@@ -1758,7 +1758,7 @@ public:
 	\label{f:pt-linear-regression}
 \end{figure}
 
-参数回归的回归函数仅由一些参数表达，形式通常比较简单明确，并且当模型的参数假设成立时，统计推断的精度较高，使用较少的样本就能比较准确地进行推断。然而，参会回归要求回归函数的形式必须是预先假定的，参数模型限制较多，它通常要求样本满足某种分布要求，并且模型的泛华能力较弱，当模型假设不成立时，拟合效果很差，需要修正或者更换模型。
+参数回归的回归函数仅由一些参数表达，形式通常比较简单明确，并且当模型的参数假设成立时，统计推断的精度较高，使用较少的样本就能比较准确地进行推断。然而，参数回归要求回归函数的形式必须是预先假定的，参数模型限制较多，它通常要求样本满足某种分布要求，并且模型的泛华能力较弱，当模型假设不成立时，拟合效果很差，需要修正或者更换模型。
 
 非参数回归（nonparametric regression）\mathindex{非参数回归}{nonparametric regression}则弱化了这种假设限定，它不要求任何预定的回归函数形式，对数据的分布一般也不做任何要求，适应能力很强，并且模型的精度较高。非参数回归模型完全由样本数据驱动，因此也常称作散点图平滑（scatterplot smoothing）\mathindex{散点图平滑}{scatterplot smoothing}，因为在典型的应用中，这一方法会在$y$关于$x$的散点图上绘出一条经过若干点的平滑曲线。
 
@@ -1784,13 +1784,13 @@ public:
 	\hat{c}_p=\underset{\hat{c}_p}{\text{arg min}}\sum_{q\in\mathcal{N}_p}(c_q-\hat{c}_p)^{2}\tilde{w}_\mathbf{x}(p,q)
 \end{equation}
 
-\noindent 上述（节本节前面讨论的过滤技术）的回归可以称之为是零阶回归（zero-order regression）\mathindex{零阶回归}{zero-order regression}因为它们把局部领域的像素值当做一个常数来拟合回归函数，它仅考虑两个像素之间的颜色差异，而忽视了像素之间的变化特征（如梯度）。更精确的预测模型是使用多项式，它将核估计扩展为焦点$x_0$处使用核权数$w_i=K[(x_i-x_0)/h]$的多项式拟合，这样的回归方法称为局部多项式回归（local polynomial regression）\mathindex{局部多项式回归}{local polynomial regression}，例如预测变量$x$的$n$阶多项式为：
+上述（即本节前面讨论的过滤技术）的回归可以称之为是零阶回归（zero-order regression）\mathindex{零阶回归}{zero-order regression}因为它们把局部领域的像素值当做一个常数来拟合回归函数，它仅考虑两个像素之间的颜色差异，而忽视了像素之间的变化特征（如梯度）。更精确的预测模型是使用多项式，它将核估计扩展为焦点$x_0$处使用核权数$w_i=K[(x_i-x_0)/h]$的多项式拟合，这样的回归方法称为局部多项式回归（local polynomial regression）\mathindex{局部多项式回归}{local polynomial regression}，例如预测变量$x$的$n$阶多项式为：
 
 \begin{equation}
 	y=\alpha+\beta_1 x+\beta_2 x^{2}+\cdots+\beta_p x^{n}+\epsilon
 \end{equation}
 
-\noindent 当$n=1$时对应线性拟合，当$n=2$时对应二次函数拟合，以此类推。对常数项（即均值）的拟合则对应$n=0$。例如，针对图像使用最小二乘法拟合的的一阶回归（first-order regression）\mathindex{一阶回归}{first-order regression}公式为：
+当$n=1$时对应线性拟合，当$n=2$时对应二次函数拟合，以此类推。对常数项（即均值）的拟合则对应$n=0$。例如，针对图像使用最小二乘法拟合的一阶回归（first-order regression）\mathindex{一阶回归}{first-order regression}公式为：
 
 \begin{equation}\label{e:pt-first-order-regression}
 	[\hat{c}_p,\nabla\hat{c}_p]=\underset{\hat{c}_p,\nabla\hat{c}_p}{\text{arg min}}\sum_{q\in\mathcal{N}_p}(c_q-\hat{c}_p-\nabla\hat{c}_p\cdot (\mathbf{y}_q-\mathbf{y}_p))^{2}\tilde{w}_\mathbf{x}(p,q)
@@ -1813,7 +1813,7 @@ public:
 	y=f(\mathbf{x})+\epsilon
 \end{equation}
 
-\noindent 在本节讨论的图像过滤问题中，这里$y\in\mathbb{R}^{1}$是表示响应变量的一个标量，它表示蒙特卡洛采样输出的（即过滤阶段输入的）带噪点的图像；而$f(\mathbf{x})\in\mathbb{R}^{1}$表示要拟合的回归函数，其值仍为标量\footnote{注意，这里是分别对图像颜色值的三个通道进行拟合，所以以下不再单独说明每个通道。}；$\mathbf{x}\in\mathbb{R}^{D}$是一个$D$维的特征矢量，它包括像素的位置，以及其他任何特征信息，如纹理，深度，法线等。
+在本节讨论的图像过滤问题中，这里$y\in\mathbb{R}^{1}$是表示响应变量的一个标量，它表示蒙特卡洛采样输出的（即过滤阶段输入的）带噪点的图像；而$f(\mathbf{x})\in\mathbb{R}^{1}$表示要拟合的回归函数，其值仍为标量\footnote{注意，这里是分别对图像颜色值的三个通道进行拟合，所以以下不再单独说明每个通道。}；$\mathbf{x}\in\mathbb{R}^{D}$是一个$D$维的特征矢量，它包括像素的位置，以及其他任何特征信息，如纹理，深度，法线等。
 
 根据一阶泰勒多项式，以特征向量$\mathbf{x}^{c}$为焦点，邻近$\mathbf{x}$处的未知的拟合函数值$f(\mathbf{x})$可表示为：
 
@@ -1821,13 +1821,13 @@ public:
 	f(\mathbf{x})\approx f(\mathbf{x}^{c})+\nabla f(\mathbf{x}^{c})^{T}(\mathbf{x}-\mathbf{x}^{c})
 \end{equation}
 
-\noindent 因此，根据前面讨论的局部多项式回归，上式表述的回归函数可以使用式\ref{e:pt-first-order-regression}表示的最小二乘法一阶回归方程计算而出。在这里，使用最小二乘法可以求出回归函数在$p$点处的值$\hat{c}_p$，以及在$p$点处的梯度$\nabla \hat{c}_p$，剩下的重要的事情是对过滤器$\tilde{x}_x(p,q)$执行范围选择。
+因此，根据前面讨论的局部多项式回归，上式表述的回归函数可以使用式\ref{e:pt-first-order-regression}表示的最小二乘法一阶回归方程计算而出。在这里，使用最小二乘法可以求出回归函数在$p$点处的值$\hat{c}_p$，以及在$p$点处的梯度$\nabla \hat{c}_p$，剩下的重要的事情是对过滤器$\tilde{x}_x(p,q)$执行范围选择。
 
-\cite{a:AdaptiveRenderingbasedonWeightedLocalRegression}通过在高维下计算各种类型的特征缓存的过滤范围来计算使得估计的均方差最小化，虽然精度较高，但是计算成本很高；\cite{a:AdaptiveRenderingwithLinearPredictions}在此基础上通过仅计算一些稀疏的像素来进行近似优化；\cite{a:AdaptivePolynomialRendering}则采用一种完全不同与过滤带宽选择的策略，它通过适应性地选择多相似的阶数来适应图像信号的特征，例如他们在高曲率的区域使用更高阶数的多项式来进行重建，在一些比较平滑的区域则选择低阶数的多项式；本节，我们则仅讨论\cite{a:NonlinearlyWeightedFirstorderRegressionforDenoisingMonteCarloRenderings}中使用的效率更高的方法，但是通过这种方法讨论，我们仍然能够明白局部回归方法的思路。
+\cite{a:AdaptiveRenderingbasedonWeightedLocalRegression}通过在高维下计算各种类型的特征缓存的过滤范围来计算使得估计的均方差最小化，虽然精度较高，但是计算成本很高；\cite{a:AdaptiveRenderingwithLinearPredictions}在此基础上通过仅计算一些稀疏的像素来进行近似优化；\cite{a:AdaptivePolynomialRendering}则采用一种完全不同于过滤带宽选择的策略，它通过适应性地选择多个相似的阶数来适应图像信号的特征，例如他们在高曲率的区域使用更高阶数的多项式来进行重建，在一些比较平滑的区域则选择低阶数的多项式；本节，我们则仅讨论\cite{a:NonlinearlyWeightedFirstorderRegressionforDenoisingMonteCarloRenderings}中使用的效率更高的方法，但是通过这种方法讨论，我们仍然能够明白局部回归方法的思路。
 
-在时\ref{e:pt-first-order-regression}表示的一阶回归模型中，特征缓存梯度信息的引入大大提升了回归函数的精确度，然而高维的特征矢量却使得带宽选择的计算成本非常高。考虑到特征信息已经通过在一阶回归多项式中提升了回归函数的精确度，\cite{a:NonlinearlyWeightedFirstorderRegressionforDenoisingMonteCarloRenderings}提出仅使用前面讨论的非局部均值过滤器作为式\ref{e:pt-first-order-regression}中的回归核函数（即权重系数不考虑特征缓存），这样做有两个好处：首先，当特征缓存不能提供有效信息时（例如前面讨论的景深之外的特征信息噪点较大），颜色值可以提供更多的细节；其次，这使得过滤带宽的选择和前面非局部均值过滤器的带宽选择的成本一致，即只需要一个参数，大大降低了一阶回归带宽选择的计算成本。
+在式\ref{e:pt-first-order-regression}表示的一阶回归模型中，特征缓存梯度信息的引入大大提升了回归函数的精确度，然而高维的特征矢量却使得带宽选择的计算成本非常高。考虑到特征信息已经通过在一阶回归多项式中提升了回归函数的精确度，\cite{a:NonlinearlyWeightedFirstorderRegressionforDenoisingMonteCarloRenderings}提出仅使用前面讨论的非局部均值过滤器作为式\ref{e:pt-first-order-regression}中的回归核函数（即权重系数不考虑特征缓存），这样做有两个好处：首先，当特征缓存不能提供有效信息时（例如前面讨论的景深之外的特征信息噪点较大），颜色值可以提供更多的细节；其次，这使得过滤带宽的选择和前面非局部均值过滤器的带宽选择的成本一致，即只需要一个参数，大大降低了一阶回归带宽选择的计算成本。
 
-虽然，非局部均值过滤器由于忽视特征缓存而可能丢失很多高频的特征信息，但是\cite{a:NonlinearlyWeightedFirstorderRegressionforDenoisingMonteCarloRenderings}说明在一阶回归中，选择非局部均值过滤器也能呈现较高的图像质量。直观上理解，一阶回归模型和非局部均值过滤器之间形成互补关系，式\ref{e:pt-first-order-regression}中的一阶回归模型允许更好地探索任何特征缓存也颜色值相关的区域，而非局部均值过滤器使得在这种相关性较弱的区域更好地体现图像的颜色细节。
+虽然，非局部均值过滤器由于忽视特征缓存而可能丢失很多高频的特征信息，但是\cite{a:NonlinearlyWeightedFirstorderRegressionforDenoisingMonteCarloRenderings}说明在一阶回归中，选择非局部均值过滤器也能呈现较高的图像质量。直观上理解，一阶回归模型和非局部均值过滤器之间形成互补关系，式\ref{e:pt-first-order-regression}中的一阶回归模型允许更好地探索任何特征缓存与颜色值相关的区域，而非局部均值过滤器使得在这种相关性较弱的区域更好地体现图像的颜色细节。
 
 尽管有前面讨论的预过滤技术来减少特征缓存的方差，但是特征缓存仍然是和颜色缓存的噪点具有一定的相关性，所以在\cite{a:NonlinearlyWeightedFirstorderRegressionforDenoisingMonteCarloRenderings}中，他们使用类似前面的交叉过滤技术来进行一阶回归：即使用A缓存中的特征信息来拟合B缓存中的回归函数值，通过这样来消除颜色缓存和特征缓存中噪点的相关性。
 
@@ -1843,7 +1843,7 @@ public:
 \section{梯度域渲染}\label{sec:pt-gradient-domian-path-tracing}
 路径追踪本质上是一个蒙特卡洛方法问题，蒙特卡洛估计的收敛速度决定了路径追踪技术的低效。传统的方差缩减技术（第\ref{sec:Variance-Reduction}节）仍然可以被用于路径追踪技术中，例如前面讨论的双向路径追踪技术本质上就是复合重要性采样，而根据BRDF等分布进行采样对则对应于重要性采样，同样，拟蒙特卡洛方法也被大量应用于路径追踪技术中。
 
-由于光照传输的复杂性，这些基本的采样方法显然是不够的，我们还需要根据光照传输的特征，挖掘一些更高级的采样技术。请注意，本书大体上将所有的路径采样技术分为两类：即基础路径采样技术以及本节讨论的高级路径采样技术。基础路径采样技术包括本节讨论的非双向和双向路径采样，第\ref{chp:pm}章讨论的光子映射以及第\ref{chp:mlt}章讨论的梅特波利斯光照传输，这些技术只是路径生成的方式不同，其核心并没有太大差异，即通过相互独立的随机路径的平均值来近似图像积分。
+由于光照传输的复杂性，这些基本的采样方法显然是不够的，我们还需要根据光照传输的特征，挖掘一些更高级的采样技术。请注意，本书大体上将所有的路径采样技术分为两类：即基础路径采样技术以及本节讨论的高级路径采样技术。基础路径采样技术包括本章前面讨论的非双向和双向路径采样，第\ref{chp:pm}章讨论的光子映射以及第\ref{chp:mlt}章讨论的梅特波利斯光照传输，这些技术只是路径生成的方式不同，其核心并没有太大差异，即通过相互独立的随机路径的平均值来近似图像积分。
 
 由于相互独立的路径无法分辨图像的局部分辨特征，因此这里的高级路径采样技术主要是指能够借助路径之间的相关性来辅助进行图像局部特征辨识的技术。这包括本节要讨论梯度域渲染，以及第\ref{chp:mlt}章会介绍的半矢量空间光照传输。另外，从这个角度来看，本节前面讨论的所有和频率域相关的技术其实也属于这个范畴，本质上它也是通过研究路径的局部特征来更好地对路径进行采样和过滤。
 
@@ -1874,7 +1874,7 @@ public:
 	\end{aligned}
 \end{equation}
 
-\noindent 在图像编辑中的图像重建问题可以归结为：求一个函数$f(x,y)$，使得其梯度$\nabla f(x,y)$尽可能地接近一个给定的梯度场（gradient field）\myindex{梯度场}{gradient field}$\mathbf{g}(x,y)$，这个问题通常可以通过求解如下积分的最小值（满足最小差异）来实现：
+在图像编辑中的图像重建问题可以归结为：求一个函数$f(x,y)$，使得其梯度$\nabla f(x,y)$尽可能地接近一个给定的梯度场（gradient field）\myindex{梯度场}{gradient field}$\mathbf{g}(x,y)$，这个问题通常可以通过求解如下积分的最小值（满足最小差异）来实现：
 
 \begin{equation}\label{e:pt-image-reconstruction}
 	{\rm \iint} ||\nabla f-\mathbf{g}||^{2}dxdy
@@ -1946,7 +1946,7 @@ public:
 	I_j=\bigg(h(x)\star{\rm \int}_\Omega f(x, \bar{p}){\rm d}\mu(\bar{p})  \bigg)(x_j)
 \end{equation}
 
-\noindent 为了简化本节的分析，我们将公式的形式进行了调整，这里$x$对应屏幕空间的坐标（即$(x,y)$），$(x,\bar{p})$表示一条路径，其中参数$\bar{p}$连接光源上的一个点和$x$对应的感应器上的点。$f$则为路径$(x,\bar{p})$的贡献值。 
+为了简化本节的分析，我们将公式的形式进行了调整，这里$x$对应屏幕空间的坐标，即$(x,y)$，$(x,\bar{p})$表示一条路径，其中参数$\bar{p}$连接光源上的一个点和$x$对应的感应器上的点。$f$则为路径$(x,\bar{p})$的贡献值。 
 
 我们定义两个像素之间的差异为$\Delta_{i,j}$，则根据上面的公式可以得出：
 
@@ -1954,7 +1954,7 @@ public:
 	\Delta_{i,j}=\bigg(h(x)\star{\rm \int}_\Omega f(x, \bar{p}){\rm d}\mu(\bar{p})  \bigg)(x_i)-\bigg(h(x)\star{\rm \int}_\Omega f(x, \bar{p}){\rm d}\mu(\bar{p})  \bigg)(x_j)
 \end{equation}
 
-\noindent 因为像素$x_i$和$x_j$刚好相隔一个像素的距离，因此它们可以使用相同的过滤函数$h(x)$。上述的梯度计算涉及两条独立无关路径积分的差值，然而这样的梯度值并没有意义，正如我们在后面的傅里叶分析中将会看到，参考图像和梯度图像应该分别对应图像分布频率域中的不同频率段，所以直接从两个独立无关相邻像素计算的梯度值就会导致参考图像和梯度图像处于相同的频率段，从而导致梯度域路径积分失去意义。
+因为像素$x_i$和$x_j$刚好相隔一个像素的距离，因此它们可以使用相同的过滤函数$h(x)$。上述的梯度计算涉及两条独立无关路径积分的差值，然而这样的梯度值并没有意义，正如我们在后面的傅里叶分析中将会看到，参考图像和梯度图像应该分别对应图像分布频率域中的不同频率段，所以直接从两个独立无关相邻像素计算的梯度值就会导致参考图像和梯度图像处于相同的频率段，从而导致梯度域路径积分失去意义。
 
 \begin{figure}
 	\sidecaption
@@ -1981,9 +1981,9 @@ public:
 
 
 \subsection{对称梯度和重要性采样}
-可以证明，积分公式\ref{e:pt-gradient-equation}的估计是无偏的，当前仅对其移位映射是对称的。当一个基础路径与其偏移路径均可以被路径采样器采样时，我们称这样的一对基础-偏移路径对是对称的（symmetric）\myindex{对称的}{symmetric}。
+可以证明，积分公式\ref{e:pt-gradient-equation}的估计是无偏的，当且仅当其移位映射是对称的。当一个基础路径与其偏移路径均可以被路径采样器采样时，我们称这样的一对基础-偏移路径对是对称的（symmetric）\myindex{对称的}{symmetric}。
 
-很显然，实践上几乎不可能找到这样的移位映射函数使得所有路径对都是对称的。路径追踪技术保证路径空间的所有合法路径（$f(x,\bar{p})>0$）都可以被采样，但是它不能保证这些基础路径的偏移路径也可以被采样，例如偏移路径可能被遮挡，导致其光照贡献值为0（$f(T_{ij}(x,\bar{p})=0)$）；另一方面，一些可以被采样的偏移路径（$f(T_{ij}(x,\bar{p})>0$），其对应的基础路径可能贡献值为0（$f(x,\bar{p})=0$）,从而使得这种类型的偏移路径被完全忽略（因为传统路径追踪必须保证基础路径贡献值不为0），这就存在一些偏移路径无法被采样到，从而给梯度估计带来偏差。
+很显然，实践上几乎不可能找到这样的移位映射函数使得所有路径对都是对称的。路径追踪技术保证路径空间的所有$f(x,\bar{p})>0$的合法路径都可以被采样，但是它不能保证这些基础路径的偏移路径也可以被采样，例如偏移路径可能被遮挡，导致其光照贡献值为0，即$f(T_{ij}(x,\bar{p})=0)$；另一方面，一些可以被采样的偏移路径，即$f(T_{ij}(x,\bar{p})>0$，其对应的基础路径可能贡献值为0，即$f(x,\bar{p})=0$，从而使得这种类型的偏移路径被完全忽略（因为传统路径追踪必须保证基础路径贡献值不为0），这就存在一些偏移路径无法被采样到，从而给梯度估计带来偏差。
 
 由于路径采样的估计本身是无偏的，因此针对上述第二个问题，如果移位映射是可逆的（invertible）\myindex{可逆的}{invertible}，则我们可以将路径采样得到的路径看做偏移路径，然后对其运用移位映射的逆来求其对应的基础路径。这种情况下，两个像素之间的梯度由两部分组成：由$i\to j$的前向移位映射（forward shift mapping）\myindex{前向移位映射}{forward shift mapping}和由$j\to i$的逆向移位映射（inverse shift mapping）\myindex{逆向移位映射}{inverse shift mapping}，对这两个积分各自分配一个权重系数，\cite{a:ImprovedSamplingforGradientDomainMetropolisLightTransport}提出的新的对称梯度（symmetric gradient）\myindex{对称梯度}{symmetric gradient}公式为：
 
@@ -1994,7 +1994,7 @@ public:
 \end{aligned}
 \end{equation}
 
-\noindent 我们暂时把权重系数$w_{ij}$和$w_{ji}$的计算放到稍后。上式意味着，对于路径采样得到的每一条路径，我们不仅需要将其当做基础路径求出水平和垂直两个方向上的偏移路径来求对应的梯度值，还需要将其当做偏移路径，并通过逆向移位映射来求出其对应的基础路径。因此，每个采样路径需要对周围4个像素进行梯度计算，其中两条偏移路径及两条逆向基础路径，如图\ref{f:pt-four-neighbors}所示。其计算的梯度对偏移距离为正值，对应式\ref{e:pt-symmetric-equation}中的第一项，对两条逆向基础路径为负值，对应式\ref{e:pt-symmetric-equation}中的第二项。
+我们暂时把权重系数$w_{ij}$和$w_{ji}$的计算放到稍后。上式意味着，对于路径采样得到的每一条路径，我们不仅需要将其当做基础路径求出水平和垂直两个方向上的偏移路径来求对应的梯度值，还需要将其当做偏移路径，并通过逆向移位映射来求出其对应的基础路径。因此，每个采样路径需要对周围4个像素进行梯度计算，其中两条偏移路径以及两条逆向基础路径，如图\ref{f:pt-four-neighbors}所示。其计算的梯度对偏移距离为正值，对应式\ref{e:pt-symmetric-equation}中的第一项，对两条逆向基础路径为负值，对应式\ref{e:pt-symmetric-equation}中的第二项。
 
 \begin{figure}
 	\sidecaption
@@ -2028,9 +2028,9 @@ public:
 	w_{ij}(\bar{x})= \cfrac{p(\bar{x})}{p(\bar{x})+p(T_{ij}(\bar{x}))|T^{'}_{ij}|(\bar{x})}
 \end{equation}
 
-\noindent 需要注意的是，上面的复合重要性采样还解决了另一个问题，即当移位映射的行列式$|T^{'}_{ij}(\bar{x})|$很大时，梯度估计的方差将会很大，上述公式使得这样的采样权重变为$1/|T^{'}_{ij}(\bar{x})|$，因此它取消了该部分梯度采样的巨大贡献，从而减小了梯度估计的方差。
+需要注意的是，上面的复合重要性采样还解决了另一个问题，即当移位映射的行列式$|T^{'}_{ij}(\bar{x})|$很大时，梯度估计的方差将会很大，上述公式使得这样的采样权重变为$1/|T^{'}_{ij}(\bar{x})|$，因此它取消了该部分梯度采样的巨大贡献，从而减小了梯度估计的方差。
 
-根据本节内容，\cite{a:GradientDomainPathTracing}提供的梯度域路径追踪算法伪代码\footnote{\cite{a:GradientdomainpathtracingGPTandgradientdomainbidirectionalpathtracingGBDPTforMitsubarenderer}提供了基于Mitsuba渲染器的梯度域路径追踪算法实现。}如下：
+\cite{a:GradientDomainPathTracing}提供的梯度域路径追踪算法伪代码\footnote{\cite{a:GradientdomainpathtracingGPTandgradientdomainbidirectionalpathtracingGBDPTforMitsubarenderer}提供了基于Mitsuba渲染器的梯度域路径追踪算法实现。}如下：
 
 \begin{lstlisting}[language=C++,mathescape]
 //使用传统路径追踪采样算法得到所有基础路径
@@ -2066,7 +2066,7 @@ for all $j$
 \begin{itemize}
 	\item 假设分析图像是1D的，所以$x$代表了图像坐标空间的维度。
 	\item 所有的路径空间积分参数都隐藏在路径$\bar{p}$中。
-	\item 放大了方差计算，由于方差$V(x)=E[X^2]-(E[X])^2$，这里设期望$E[f(X)]=0$，因此方差被放大（即$V(x)=E[f(X)^2]$），这里$E[f(X)^2]$表示$f$的能量。
+	\item 放大了方差计算，由于方差$V(x)=E[X^2]-(E[X])^2$，这里设期望$E[f(X)]=0$，因此方差被放大，即$V(x)=E[f(X)^2]$，这里$E[f(X)^2]$表示$f$的能量。
 	\item 最后，这里的移位映射仅仅将图像坐标，即$x$，移动一个像素，而其他的所有参数保持不变，因此这里的$T$对应的雅可比矩阵为单位矩阵，其行列式值为1（即基础路径和偏移路径重合）。
 \end{itemize}
 
@@ -2081,7 +2081,7 @@ for all $j$
 \end{aligned}
 \end{equation}
 
-\noindent \cite{a:GradientDomainPathTracing}通过将路径采样过程当做一个泊松过程，参考图像和梯度图的方差可以表示为：
+\cite{a:GradientDomainPathTracing}通过将路径采样过程当做一个泊松过程，参考图像和梯度图的方差可以表示为：
 
 \begin{equation}
 	\begin{aligned}
@@ -2103,12 +2103,12 @@ for all $j$
 
 \begin{figure}
 	\sidecaption
-	\includegraphics[width=0.45\textwidth]{figures/pt/gradient-error}
+	\includegraphics[width=0.35\textwidth]{figures/pt/gradient-error}
 	\caption{梯度估计的误差在低频区域内最小，随着频率的增加而成余弦增加，虚线表示像素图像的误差$|\epsilon_F(\omega_x)|^2$，它在采样数量$n$给定的情况下为常数，梯度估计的误差最大为像素图像估计误差的4倍（纵轴表示像素图像误差的倍数）}
 	\label{f:pt-gradient-error}
 \end{figure}
 
-而在给定采样数量$n$的情况下，像素图像的误差$|\epsilon_F(\omega_x)|^2$为一常数（如图\ref{f:pt-gradient-error}所中的虚线所示），在后面的图像重建分析中，我们就将进一步根据像素图像和梯度图像的误差特征来分析重建图像的误差。
+而在给定采样数量$n$的情况下，像素图像的误差$|\epsilon_F(\omega_x)|^2$为一常数，如图\ref{f:pt-gradient-error}所中的虚线所示，在后面的图像重建分析中，我们就将进一步根据像素图像和梯度图像的误差特征来分析重建图像的误差。
 
 
 
@@ -2122,7 +2122,7 @@ for all $j$
 	|\epsilon_{R_{\alpha}}(\omega_x)|^2= \cfrac{1}{n} \cfrac{\alpha^4||F||^2 +|D(\omega_x)|^2||G||^2}{(\alpha^2 + |D(\omega_x)|^2 )^2}
 \end{equation}
 
-\noindent 在上式中，如果设$\alpha=\infty$，则此时相当于仅考虑像素图像，因此重建图像的误差变为$\epsilon_{R_\infty}=||F||^2/n$；我们更感兴趣的是如果设$\alpha=0$，此时意味着仅考虑梯度图像，则重建图像的误差变为：
+在上式中，如果设$\alpha=\infty$，则此时相当于仅考虑像素图像，因此重建图像的误差变为$\epsilon_{R_\infty}=||F||^2/n$；我们更感兴趣的是如果设$\alpha=0$，此时意味着仅考虑梯度图像，则重建图像的误差变为：
 
 \begin{equation}
 \begin{aligned}
@@ -2131,9 +2131,7 @@ for all $j$
 \end{aligned}
 \end{equation}
 
-上式表述的误差呈现两个特征：其误差的大小取决于常数$||G||^2$（即梯度图像的能量），而其误差的变化曲线取决于$1/|D(\omega_x)|^2$。对于后者，我们将图\ref{f:pt-gradient-error}除1得到图\ref{f:pt-reconstruction-error}，因此如果我们仅使用梯度图像来重建真实图像，则与梯度图像本身的误差特征相反，它在高频区域的能量最低，因此估计的误差最低。因此，重建图像中能够从梯度估计中受益（误差比像素图像更低）的频率取决于梯度图像能量和像素图像能量的比值$||G||^2/||F||^2$，例如在图\ref{f:pt-reconstruction-error}中高频部分的误差比像素图像的误差要低得多，而低频部分则大于像素图像的误差（最大多至4倍）。
-
-图\ref{f:pt-reconstruction-error}还呈现一个重要特征，那就是梯度图像部分贡献的误差在低频部分的范围很窄，它在经历短暂的低频高误差范围带之后，迅速进入高频低误差范围，使其拥有较大的低误差范围。实际上，大部分图像都由于阴影遮挡，物体边缘，颜色变化等等因素使得其图像分布呈现较大的高频带，因此梯度域追踪技术能够减小传统蒙特卡洛方法的方差。
+上式表述的误差呈现两个特征：其误差的大小取决于常数$||G||^2$（即梯度图像的能量），而其误差的变化曲线取决于$1/|D(\omega_x)|^2$。对于后者，我们将图\ref{f:pt-gradient-error}除1得到图\ref{f:pt-reconstruction-error}，因此如果仅使用梯度图像来重建真实图像，则与梯度图像本身的误差特征相反，它在高频区域的能量最低，因此估计的误差最低。因此，重建图像中能够从梯度估计中受益（误差比像素图像更低）的频率取决于梯度图像能量和像素图像能量的比值$||G||^2/||F||^2$，例如在图\ref{f:pt-reconstruction-error}中高频部分的误差比像素图像的误差要低得多，而低频部分则大于像素图像的误差（最大多至4倍）。
 
 \begin{figure}
 	\sidecaption
@@ -2141,6 +2139,8 @@ for all $j$
 	\caption{和梯度图估计的误差分布相反，筛选泊松重建的图像在高频区域的误差最小，并且高误差在低频区域的范围很小，经历短暂的低频区域后迅速减少，大部分高频区域的误差都很低}
 	\label{f:pt-reconstruction-error}
 \end{figure}
+
+图\ref{f:pt-reconstruction-error}还呈现一个重要特征，那就是梯度图像部分贡献的误差在低频部分的范围很窄，它在经历短暂的低频高误差范围带之后，迅速进入高频低误差范围，使其拥有较大的低误差范围。实际上，大部分图像都由于阴影遮挡，物体边缘，颜色变化等等因素使得其图像分布呈现较大的高频带，因此梯度域追踪技术能够减小传统蒙特卡洛方法的方差。
 
 根据目前的分析，在重建的图像中，像素图像（传统蒙特卡洛方法）部分贡献的误差为常数，梯度图像对误差的贡献在高频部分远远小于像素图像误差，而在低频部分大于像素图像误差。因此，理想情况下，我们希望对像素图像使用一个低通过滤器（low-pass filter），而对梯度图像使用一个高通过滤器（high-pass filter），这样就的组合就能够在高频部分大大减少误差，而在低频部分至少保持传统路径采样算法的误差，如图\ref{f:pt-screen-poisson-reconstruction}所示。
 
@@ -2156,7 +2156,7 @@ for all $j$
 	|\epsilon_{R_{\alpha_{\star}}}(\omega_x)|^2= \cfrac{1}{n} \cfrac{||G||^2 ||F||^2}{||F||^2|D(\omega_x)|^2+||G||^2}
 \end{equation}
 
-\noindent 重建图像误差的另一个特征在于其大小取决于常数$||G||^2$（即梯度图像的能量），因此梯度图像的能量必须尽可能$||G||^2$小，其实就是用于产生偏移路径的移位映射函数必须使得两条路径尽可能地相似，这样就是梯度图像的总能量越小。并且基础路径和偏移路径越相似，梯度图像越能捕捉更多高频区域，因此进一步减小了方差，下一节我们就将讨论一种比较高效的移位映射函数。
+重建图像误差的另一个特征在于其大小取决于常数$||G||^2$（即梯度图像的能量），因此梯度图像的能量必须尽可能使$||G||^2$小，其实就是用于产生偏移路径的移位映射函数必须使得两条路径尽可能地相似，这样就使梯度图像的总能量越小。并且基础路径和偏移路径越相似，梯度图像越能捕捉更多高频区域，因此进一步减小了方差，下一节我们就将讨论一种比较高效的移位映射函数。
 
 
 
@@ -2229,7 +2229,7 @@ Some very promising importance sampling techniques have re- cently been develope
 
 现代处理器几乎都以冯·诺依曼提出的处理器结构为基础，在该结构中，处理器由四部分组成：一个用于进行二进制运算的算术逻辑单元，一个用来高速存储指令和数据的寄存器组，一个用来控制指令读取的控制单元，以及一个用于存储所有指令和数据的内存。
 
-在冯·诺依曼模型中，处理器从内存中将指令和数据(包括地址)读取到寄存器 并解码，然后执行该指令。寄存器在物理设计上靠近处理器，它是计算机所有存储设 备中具有最快存取速度(通常 1 个 CPU 时钟周期)的存储设备，但是它通常只有有 限的容量 (几千 byte)，所以当寄存器中的指令或数据执行完毕后，就需要向主存读取数据。
+在冯·诺依曼模型中，处理器从内存中将指令和数据(包括地址)读取到寄存器 并解码，然后执行该指令。寄存器在物理设计上靠近处理器，它是计算机所有存储设 备中具有最快存取速度(通常 1 个 CPU 时钟周期)的存储设备，但是它通常只有有 限的容量 (几千 字节)，所以当寄存器中的指令或数据执行完毕后，就需要向主存读取数据。
 
 这个模型看起来并不复杂，然而在现代处理器的发展当中，算术逻辑单元的计算速度得到了非常大的发展，例如现代处理器的运行速度通常可以高达4GHz，而内存的发展则主要集中在容量而不是传输速度上，这就导致处理器需要花费更多时间用于等待寄存器从内存读取数据，其导致了资源和时间浪费。
 
@@ -2254,13 +2254,13 @@ Some very promising importance sampling techniques have re- cently been develope
 \paragraph{指令执行}
 程序指令和数据在内存系统中的最后一站称为寄存器，它有着最快的读取速度（通常一个CPU时钟周期）和最小的存储空间（其大小通常按位计算）。
 
-一个处理器通常有多个不同类型的寄存器，这个类型是根据其包含的数据类型或者执行于该数据上的指令类型划分的。例如，数据寄存器（data registers）\myindex{数据寄存器}{data registers}可以用来存储整形或浮点型等数据类型的数据，地址寄存器（address registers）\myindex{地址寄存器}{address registers}专门用于存储一个可以直接被指令访问的内存地址，而指令寄存器（instruction register）\myindex{指令寄存器}{instruction register}存储当前正在被执行的指令数据，更多关于寄存器的知识可以参考脚注资源。
+一个处理器通常有多个不同类型的寄存器，这个类型是根据其包含的数据类型或者执行于该数据上的指令类型划分的。例如，数据寄存器（data registers）\myindex{数据寄存器}{data registers}可以用来存储整形或浮点型等数据类型的数据，地址寄存器（address registers）\myindex{地址寄存器}{address registers}专门用于存储一个可以直接被指令访问的内存地址，而指令寄存器（instruction register）\myindex{指令寄存器}{instruction register}存储当前正在被执行的指令数据。
 
 矢量寄存器（vector registers）\myindex{矢量寄存器}{vector registers}是一组特殊的寄存器，它们存储一个某个基础类型的矢量数据供SIMD指令执行。SIMD（single instruction, multiple data)是一类弗林分类法（Flynn's taxonomy）\myindex{弗林分类法}{Flynn's taxonomy}中的并行处理器架构，它将一个相同的指令同时并行地执行于多个相同数据类型的数据之上，因此它能够实现数据级别的并行，SIMD指令对于矢量操作非常高效，它大大减少了寄存器从缓存读取或存储数据的时间。
 
 矢量寄存器存储的基础数据分量的个数通常是4个，8个或更多，例如在OpenGL中一个矢量通常是由4个分量组成，一共128位，每个分量是一个32位的浮点值。算法通常要根据处理器支持的矢量寄存器分量的个数来调整数据结构，使之能够充分利用SIMD指令的计算效率。
  
-除了SIMD指令之外，由于现代处理器指令执行通常是管线化的，因此当出现条件分支时，如果预测判断失败则将导致指令执行的浪费，从而影响计算性能。而对于GPU，由于它并不是为了执行串行代码而设计的，而是为了高效执行大量的并行计算，因此并没有如CPU那样复杂的硬件实现分支预测功能，这回导致GPU会对每个分支都完整的执行，从而导致每个时钟周期都有部分处理器资源被浪费。例如，当一条SIMD指令同时计算多个顶点的着色，如果这些顶点使用不同的材质，则可能导致分支。所以，好的分支处理也是算法优化的重要方面。
+除了SIMD指令之外，由于现代处理器指令执行通常是管线化的，因此当出现条件分支时，如果预测判断失败则将导致指令执行的浪费，从而影响计算性能。而对于GPU，由于它并不是为了执行串行代码而设计的，而是为了高效执行大量的并行计算，因此并没有如CPU那样复杂的硬件实现分支预测功能，这导致GPU会对每个分支都完整的执行，从而导致每个时钟周期都有部分处理器资源被浪费。例如，当一条SIMD指令同时计算多个顶点的着色时，如果这些顶点使用不同的材质，则可能导致分支。所以，好的分支处理也是算法优化的重要方面。
 
 此外，由于路径追踪算法中的每条路径都是相互独立的，所以线程级别的并行通常比较简单，例如大部分都基于屏幕空间的划分来分配线程，而指令级别的并行要复杂得多，它涉及对算法基础结构的修改，所以本章后面并不对线程级别的并行做太多讨论。
 
@@ -2326,7 +2326,7 @@ SAH基于一个假设，即光线是均匀分布的，并且基元之间是不�
 
 \noindent 这里$S$表示父节点，$S_1$和$S_2$分别表示其两个子（或叶）节点，$A(S)$表示父节点内包围所有基元的包围盒的面积，$N(S)$为$S$内所有基元的数量，$T_{AABB}$为一次光线和一个AABB包围盒相交计算的成本，$T_{tri}$为光线和一个基元相交计算的成本。这里$T_{AABB}$和$T_{tri}$只需要取一种相对（而不是绝对）的值，例如\cite{b:pbrt}中取$T_{tri}=1$，而$T_{AABB}=1/8$。
 
-为了寻找成本最低的分割位置，\cite{a:Ray-Tracing-Deterministic-3-DFractals}首先对所有基元的质心按照某个坐标轴方向进行排序，然后遍历并比较全部分割位置处的成本，选取成本最小的分割位置；\cite{b:pbrt}则首先使用一个固定的更粗粒度的间距对父节点的包围盒今后划分，然后通过遍历这个更粗粒度的间隔范围（而不是基元数量）来近似计算成本，这使得在较浅的层级计算效率更高。
+为了寻找成本最低的分割位置，\cite{a:Ray-Tracing-Deterministic-3-DFractals}首先对所有基元的质心按照某个坐标轴方向进行排序，然后遍历并比较全部分割位置处的成本，选取成本最小的分割位置；\cite{b:pbrt}则首先使用一个固定的更粗粒度的间距对父节点的包围盒进行划分，然后通过遍历这个更粗粒度的间隔范围（而不是基元数量）来近似计算成本，这使得在较浅的层级计算效率更高。
 
 上述构建BVH的方法非常高效，然而由于BVH内节点之间在空间上可能相交，这增加了光线遍历的成本，因为穿过这些重叠区域的光线不得不遍历该重叠区域涉及的所有节点。在BVH中，越接近根部的节点，其可能发生重叠的区域的面积越大。因此，一些方法试图减少这种BVH构建的重叠区域，图\ref{f:pt-sbvh}展示了几种不同的方法对基元进行分割，其中图\ref{f:pt-sbvh}(b)\cite{a:EarlySplitClippingforBoundingVolumeHierarchies}的ESC和\ref{f:pt-sbvh}(c)\cite{a:TheEdgeVolumeHeuristicRobustTriangleSubdivisionforImprovedBVHPer-formance}的EVH方法使用一些预处理过程来得到一些不同于包围盒面积的分割方法，我们这里主要讨论\cite{a:SpatialSplitsinBoundingVolumeHierarchies}提供的空间分离方法，如图\ref{f:pt-sbvh}(d)所示。
 
@@ -2336,11 +2336,11 @@ SAH基于一个假设，即光线是均匀分布的，并且基元之间是不�
 	\label{f:pt-sbvh}
 \end{figure}
 
-图\ref{f:pt-sbvh}(b)和(c)都在某种程度上对一个包围盒进行空间分割，但是它们都是独立的对各自的基元进行分割，因此很容易导致与其他基元形成重叠区域。图\ref{f:pt-sbvh}(d)则通过考虑整个集合的基元来进行空间分割，以最大限度减少空间重叠。
+图\ref{f:pt-sbvh}(b)和(c)都在某种程度上对包围盒执行空间分割，但是它们都是独立的对各自的基元进行分割，因此很容易导致与其他基元形成重叠区域。图\ref{f:pt-sbvh}(d)则通过考虑整个集合的基元来进行空间分割，以最大限度减少空间重叠。
 
 \cite{a:SpatialSplitsinBoundingVolumeHierarchies}提出的方法称为分割包围盒层次结构（Split Bounding Volume Hierarchy，SBVH）\myindex{分割包围盒层次结构}{Split Bounding Volume Hierarchy}，它结合了上述讨论的一般的BVH构建和空间分离的思路，因为本质上空间分割方法如k-d树能够避免重叠。
 
-在SBVH方法中，一个节点或基元称为一个引用（reference），它其实表示该节点对应的AABB包围盒，初始的时候，每个引用对应一个节点或基元，但是在BVH的构建过程中，一个引用可以被分割（split），新生成的引用的AABB包围盒被更新以仅仅地包围各自对应基元的所有部分。因此，当整个SBVH构建完成时，它等效于一个以引用为基元的BVH结构。
+在SBVH方法中，一个节点或基元称为一个引用（reference），它其实表示该节点对应的AABB包围盒，初始的时候，每个引用对应一个节点或基元，但是在BVH的构建过程中，一个引用可以被分割（split），新生成的引用的AABB包围盒被更新以包围各自对应基元的所有部分。因此，当整个SBVH构建完成时，它等效于一个以引用为基元的BVH结构。
 
 SBVH的基本构建算法可以分为三步：
 
@@ -2352,7 +2352,7 @@ SBVH的基本构建算法可以分为三步：
 
 为了提高空间分割的效率，实践上通常使用装箱法（binning）\myindex{装箱法}{binning}，即将AABB包围盒分割为固定数量的等间距的箱（bins），记为一个新的引用（直观上看，它是将新分割出来的引用装入一个容纳它的AABB包围盒中），每个引用对应的AABB包围盒则重新计算使之刚好能够紧紧包围住该区域部分的基元。
 
-为了进一步提升计算性能，SBVH还是有一种称为引用分割取消（reference unsplitting）\myindex{引用分割取消}{reference unsplitting}的方法来减少成本函数的值，如图\ref{f:pt-unsplitting}所示，当一个空间分割平面被选择后，它对每个被分割的基元执行一个成本比较：即被分割或被全部放入其中一个分割产生的子节点，如果将其全部直接放入一个子节点的成本更低，则直接取消该基元的分割。这样虽然增加了重叠，但是总的计算效率得到提升。注意，这里并不会修改红色基元的分割位置，而仅仅是增加后后边子节点的包围盒范围，但是右边包围盒并不包括红色基元的重叠部分。
+为了进一步提升计算性能，SBVH还是有一种称为引用分割取消（reference unsplitting）\myindex{引用分割取消}{reference unsplitting}的方法来减少成本函数的值，如图\ref{f:pt-unsplitting}所示，当一个空间分割平面被选择后，它对每个被分割的基元执行一个成本比较：即被分割或被全部放入其中一个分割产生的子节点，如果将其全部直接放入一个子节点的成本更低，则直接取消该基元的分割。这样虽然增加了重叠，但是总的计算效率得到提升。注意，这里并不会修改红色基元的分割位置，而仅仅是增加后边子节点的包围盒范围，但是右边包围盒并不包括红色基元的重叠部分。
 
 \begin{figure}
 	\sidecaption
@@ -2373,7 +2373,7 @@ SBVH的基本构建算法可以分为三步：
 	 \cfrac{\lambda}{SA(B_{root})}>\alpha
 \end{equation}
 
-\noindent 如果上述条件不满足，则空间分割步骤被忽略。这将导致大部分的空间分割发生于靠近根部的节点，在接近叶节点的部分则几乎总是使用物体分割。实践上，他们选取$\alpha=10^{-5}$为一个比较优化的值。
+如果上述条件不满足，则空间分割步骤被忽略。这将导致大部分的空间分割发生于靠近根部的节点，在接近叶节点的部分则几乎总是使用物体分割。实践上，他们选取$\alpha=10^{-5}$为一个比较优化的值。
 
 
 
@@ -2384,7 +2384,7 @@ SBVH的基本构建算法可以分为三步：
 \paragraph{多分支BVH}
 如本章后面的内容所见，在光线遍历中，我们有两种方法对BVH进行遍历：深度优先（depth-first）\myindex{深度优先}{depth-first}和广度优先（breadth-first）\myindex{广度优先}{breadth-first}，其中深度优先遍历对应于使用多条光线同时对BVH的一个节点进行相交计算，这里的光线数量对应于SIMD指令的宽度；而广度优先则对应于使用一条单独的光线同时对多个节点进行遍历，这里的节点数量对应SIMD指令的宽度，这就需要构建多分支的BVH结构。多分支BVH不仅能够充分提升SIMD指令的执行效率，它还通过减少了BVH的深度从而减少了内存传输带宽的占用。
 
-由于BVH2结构构建的高效性，所以实践中通常首先生成BVH2结构，然后再将其转化为多分支BVH，例如BVH4或BVH16。直观上看，有两种方法可以用于这种转化操作：分离法（splitting）\myindex{分离法}{splitting}和收缩法（collapsing）\myindex{收缩法}{collapsing}。其中收缩法通常比较简单，例如对于BVH4结构\cite{a:EfficientRayTracingKernelsforModernCPUArchitectures}，只需要将一个父节点被其两个子节点替换即可，但是根据原始BVH2结构叶节点的数量，其BVH4叶节点的数量可能在$2~4$之间。
+由于BVH2结构构建的高效性，所以实践中通常首先生成BVH2结构，然后再将其转化为多分支BVH，例如BVH4或BVH16。直观上看，有两种方法可以用于这种转化操作：分离法（splitting）\myindex{分离法}{splitting}和收缩法（collapsing）\myindex{收缩法}{collapsing}。其中收缩法通常比较简单，例如对于BVH4结构\cite{a:EfficientRayTracingKernelsforModernCPUArchitectures}，只需要将一个父节点被其两个子节点替换即可，但是根据原始BVH2结构叶节点的数量，其BVH4叶节点的数量可能在2~4之间。
 
 但对于分支大于4的BVH结构（例如BVH16），收缩的操作稍微复杂一点，为了尽可能使中间的节点达到最大分支数量，\cite{a:GettingRidofPackets}首先执行一个单节点合并操作：对于某个父节点$n$及其子节点$c_i$，如果：
 
@@ -2392,7 +2392,7 @@ SBVH的基本构建算法可以分为三步：
 	N(n)-1+N(c_i)\leq 16
 \end{equation}
 
-\noindent 则直接将$c_i$的所有子节点直接替换$c_i$，通过这样使中间节点分指数尽可能最大。知道不能进行单节点合并之后，才使用一般的方法直接对每相邻的两个子（或叶）节点进行合并。
+\noindent 则直接将$c_i$的所有子节点直接替换$c_i$，通过这样使中间节点分支数尽可能最大。直到不能进行单节点合并之后，才使用一般的方法直接对每相邻的两个子（或叶）节点进行合并。
 
 同时需要注意的是，节点之间的合并也是要依据SAH进行成本比较的。
 
@@ -2412,24 +2412,23 @@ SBVH的基本构建算法可以分为三步：
 
 \begin{itemize}
 	\item \textbf{光线/基元相交计算}：对于每一条光线，遍历整个场景的网格数据，并求出光线与哪个物体的哪一个网格面相交。
-	\item \textbf{顶点着色计算}：当经过相交计算求出光线与物体表面的交点之后，接下来就需要根据表面的属性计算着色的过程，这包括根据BSDF模型计算光线的反射或折射方向，以及对纹理进行采样，计算漫反射或光泽反射的反射率等。
+	\item \textbf{顶点着色计算}：当经过相交计算求出光线与物体表面的交点之后，接下来就需要根据表面的属性计算着色的过程，这包括根据BSDF模型计算光线的反射或折射方向，以及对纹理进行采样，计算漫反射或光泽反射颜色等。
 \end{itemize}
 
 目前路径追踪算法的优化大部分也是根据这两部分来划分，其中光线和表面的相交计算主要涉及几何场景的数据结构及其各种高效的遍历方法，这将在本节讨论，而顶点着色计算部分将在第\ref{sec:pt-shading}节讨论。
 
+当光线在BVH树形结构中进行遍历的时候，对于每一个叶节点，光线首先与该叶节点对应的包围盒进行相交测试，如果相交然后再对该叶节点对应的一个或多个基元进行相交测试；如果是内部节点，则直接对其包围盒进行相交测试，如果相交则再分别对其子节点进行相交测试，整个过程递归进行。
 
-当光线在BVH树形结构中进行遍历的时候，对于每一个叶节点，光线首先与该叶节点对应的包围盒进行相交测试，如果相交然后再对该叶节点对应的一个或多个基元进行相交测试；如果是内部节点，则直接对其包围盒进行相交测试，如果相交则再分别对其子节点进行相交测试，这个过程递归进行。
+尽管这个过程看起来非常简单，然而它既不能充分利用SIMD指令，也无法高效使用缓存系统。由于光线经过一个表面后可能反射或折射到任意一个方向，这可能导致整个场景的BVH节点都是可能被访问的，无法满足数据局部性要求，全局范围内的数据被随机访问将导致缓存带宽被严重占用，执行时间被延迟大量占用；另一方面，相邻光线的方向是任意的，无法满足指令并行，因此无法使用SIMD指令，即使在指令管线内部也极容易形成分支，导致指令执行非常低效。
 
-尽管这个过程看起来非常简单，然而它既不能充分利用SIMD指令，也无法高效使用缓存系统。由于光线经过一个表面后可能反射或折射到任意一个方向，这可能导致整个场景的BVH节点都是可能被访问的，无法满足数据局部性要求，全局范围内的数据被随机范围将导致缓存带宽被严重占用，执行时间被延迟大量占用；另一方面，相邻光线的方向是任意的，无法满足指令并行，因此无法使用SIMD指令，即使在指令管线内部也极容易形成分支，导致指令执行非常低效。
-
- 为了改善这种情况，原理上其实很简单，就是前面讨论的数据局部性和指令并行性。本节我们就来介绍几种近几年行业比较流行的方法和原理，这些方法主要是按光线是否连贯来进行划分的，但是它们之间也交叉存在着其其他一些细微的区分方式，例如以单束或者多束光线执行一条指令，以宽度优先或者深度优先方式进行遍历等，我们要注意去区分这些技术的思路，从而可以更系统地理解它们。
+ 为了改善这种情况，原理上其实很简单，就是前面讨论的数据局部性和指令并行性。本节我们就来介绍几种近几年工业中比较流行的方法及其原理，这些方法主要是按光线是否连贯来进行划分的，但是它们之间也交叉存在着其其他一些细微的区分方式，例如以单束或者多束光线执行一条指令，以宽度优先或者深度优先方式进行遍历等，我们要注意去区分这些技术的思路，从而可以更系统地理解它们。
 
 
 
 
 
 \subsubsection{有序遍历}
-与空间细分结构不同的是，基于物体分割的树形结构，其节点之间往往存在复杂的重叠关系，因此不易于区分一条光线穿过多个物体包围盒的顺序，而这个顺序对于遍历效率的提升非常重要。在一般的光线遍历算法中，通常按与光线起点的位置为度量使用从前之后（front-to-back）\myindex{从前至后}{front-to-back}的顺序遍历节点，这样可以减少后续节点可能不必要的遍历计算。因此，有序遍历（ordered traversal）\myindex{有序遍历}{ordered traversal}对于连贯和非连贯光线都是非常重要的部分。
+与空间细分结构不同的是，基于物体分割的树形结构，其节点之间往往存在复杂的重叠关系，因此不易于区分一条光线穿过多个物体包围盒的顺序，而这个顺序对于遍历效率的提升非常重要。在一般的光线遍历算法中，通常按与光线起点的位置为度量使用从前至后（front-to-back）\myindex{从前至后}{front-to-back}的顺序遍历节点，这样可以减少后续节点可能不必要的遍历计算。因此，有序遍历（ordered traversal）\myindex{有序遍历}{ordered traversal}对于连贯和非连贯光线都是非常重要的部分。
 
 在BVH结构中，如果节点之间存在重叠，则很难严格地确定遍历的顺序\footnote{例如对于光线与包围盒的相交测试结果为$A$近于$B$，但是实际上光线与A和B内基元的相交测试结果却可能是$B_{tri}$近于$A_{tri}$。}，因此通常使用一些启发式\footnote{启发式是指一些不太严格的模型，在这里启发式的预测虽然可能出现错误，但是在后面我们将会看到它不会影响遍历的正确计算。}（heuristic）\myindex{启发式}{heuristic}来决定节点遍历的顺序。常用的启发式包括基于节点包围盒到光线起点的距离（DIST-H）和基于光线方向符号（SIGN-H）的启发式。DIST-H首先计算光线与每个节点的包围盒的角度，然后对每个交点的距离进行排序来决定遍历顺序，DIST-H启发式的缺点是排序的计算量很大（每条光线都需要计算），尤其是当BVH结构的分支数量很大时。目前比较流行和本节将要重点讨论的是SIGN-H启发式。
 
@@ -2443,9 +2442,9 @@ SBVH的基本构建算法可以分为三步：
 
 与基于距离的启发式（如DIST-H）不同，设想如果一个簇内所有节点的几何位置是固定的，如上述BVH4结构中perm字段所示，那么如果已知光线的方向，则可以决定光线穿过这些节点包围盒的顺序（当然这里并不一定与每个节点都会相交），也就是说，这个顺序不需要进行实际的相交测试就可以得出。\cite{a:RayTracingDeformableScenesUsingDynamicBoundingVolumeHierarchies}介绍了使用光线方向符号来计算遍历BVH2节点的顺序的方法，这些计算对于每一条光线都要执行一次，\cite{a:EfficientRayTracingKernelsforModernCPUArchitectures}进一步将所有可能的结果预计算到一个表中，然后这个顺序计算过程转化为一个查表的操作，大大提高了光线遍历的性能。
 
-在图\ref{f:pt-bvh4}中，index表示了每个节点在内存中的索引值，perm字段用来表示节点之间的几何关系，那么这到底是一个什么样的值呢？它表示的实际上是对4个节点在空间上的划分方法\footnote{这里的划分可以为是4个代表各自包围盒的点的划分，例如每个包围盒的质心，因此不存在重叠，它们有明显的方向次序，这样做可行的目的是因为即时启发式预测失败，在遍历过程中仍然不会导致错误计算。}，例如在每一个坐标轴方向上，可以有两类划分方式：平衡类型（balanced type）\myindex{平衡类型}{balanced type}和非平衡类型（unbalanced type）\myindex{非平衡类型}{unbalanced type}，平衡类型首先从中间分隔形成两个各自包含2个节点的细分，然后每个细分在从中间分隔，这样的划分是对称的，所以只包含一种拓扑结构；非平衡类型则首先从第1个或第3个位置分隔，形成一个包含一个节点和一个包含3个节点的细分，而后者再被使用两种方法进行分隔，因此非平衡划分形成4种拓扑结构。即每个坐标关系具有5种划分拓扑结构。而参考坐标关系有$3\times 3\times 3=27$种变种。
+在图\ref{f:pt-bvh4}中，index表示了每个节点在内存中的索引值，perm字段用来表示节点之间的几何关系，那么这到底是一个什么样的值呢？它表示的实际上是对4个节点在空间上的划分方法\footnote{这里的划分可以为是4个代表各自包围盒的点的划分，例如每个包围盒的质心，因此不存在重叠，它们有明显的方向次序，这样做可行的目的是因为即时启发式预测失败，在遍历过程中仍然不会导致错误计算。}，例如在每一个坐标轴方向上，可以有两类划分方式：平衡类型（balanced type）\myindex{平衡类型}{balanced type}和非平衡类型（unbalanced type）\myindex{非平衡类型}{unbalanced type}，平衡类型首先从中间分隔形成两个各自包含2个节点的细分，然后每个细分再从中间分隔，这样的划分是对称的，所以只包含一种拓扑结构；非平衡类型则首先从第1个或第3个位置分隔，形成一个包含一个节点和一个包含3个节点的细分，而后者再被使用两种方法进行分隔，因此非平衡划分形成4种拓扑结构。即每个坐标关系具有5种划分拓扑结构。而参考坐标关系有$3\times 3\times 3=27$种变种。
 
-拓扑划分是固定的，最后还要根据光线的方向来计算正确的遍历顺序，例如如果4个节点按x-轴正方向看的划分是2130，那么如果光线方向是与x-轴相反的，则正确的顺序应该是0312。为了将这种根据光线方向进行计算的过程编码进查询表，每个拓扑划分还需要对应$2_{3}=8$种光线方向的变种，所以这形成一个元素数量为$5\times 27 \times 8=1080$的查询表orderLUT。
+拓扑划分是固定的，最后还要根据光线的方向来计算正确的遍历顺序，例如如果4个节点按$x-$轴正方向看的划分是2130，那么如果光线方向是与$x-$轴相反的，则正确的顺序应该是0312。为了将这种根据光线方向进行计算的过程编码进查询表，每个拓扑划分还需要对应$2^{3}=8$种光线方向的变种，所以这形成一个元素数量为$5\times 27 \times 8=1080$的查询表orderLUT。
 
 \begin{figure}
 	\sidecaption
@@ -2466,7 +2465,7 @@ SBVH的基本构建算法可以分为三步：
 \subsubsection{连贯光线}\label{sec:coherent-ray-tracing}
 多束光线的连贯性（coherence）\myindex{连贯性}{coherence}是指在遍历的过程中，其中的每一条单束光线都遵循相同的BVH树遍历路径以及与同一基元相交的趋势，理想的连贯光线包括摄像机光线和阴影光线，镜面或光泽面反射或折射的光线等。由于理想的连贯光线在整个遍历过程中几乎执行相同的指令，所以它们能够充分利用SIMD指令的效率。
 
-因此，对于连贯光线，一种最简单的方法便是以SIMD指令支持的矢量数据的分量数量n为单位，每次让n束光同时对一个节点进行相交计算，其中这n束光称为一个光线包（ray packets）\myindex{光线包}{ray packets}，因为光线包内数量的连贯性很好，因此SIMD指令的执行效率可以非常高。
+因此，对于连贯光线，一种最简单的方法便是以SIMD指令支持的矢量数据的分量数量n为单位，每次让n束光同时对一个节点进行相交计算，其中这n束光称为一个光线包（ray packets）\myindex{光线包}{ray packets}，因为光线包内数据的连贯性很好，因此SIMD指令的执行效率可以非常高。
 
 尽管上述方法相对于传统单束光与单个节点的相交计算要高效，但是\cite{a:RayTracingDeformableScenesUsingDynamicBoundingVolumeHierarchies}提出一种针对连贯光线更高效的遍历算法，称为大光线包遍历（larger packets traversal）\myindex{大光线包遍历}{larger packets traversal}，与上述方法不同的是，它使用一个数量可能远大于n的光线包，例如$16\times 16=256$条光线组成的大光线包，然而通过充分利用光线的连贯性却可以做到仅使用更少量的光线与节点进行相交测试计算，这使其进一步成为了几乎是最高效的连贯光线遍历算法。
 
@@ -2512,9 +2511,9 @@ SBVH的基本构建算法可以分为三步：
 \paragraph{保守提前未命中}
 在大光线包遍历中，一个重要的遍历优化概念称为保守提前未命中（conservative early miss）\myindex{保守提前未命中}{conservative early miss}，它尝试快速的排除那些与整个光线包中的任何光线都不相交的节点。当然要想严格地进行未命中排除计算是非常复杂的，所以这些方法称为保守性的，是因为它们基本上都是使用一些计算成本非常低的保守的预测，这意味着有些使用保守提前未命中方法没有被排除的节点仍然有可能与任何光线都不相交，例如\ref{f:pt-conservative-early-miss}(b)，(c)和(d)。但是尽管如此，由于连贯光线的连贯性非常好，保守提前未命中技术可以很好地避免大量节点的遍历，尤其在靠近根节点附近。
 
-大光线包遍历算法中采用的最广泛的保守提前未命中方法称为区间算术运算（interval arithmetic，IA）\mathindex{区间算术运算}{interval arithmetic}，IA是一种被广泛使用的数学方法，与一般的算术运算（每个数都是一个单一的数字）不同的是，IA使用一个区间来描述一个变量，例如一个光线包可以表述为$O+TV$，这里大写字母$X$表明$X$是一个区间量（interval）\mathindex{区间量}{interval}，例如$O_x=[1,3]$就表明该光线包在x-轴的起点的范围在1-3之间。IA方法定义了各种操作数，例如加法，倒数，求负数，乘法等，这样就可以将常规的算术运算转化为区间算术运算。区间算术本质上是集合操作（set operations）\myindex{集合操作}{set operations}，而集合操作通过关系比较可以转化为true/false的结果，进一步可以用来进行相应的判断。
+大光线包遍历算法中采用的最广泛的保守提前未命中方法称为区间算术运算（interval arithmetic，IA）\mathindex{区间算术运算}{interval arithmetic}，IA是一种被广泛使用的数学方法，与一般的算术运算（每个数都是一个单一的数字）不同的是，IA使用一个区间来描述一个变量，例如一个光线包可以表述为$O+TV$，这里大写字母$X$表明$X$是一个区间量（interval）\mathindex{区间量}{interval}，例如$O_x=[1,3]$就表明该光线包在$x-$轴的起点的范围在$1-3$之间。IA方法定义了各种操作数，例如加法，倒数，求负数，乘法等，这样就可以将常规的算术运算转化为区间算术运算。区间算术本质上是集合操作（set operations）\myindex{集合操作}{set operations}，而集合操作通过关系比较可以转化为true/false的结果，进一步可以用来进行相应的判断。
 
-例如在给定光线包和包围盒的区间表述后，我们可以通过以下式求出其相交的区间（这里仅列出x-轴的区间）：
+例如在给定光线包和包围盒的区间表述后，我们可以通过以下式求出其相交的区间（这里仅列出$x-$轴的区间）：
 
 \begin{equation}
 	T_x=(B_x-O_x) \cfrac{1}{V_x}
@@ -2530,7 +2529,7 @@ SBVH的基本构建算法可以分为三步：
 	\label{f:pt-conservative-early-miss}
 \end{figure}
 
-如图\ref{f:pt-conservative-early-miss}所示，IA方法会显得过于保守，例如蓝色实线和红色虚线之间的区域仍然是应该排除的，所以\cite{a:RayTracingDeformableScenesUsingDynamicBoundingVolumeHierarchies}预先为每个光线包计算了一个平截头体（frustum）\myindex{平截头体}{frustum}，然后用这个平截头体来执行更叫严格的提前未命中测试，然而，实践中这样的计算成本通常更高。
+如图\ref{f:pt-conservative-early-miss}所示，IA方法会显得过于保守，例如蓝色实线和红色虚线之间的区域仍然是应该排除的，所以\cite{a:RayTracingDeformableScenesUsingDynamicBoundingVolumeHierarchies}预先为每个光线包计算了一个平截头体（frustum）\myindex{平截头体}{frustum}，然后用这个平截头体来执行更加严格的提前未命中测试，然而，实践中这样的计算成本通常更高。
 
 
 
@@ -2543,7 +2542,7 @@ SBVH的基本构建算法可以分为三步：
 \paragraph{提前命中}
 大光线包遍历的核心思想，就是基于光线的连贯性假设，如果其中一条光线与某个节点相交，因为光线包中的光线遵循几乎一致的光线路径，所以整个光线包中的光线几乎也总是会和该节点相交，所以就可以忽略光线包内其他光线与该节点的相交测试。理想情况下，光线包内的光线几乎只在靠近叶节点附近发散，这大大节省了所有其他光线在内部节点的遍历时间。
 
-提前命中（early hit），表示在开始对一个节点开始遍历时，它首先使用光线包中的激活光线（active ray）对当前节点的4个子节点进行SIMD相交测试，如果某个节点相交测试成功，则忽略其他所有光线的相交测试，并将相交的节点按由后之前的顺序入栈。
+提前命中（early hit），表示在开始对一个节点开始遍历时，它首先使用光线包中的激活光线（active ray）对当前节点的4个子节点进行SIMD相交测试，如果某个节点相交测试成功，则忽略其他所有光线的相交测试，并将相交的节点按由后至前的顺序入栈。
 
 
 
@@ -2561,7 +2560,7 @@ SBVH的基本构建算法可以分为三步：
 \paragraph{激活光线跟踪}
 激活光线跟踪（active ray tracking）\myindex{激活光线跟踪}{active ray tracking}对于提前命中测试和最后判断都是很重要的，因为如果一条光线与某个节点的提前相交测试失败，则它将不会与该节点下所有子节点相交，所以有必要标记处这些光线以减少不必要的相交测试。
 
-为了实现激活光线追踪，我们对每个节点存储一个光线包内存布局中第一个与该节点相交的光线，这条光线称之为激活光线（active ray）\myindex{激活光线（active ray）}，它通常是在上述的最后判断过程中计算出来的，因为最后判断过程会遍历所有光线知道找到第一个与该节点相交的光线。
+为了实现激活光线追踪，我们对每个节点存储一个光线包内存布局中第一个与该节点相交的光线，这条光线称之为激活光线（active ray）\myindex{激活光线（active ray）}，它通常是在上述的最后判断过程中计算出来的，因为最后判断过程会遍历所有光线直到找到第一个与该节点相交的光线。
 
 有了激活光线，对其所有子节点的提前命中测试和最后判断都直接跳过该激活光线之前的光线，这样能在一定程度上避免一部分光线相交测试计算。
 
@@ -2574,7 +2573,7 @@ SBVH的基本构建算法可以分为三步：
 
 \cite{a:EfficientRayTracingKernelsforModernCPUArchitectures}会对已经和基元相交的光线存储一个距离值，如果这个距离值比该光线与当前节点的相交点的距离值更小时，则直接忽略该节点及其所有子节点的遍历。
 
-需要注意的是，由于节点的遍历顺序是使用启发式计算得出的，所以如果节点之间存在重叠区域是，它并不是严格正确的，所以这里仍然需要进行比较运算，这样能保证最终的结果总是正确的。
+需要注意的是，由于节点的遍历顺序是使用启发式计算得出的，所以如果节点之间存在重叠区域时，它并不是严格正确的，所以这里仍然需要进行比较运算，这样能保证最终的结果总是正确的。
 
 
 
@@ -2589,7 +2588,7 @@ SBVH的基本构建算法可以分为三步：
 
 单光线遍历的一个缺点是，由于光线非常发散，大量光线数据可能随时被读取，因此光线数据的读取几乎完全占用了内存带宽。所以，第二类方法尝试直接增大光线包的数量，例如4096条光线，然后在每次遍历节点之前对光线进行排序，以提取连贯性。连贯的光线使得局部内的光线数据能够遍历更多的节点，因此内存带宽占用的情况得到改善，然而光线排序的过程增加了大量的开支，并且频繁的光线排序操作依赖于CPU架构中分散/聚集直接内存访问\footnote{在DMA传输数据的过程中，一般要求源物理地址和目标物理地址必须是连续的，否则传输要分成多次完成，连续的块之间形成中断，传输性能很低；scatter/gather DMA的方式则不同，它用一个链表描述物理不连续的存储器，然后scatter/gather DMA在传输完一块物理连续的数据后，就不用再发中断，而是根据链表传输下一块物理连续的数据，最后发起一次中断。}（scatter/gather DMA）\myindex{分散/聚集直接内存访问}{scatter/gather DMA}的支持。
 
-第三类也是本节将会讨论的方法称为光线流过滤（ray stream filtering）\cite{a:DynamicRayStreamTraversal,a:EfficientRayTracingKernelsforModernCPUArchitectures}，这类方法和第二类方法很有些相似，都是尝试抽取光线的连贯性，然而与前面的方法不同的是，光线流过滤通过光线的遍历过程来实现隐式的连贯性提取，由于它们在实现思路上差异很大，因此我们将其归为单独一类方法。并且我们将看到，结合隐式连贯性抽取的机制和对光线按方向符号进行分类，可以大大减小对于分散/聚集DMA操作的依赖。
+第三类也是本节将会讨论的方法称为光线流过滤（ray stream filtering）\cite{a:DynamicRayStreamTraversal,a:EfficientRayTracingKernelsforModernCPUArchitectures}，这类方法和第二类方法有些相似，都是尝试抽取光线的连贯性，然而与前面的方法不同的是，光线流过滤通过光线的遍历过程来实现隐式的连贯性提取，由于它们在实现思路上差异很大，因此我们将其归为单独一类方法。并且我们将看到，结合隐式连贯性抽取的机制和对光线按方向符号进行分类，可以大大减小对于分散/聚集DMA操作的依赖。
 
 
 
@@ -2629,15 +2628,14 @@ SBVH的基本构建算法可以分为三步：
 	\item 光线先与右子节点相交，然后与左子节点相交。
 \end{enumerate}
 
-通过分析，可以使用三个栈元素来保留上述可能出现的不同情况，如图\ref{f:pt-ray-stack-items}所示，根据每条光线遍历路径的不同（如仅左，仅右，从左到右，从右到左），其会被分配到不同的一个或多个栈元素中，其中这些原始按照$\Romannum{3},\Romannum{2}$和$\Romannum{1}$的顺序入栈，因此$\Romannum{1}$存储的是最近的节点。例如，对于光线$R_a$，它仅仅与左子节点相交，因此其直接放入$\Romannum{1}$中；而对于光线$R_c$，它同时与左右两个子节点相交，因此同时被存储到两个节点按顺序对应的栈元素中，即,$\Romannum{2}$和$\Romannum{3}$的。
+通过分析，可以使用三个栈元素来保留上述可能出现的不同情况，如图\ref{f:pt-ray-stack-items}所示，根据每条光线遍历路径的不同（如仅左，仅右，从左到右，从右到左），其会被分配到不同的一个或多个栈元素中，其中这些元素按照\Romannum{3}，\Romannum{2}和\Romannum{1}的顺序入栈，因此\Romannum{1}存储的是最近的节点。例如，对于光线${\rm R_a}$，它仅仅与左子节点相交，因此其直接放入\Romannum{1}中；而对于光线${\rm R_c}$，它同时与左右两个子节点相交，因此同时被存储到两个节点按顺序对应的栈元素中，即\Romannum{2}和\Romannum{3}的。
 
 \begin{figure}
 	\sidecaption
 	\includegraphics[width=0.65\textwidth]{figures/pt/ray-stack-items}
-	\caption{多条光线与单个节点相交，其可能出现的结果及其遍历顺序可以使用三个栈元素（$\Romannum{1},\Romannum{2}$和$\Romannum{3}$）来实现（图片来自\cite{a:DynamicRayStreamTraversal}）}
+	\caption{多条光线与单个节点相交，其可能出现的结果及其遍历顺序可以使用三个栈元素（\Romannum{1}，\Romannum{2}和\Romannum{3}）来实现（图片来自\cite{a:DynamicRayStreamTraversal}）}
 	\label{f:pt-ray-stack-items}
 \end{figure}
-
 
 将BVH2推广到BVH4，\cite{a:DynamicRayStreamTraversal}根据按平衡类型划分，同样按照上述的思路可以使用最少9个光线流栈来存储，仅使用平衡类型划分使得部分遍历顺序被忽略，并且光线被分散到更多的栈中，形成更多的碎片（fragmentation）。\cite{a:EfficientRayTracingKernelsforModernCPUArchitectures}利用其高效的查表机制可以实现全部顺序的遍历，并且将其栈数量减少到4个。
 
@@ -2673,9 +2671,9 @@ SBVH的基本构建算法可以分为三步：
 \subsection{着色优化}\label{sec:pt-shading}
 除了光线的遍历，在工业级的产品中，着色计算的复杂度可能会远大于光线遍历，因为每个着色器可能包含非常复杂的逻辑，因此着色计算的优化至关重要。
 
-需要注意的是，前面的针对遍历进行优化的方法可能对着色计算的优化帮助不大：一方面它们对数据的局部性要求是不一样的，光线遍历主要寻求的是光线方向的连贯性，因为相同的方向具有类似的遍历路径；而着色计算是以纹理为单位的，每个纹理拥有不同的着色器，因此它要求针对纹理进行排序或者提前连贯性。另一方面，对于非连贯光线的遍历，到接近叶节点附近都偏向于单光线遍历，因此其可能也存在很大的发散，增加了纹理数据访问缓存命中失败的几率。
+需要注意的是，前面的针对遍历进行优化的方法可能对着色计算的优化帮助不大：一方面它们对数据的局部性要求是不一样的，光线遍历主要寻求的是光线方向的连贯性，因为相同的方向具有类似的遍历路径；而着色计算是以纹理为单位的，每个纹理拥有不同的着色器，因此它要求针对纹理进行排序或者提取连贯性。另一方面，对于非连贯光线的遍历，到接近叶节点附近都偏向于单光线遍历，因此其可能也存在很大的发散，增加了纹理数据访问缓存命中失败的几率。
 
-目前行业中针对着色优化的研究并不如光线遍历的多，它们大概可以归为两类：第一类方法在单个，全局的光线流上提取着色相关的连贯性，例如\cite{a:SortedDeferredShadingforProductionPathTracing}，这类方法具有比较高的吞吐率，然而全局范围内的内存共享依赖于并发控制，较高的内存占用等，对于CPU架构并不是最优化的；所以第二类方法使用更小的光线流，每个光线流被分发到CPU的一个线程上执行，通过在局部的光线流上提取连贯性提高CPU上执行的性能，如\cite{a:LocalShadingCoherenceExtractionforSIMD-EfficientPathTracingonCPUs}，以下我们主要介绍Disney的基于全局排序的方法，请读者自行参考第二种方法，两种思路其实都比较简单，主要都是围绕着色上下文进行连贯性提取。
+目前行业中针对着色优化的研究并不如光线遍历的多，它们大概可以归为两类：第一类方法在单个，全局的光线流上提取着色相关的连贯性，例如\cite{a:SortedDeferredShadingforProductionPathTracing}，这类方法具有比较高的吞吐率，然而全局范围内的内存共享依赖于并发控制，较高的内存占用等，对于CPU架构并不是最优化的；第二类方法使用更小的光线流，每个光线流被分发到CPU的一个线程上执行，通过在局部的光线流上提取连贯性提高CPU上执行的性能，如\cite{a:LocalShadingCoherenceExtractionforSIMD-EfficientPathTracingonCPUs}，以下我们主要介绍Disney的基于全局排序的方法，请读者自行参考第二种方法，两种思路其实都比较简单，主要都是围绕着色上下文进行连贯性提取。
 
 
 
@@ -2685,14 +2683,14 @@ SBVH的基本构建算法可以分为三步：
 \subsubsection{全局排序} 
 在2013年，Disney提出了称为\textit{sorted deferred shading}\cite{a:SortedDeferredShadingforProductionPathTracing}的技术并用在其内部渲染器Hyperion中，该渲染器第一次被用于动画片《超能陆战队》的渲染制作。在这篇论文中，他们使用了一个具有两个阶段的光线排序架构：首先，对所有光线按照方向进行排序以提取连贯性；其次，当光线与基元相交后，他们在执行着色计算之前对这些顶点按照纹理上下文进行排序，以提高着色计算的性能。
 
+该技术的基本架构如图\ref{f:pt-sorted-deferred-shading}所示，从摄像机光线开始，每一次在进行遍历之前首先对所有光线进行排序。为了提取连贯性，这些光线被按照6个坐标轴方向进行分箱（binning），然后每个箱内的光线再按照方向进行排序，这个排序过程首先根据光线起点位置选取一定数量的光线，然后再对其按照方向排序。由于光线数量巨大，这些箱内的光线被操作系统的流写入到SSD硬盘中。由于内存的限制，每个箱内的光线被分成多个数量固定的组，例如每个组包含30-60M光线，当一个分组填充满之后就初始化另一个组存储剩下的光线。为了便于存储读取，这些组内的数据还会被执行压缩以进行存储，并在读取的时候解压缩。
+
 \begin{figure}
 \sidecaption
 	\includegraphics[width=0.65\textwidth]{figures/pt/path-10}
 	\caption{左图显示了两个光线排序的阶段及其架构，右图展示光线被分享及存储方面的原理（图片来自\cite{a:SortedDeferredShadingforProductionPathTracing}）}
 	\label{f:pt-sorted-deferred-shading}
 \end{figure}
-
-该技术的基本架构如图\ref{f:pt-sorted-deferred-shading}所示，从摄像机光线开始，每一次在进行遍历之前首先对所有光线进行排序。为了提取连贯性，这些光线被按照6个坐标轴方向进行分箱（binning），然后每个箱内的光线再按照方向进行排序，这个排序过程首先根据光线起点位置选取一定数量的光线，然后在对其按照方向排序。由于光线数量巨大，这些箱内的光线被操作系统的流写入到SSD硬盘中。由于内存的限制，每个箱内的光线被分成多个数量固定的组，例如每个组包含30-60M光线，当一个分组填充满之后就初始化另一个组存储剩下的光线。为了便于存储读取，这些组内的数据还会被进行压缩以进行存储，并在读取的时候解压缩。
 
 光线的遍历阶段可以选择前面讲述的任何光线遍历的方法，在遍历的时候每次读取一个组的光线进行遍历计算，由于这些经过排序的光线具有比较好的连贯性，因此遍历比较高效。光线遍历的结果输出一些光线与场景物体的交点（hit point），在对这些顶点执行着色计算之前，还需要对这些交点进行排序。
 
@@ -2717,7 +2715,7 @@ SBVH的基本构建算法可以分为三步：
 \end{comment}
 
 
-这项技术连同其他一些技术被集成进Disney的最新渲染器Hyperion中，Hyperion第一次被用于制作动画片《超能陆战队》，在这部电影中，被称为San Fransokyo的虚拟城市拥有83000做程序构建的建筑，以及相当数量的一些树和其他道具，整个城市拥有216000多个街灯。
+这项技术连同其他一些技术被集成进Disney的最新渲染器Hyperion中，Hyperion第一次被用于制作动画片《超能陆战队》，在这部电影中，被称为San Fransokyo的虚拟城市拥有83000座程序构建的建筑，以及相当数量的一些树和其他道具，整个城市拥有216000多个街灯。
 
 
 \begin{comment}
