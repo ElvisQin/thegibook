@@ -43,11 +43,11 @@
 
 
 \section{基本光子映射技术}\label{sec:pm-regular-pm}
-光子映射可以追溯到\cite{a:Backwardraytracing}的反向光线追踪（backward ray tracing）\myindex{反向光线追踪}{backward ray tracing}，由于当时还没有提出双向路径追踪这样的技术，因此Arvo的反向光线追踪主要用于实现从光源出发经过光泽面反射或折射光后到达漫反射表面的光照，这其实就是焦散效果（caustics）\myindex{焦散效果}{caustics}，因为从摄像机出发的光线在最后经过光泽面之后几乎不可能反射或折射到光源上。
+光子映射技术最早可以追溯到\cite{a:Backwardraytracing}的反向光线追踪（backward ray tracing）\myindex{反向光线追踪}{backward ray tracing}，由于当时还没有提出双向路径追踪这样的技术，因此Arvo的反向光线追踪主要用于实现从光源出发经过光泽面反射或折射光后到达漫反射表面的光照，这其实就是焦散（caustics）\myindex{焦散效果}{caustics}效果，因为从摄像机出发的光线在最后经过光泽面之后几乎不可能反射或折射到光源上。
 
 尽管都使用两个通道来实现最终的渲染，Arvo的反向光线追踪和双向路径追踪技术是有比较显著的区别的。反向光线追踪从光源发出的光束携带的不是辐射亮度（radiance），而是辐射通量（radiant flux），每个光束携带的能量是光源总能量的一部分，称为光子（photon），这些光子与场景的表面发生交互进行反射或折射，当光子到达漫反射表面时被记录，该光子的能量被累加到该物体对应的一个特殊的纹理中，称为光照图（illumination map）\myindex{光照图}{illumination map}，光照图和普通物体表面的纹理是类似的，只不过它存储的是光照能量，而不是其他如法线，反射系数等量。
 
-当前向的摄像机路径计算顶点的辐射亮度时，其漫反射分量可以直接从上述的光照图中获取，光照图中的纹素对应的入射辐射亮度可以根据辐射通量总和和其纹素的面积之间的联系推导而出（后面会具体讨论），该辐射照度的计算过程其实就是上一节讨论的直方图法。
+当前向的摄像机路径计算顶点的辐射亮度时，其漫反射分量可以直接从上述的光照图中获取，光照图中的纹素对应的入射辐射亮度可以根据辐射通量总和与其纹素的面积之间的联系推导而出（后面会具体讨论），该辐射照度的计算过程其实就是上一节讨论的直方图法。
 
 自从被提出之后，光子密度估计就引起了研究社区极大的兴趣，\cite{a:GlobalIlluminationusingPhotonMaps}进一步使用k-NN最近邻估计代替之前的直方图法对光子密度进行估计，并且用一个独立的与场景无关的光子图（photon map）\myindex{光子图}{photon map}取代了与场景几何物体相关的光照图（一种特殊的纹理），此后此类方法统称为光子映射（photon mapping）\myindex{光子映射}{photon mapping}。
 
@@ -55,7 +55,7 @@
 
 
 \subsection{光子追踪}\label{sec:pm-photon-tracing}
-光子映射是一种双通道方法（two-pass method）。第一个通道通过从光源向场景中发射携带能量（辐射通量）光子开始，光子在场景中与物体表面进行交互（反射或折射），并在与非光泽面物体相交时被记录，最后所有这些光子被存储在一个光子图（photon map）\myindex{光子图}{photon map}当中，这个通道也称为光子追踪（photon tracing）\myindex{光子追踪}{photon tracing}；第二个通道，也即是渲染通道，则使用传统的路径追踪技术从摄像机通过屏幕向场景中发射光线并在场景中传输，当光线与物体表面相交时，该顶点光照计算中的漫反射部分则使用统计的方法从前面产生的光子图中计算得出（即后面介绍的光子密度估计），这包括总的入射辐射通量的估计以及反射辐射亮度的计算。本节我们首先讨论光子追踪，在后面第\ref{sec:pm-radiance-estimate}节将会讨论光子密度估计。
+光子映射是一种双通道方法（two-pass method）。第一个通道通过从光源向场景中发射携带能量（辐射通量）的光子开始，光子在场景中与物体表面进行交互（反射或折射），并在与非光泽面物体相交时被记录，最后所有这些光子被存储在一个光子图（photon map）\myindex{光子图}{photon map}当中，这个通道也称为光子追踪（photon tracing）\myindex{光子追踪}{photon tracing}；第二个通道，也即是渲染通道，则使用传统的路径追踪技术从摄像机通过屏幕向场景中发射光线并在场景中传输，当光线与物体表面相交时，该顶点光照计算中的漫反射部分则使用统计的方法从前面产生的光子图中计算得出（即后面介绍的光子密度估计），这包括总的入射辐射通量的估计以及反射辐射亮度的计算。本节我们首先讨论光子追踪，在后面第\ref{sec:pm-radiance-estimate}节将会讨论光子密度估计。
 
 光子追踪通道的目标是计算出非光泽表面的辐射通量分布，这主要包括三个步骤：从光源向场景中发射光子，追踪这些光子在场景中的传播，以及在非光泽表面存储这些光子。
 
@@ -70,7 +70,7 @@
 	\label{f:pm-photon-emission}
 \end{figure}
 
-例如对于点光源，光子从点光源所在的位置向整个空间方向均匀随机发射，如图\ref{f:pm-photon-emission}(a)及算法\ref{a:pm-diffuse-point-light}所示；对于直线光源，光子从超出场景外的位置沿直线光源的方向均匀地随机发射，如图\ref{f:pm-photon-emission}(b)所示；对于正方形光源，光子从正方形上一个均匀随机位置开始，以cosine分布向半空间方向发射，如图\ref{f:pm-photon-emission}(c)所示，越靠近垂直于平面的方向拥有更大的发射概率，而平行于平面的概率则为0。
+例如对于点光源，光子从点光源所在的位置向整个空间方向均匀随机发射，如图\ref{f:pm-photon-emission}(a)及算法\ref{a:pm-diffuse-point-light}所示；对于直线光源，光子从超出场景外的某个位置沿直线光源的方向均匀地随机发射，如图\ref{f:pm-photon-emission}(b)所示；对于正方形光源，光子从正方形上一个均匀随机位置开始，以余弦分布向半空间方向发射，如图\ref{f:pm-photon-emission}(c)所示，越靠近垂直于平面的方向拥有更大的发射概率，而平行于平面的概率则为0。
 
 \begin{algorithm}
 \begin{lstlisting}[language=C++, mathescape]
@@ -110,15 +110,15 @@ emit_photons_from_diffuse_point_light() {
 	\caption{光子在场景中的传播路径(Cornell盒子中包含两个球体，左边的球体为光泽面，右边球体为半透明的玻璃球): (a)两次漫反射之后被吸收，(b)一次光泽反射之后跟随着两次漫反射，(c)两次折射之后被吸收。光子在传播图中，每经过一次漫反射表面都会被光子图存储记录，直到被吸收}
 \end{figure}
 
-如果光子击中一个镜面，它将遵循反射定律反射光子到新的方向。给定法线$\vec{n}$，入射方向$\vec{\omega}^{'}$，以及反射方向$\vec{\omega}$，它们满足:
+如果光子击中一个镜面，它将遵循反射定律反射光子到新的方向。给定法线$\mathbf{n}$，入射方向${\omega}^{'}$，以及反射方向${\omega}$，它们满足:
 
 \begin{equation}
-	\vec{\omega}=2(\vec{n}\cdot\vec{\omega}^{'})\vec{n}-\vec{\omega}^{'}
+	{\omega}=2(\mathbf{n}\cdot{\omega}^{'})\mathbf{n}-{\omega}^{'}
 \end{equation}
 
 \noindent 上述的规则同样适用于光泽反射。
 
-如果光子击中一个漫反射表面，则该光子将被记录在光子图中与该漫反射表面的交点位置处（第\ref{sec:pm-photon-storing}节），然后从该交点的半空间方向随机选择一个（漫）反射方向继续传播（除非被吸收）；对于其他任意BRDF模型表述的表面，新光子的方向应该根据该BRDF分布进行重要性采样进行选择，或者可以通过分析的方法得出。
+如果光子击中一个漫反射表面，则该光子将被记录在光子图中与该漫反射表面的交点位置处（第\ref{sec:pm-photon-storing}节），然后从该交点的半空间方向随机选择一个（漫）反射方向继续传播（除非被吸收）；对于其他任意BRDF模型表述的表面，新光子的方向应该根据该BRDF分布进行重要性采样来进行选择，或者可以通过分析的方法得出。
 
 那么光子在传播过程中的反射，折射或吸收是怎样被决定的呢？光子映射技术通常使用俄罗斯轮盘（Russian roulette）\myindex{俄罗斯轮盘}{Russian roulette}来解决这个问题。我们已经在上一章（第\ref{sec:russian-roulette}节）介绍过，俄罗斯轮盘被引入光线追踪技术中用于安全，无偏地移除由于多次反弹而使光照贡献率变得很低或不重要的光线，从而加速光线追踪的计算，否则为了保证无偏估计，我们需要追踪无穷的光线长度。俄罗斯轮盘同样被引入光子映射中用于以概率的方式决定光子与表面的交互：反射，折射或者吸收。
 
@@ -149,7 +149,7 @@ emit_photons_from_diffuse_point_light() {
 
 为什么使用俄罗斯轮盘的方式来决定光子的行为（反射，折射或吸收），而不是像路径追踪一样将光线按照反射分拆为多条光线，这样的处理方式是出于性能考虑。如同下一节将会看到的，所有光子会被存储到一个光子图中，因此对于如光泽表面，一个光子需要被反射或折射到多个方向，即一个光子分割成多个光子，例如每个光子每次与表面相交产生2个光子，则经过8次反弹之后一个光子将会产生$2^8=256$个光子，这大大增加了光子图存储的压力，显然这是比较糟糕的。
 
-相比较于精确地使用反射或折射系数缩放和分拆光子的方式，但使用概率的方式来决定光子行为增加了方差，因为这里增加了一个采样的过程，但是随着光子数量的增加，这些方差会逐渐减少并使整个方案收敛到正确的结果。
+相比较于精确地使用反射或折射系数缩放和分拆光子的方式，使用概率的方式来决定光子的行为增加了方差，因为这里增加了一个采样的过程，但是随着光子数量的增加，这些方差会逐渐减少并使整个方案收敛到正确的结果。
 
 
 
@@ -201,7 +201,7 @@ struct photon {
 
 通过后面的内容（第\ref{sec:pm-radiance-estimate-at-a-surface}节）可知，对于漫反射表面辐射亮度的计算是不需要知道入射方向的，已知辐射能量和该辐射能量对应的面积，就可以根据反射方向及BRDF反射系数求出出射辐射亮度。这里方向主要是用于\cite{a:RenderingcausticsonnonLambertiansurfaces}中对非漫反射表面的光照贡献计算。由于球面坐标系向笛卡尔坐标系的转换涉及计算量比较大的$\cos()$和$\sin()$计算，所以通常使用查表的方式来计算这些值。
 
-当光子图生成之后，场景漫反射光照的表述便与场景几何数据分离开来，此后光子图作为一个独立静态的数据被用于后续光线追踪通道的辐射亮度估计。出于计算性能的需要，光子映射中常使用k-d树作为光子图的表述，我们在上一章已经介绍过k-d树，它是一只基于空间划分的树形结构，然而在那里并没有做什么的介绍，以下内容将讨论k-d树的表述，平衡化，查找算法及其复杂度。
+当光子图生成之后，场景漫反射光照的表述便与场景几何数据分离开来，此后光子图作为一个独立静态的数据被用于后续光线追踪通道的辐射亮度估计。出于计算性能的需要，光子映射中常使用k-d树作为光子图的表述，在上一章已经介绍过k-d树，它是一只基于空间划分的树形结构，然而在那里并没有做太多的介绍，以下内容将讨论k-d树的表述，平衡化，查找算法及其复杂度。
 
 
 
@@ -246,10 +246,9 @@ struct photon {
 \label{f:pm-photon-kd-tree}
 \end{figure}
 
+例如对于一个3维的k-d树，其每个数据是一个3维坐标（x, y, z），则构建的k-d树从上至下每个层级使用的键可能是以下循环列表：x, y, z, x, y, z...。图\ref{f:pm-photon-kd-tree}显示了一个包含2维数据的k-d树的结构，在图\ref{f:pm-photon-kd-tree}(b)中可以看出其每个层级分别使用不同的键对节点数据进行细分。
 
-例如对于一个3维的k-d树，其每个数据是一个3维坐标（x, y, z），则构建的k-d树从上至下每个层级使用的键可能以下是循环列表：x, y, z, x, y, z...。图\ref{f:pm-photon-kd-tree}显示了一个包含2维数据的k-d树的结构，在图\ref{f:pm-photon-kd-tree}(b)中可以看出其每个层级分别使用不同的键对节点数据进行细分。
-
-在k-d树中，每个节点都是数据集合中的一个数据，在本节即是一个光子。每个非叶节点隐式地充当了将所有子节点细分为两个子空间的超平面（hyperplane）\myindex{超平面}{hyperplane}，其中每个子空间称为一个半空间（half-space），它包含一课子树，因此每个节点还包含分别指向这两个子树的指针。超平面的方向按照这样的规则选取：每个节点对应k-维中的某一维，使得超平面与该维对应的坐标轴垂直，这个选取的维称为一个键。例如，某个节点选取的键为"$x$"，则它的左子树的所有节点的x坐标值小于该节点的$x$坐标值，而右子树种所有节点的$x$坐标值大于该节点的x坐标值。如图\ref{f:pm-photon-kd-tree}所示。
+在k-d树中，每个节点都是数据集合中的一个数据，在本节即是一个光子。每个非叶节点隐式地充当了将所有子节点细分为两个子空间的超平面（hyperplane）\myindex{超平面}{hyperplane}，其中每个子空间称为一个半空间（half-space），它包含一棵子树，因此每个节点还包含分别指向这两个子树的指针。超平面的方向按照这样的规则选取：每个节点对应k-维中的某一维，使得超平面与该维对应的坐标轴垂直，这个选取的维称为一个键。例如，某个节点选取的键为“$x$”，则它的左子树的所有节点的$x$坐标值小于该节点的$x$坐标值，而右子树种所有节点的$x$坐标值大于该节点的$x$坐标值。如图\ref{f:pm-photon-kd-tree}所示。
 
 给定一个点集合，以下算法使用中值细分法构建一个k-d树：
 
@@ -274,9 +273,9 @@ kdtree *build_kdtree (list of points pointList, int depth) {
 \label{a:pm-balancing-photon-map}
 \end{algorithm}
 
-上述以集合中的中点为细分点的方式构建的k-d树称为平衡k-d树（balanced k-d tree）\myindex{平衡k-d树}{balanced k-d tree}，\cite{a:MultidimensionalBinarySearchTreesUsedforAssociativeSearching}显示在一棵平衡k-d树中定位一个（最近位置的）节点的复杂度最坏的情况是$O(\log n )$，其最近邻搜索的效率最高，这里$N$是k-d树中所有节点的数量。
+上述以集合中的中点为细分点的方式构建的k-d树称为平衡k-d树（balanced k-d tree）\myindex{平衡k-d树}{balanced k-d tree}，\cite{a:MultidimensionalBinarySearchTreesUsedforAssociativeSearching}显示在一棵平衡k-d树中定位一个（最近位置的）节点的复杂度最坏的情况是$O(\log N )$，其最近邻搜索的效率最高，这里$N$是k-d树中所有节点的数量。
 
-然而，由于在k-d树构建的过程中，每个层级的节点都需要使用不同的划分标准键，所以一个预先排好序的节点列表对于平衡k-d树的构建并没有多大帮助，如算法\ref{a:pm-balancing-photon-map}所示，为了构建平衡的k-d树，每个节点都需要按照当前节点的键进行重新排序，以获取集合中的中点。\cite{a:MultidimensionalBinarySearchTreesUsedforAssociativeSearching}显示在如果从一个包含$n$个点的集合中查找中点的复杂度是$O(n)$，则其构建的复杂度为$O(n\log n)$，然而实际上中点获取最糟糕的情况为$O(n^2)$，这使得构建平衡k-d树的复杂度更高。\cite{a:BuildingaBalancedkdTreeinOknlognTime}介绍了一种复杂度为$O(kn\log n)$的平衡k-d树构建算法。
+然而，由于在k-d树构建的过程中，每个层级的节点都需要使用不同的划分标准键，所以一个预先排好序的节点列表对于平衡k-d树的构建并没有多大帮助，如算法\ref{a:pm-balancing-photon-map}所示，为了构建平衡的k-d树，每个节点都需要按照当前节点的键进行重新排序，以获取集合中的中点。\cite{a:MultidimensionalBinarySearchTreesUsedforAssociativeSearching}显示如果从一个包含$N$个点的集合中查找中点的复杂度是$O(N)$，则其构建的复杂度为$O(N\log N)$，然而实际上中点获取最糟糕的情况为$O(N^2)$，这使得构建平衡k-d树的复杂度更高。\cite{a:BuildingaBalancedkdTreeinOknlognTime}介绍了一种复杂度为$O(kN\log N)$的平衡k-d树构建算法。
 
 
 
@@ -341,43 +340,43 @@ locate_photons( p ) {
 
 这是因为光子图是一个离散而不是连续的分布函数。通过第1章的内容可知，对一个离散函数在连续作用域上取值，一定会遇到某些区域无值可用的情况，这时候就需要使用过滤（filtering）\mathindex{过滤}{filtering}技术，例如一个线性的过滤器会对该点附近的离散值进行线性插值计算出一个近似值作为该点的估计值。而通过上一章的内容可知，过滤技术在数学中本质上是一个回归（regression）\mathindex{回归}{regression}的问题，它使用一些采样样本来拟合一个能反应这些样本分布的真实函数。当然我们在前面已经说明，光子映射使用的是密度估计。
 
-不管是回归还是密度估计，它们都会导致偏差，因为本质上它们都涉及对离散样本值的插值，或者可以称为模糊操作（这些都是相同的技术操作后不同的称谓），模糊操作由于抹去了某些频率域而使得某些值可能无法被采样到而导致估计值和真实值之间出现偏差（bias）\myindex{偏差}{bias}，所以光子映射技术是有偏估计（biased estimator）\mathindex{有偏估计}{biased estimator}。但是通常由于过滤或模糊导致的偏差都可以通过减小过滤范围来减少偏差，所以光子映射仍然是一致的（consistent）\mathindex{一致的}{consistent}，即在无限光子密度分布下，其估计值和真实值是相同的。
+不管是回归还是密度估计，它们都会导致偏差，因为本质上它们都涉及对离散样本值的插值，或者可以称为模糊操作（这些都是相同的技术操作背后不同的称谓），模糊操作由于抹去了某些频率域而使得某些值可能无法被采样到而导致估计值和真实值之间出现偏差（bias）\myindex{偏差}{bias}，所以光子映射技术是有偏估计（biased estimator）\mathindex{有偏估计}{biased estimator}。但是通常由于过滤或模糊导致的偏差都可以通过减小过滤范围来减少偏差，所以光子映射仍然是一致的（consistent）\mathindex{一致的}{consistent}，即在无限光子密度分布下，其估计值和真实值是相同的。
 
 
 
 
 
 \subsubsection{表面上的辐射亮度估计}\label{sec:pm-radiance-estimate-at-a-surface}
-光子图中的光子表述的是漫反射表面上的入射辐射通量（radiant flux）\myindex{辐射通量}{radiant flux}，$\Phi$，每个光子携带的是其光源的一部分能量，根据定义，辐射通量表示单位时间通过某个面积的辐射能量。然而光子本身并不包含面积相关的信息，它只包含了一个位置，一个光子击中某个位置就表示该位置附近的区域直接或间接接受了其对应光源的光照，所以我们需要划定一个包含一些光子的区域（面积），然后通过计算该区域内光子的密度的方式来估计该区域内辐射能量的大小，即$d\Phi /dA$，这就是光子密度估计（photon density estimate）\myindex{光子密度估计}{photon density estimate}的来源\footnote{\cite{b:pbrt}做了一点对密度估计概念的上区分：严格地说，密度估计是用于对位加权的样本估计得到归一化的概率密度函数；当考虑针对加权的样本和一般的为归一化的概率密度函数时，术语核平滑（kernel smoothing）\mathindex{核平滑}{kernel smoothing}是更常用的术语。 虽然光子映射技术是和后者相关的，但是密度估计的称谓在计算机图形学中已经被广泛采用。}。
+光子图中的光子表述的是漫反射表面上的入射辐射通量（radiant flux）\myindex{辐射通量}{radiant flux}，$\Phi$，每个光子携带的是其光源的一部分能量，根据定义，辐射通量表示单位时间通过某个面积的辐射能量。然而光子本身并不包含面积相关的信息，它只包含了一个位置，一个光子击中某个位置就表示该位置附近的区域直接或间接接受了其对应光源的光照，所以我们需要划定一个包含一些光子的区域（面积），然后通过计算该区域内光子的密度的方式来估计该区域内辐射能量的大小，即${\rm d}\Phi /{\rm d}A$，这就是光子密度估计（photon density estimate）\myindex{光子密度估计}{photon density estimate}的来源\footnote{\cite{b:pbrt}做了一点对密度估计概念的上区分：严格地说，密度估计是用于对位加权的样本估计得到归一化的概率密度函数；当考虑针对加权的样本和一般的为归一化的概率密度函数时，术语核平滑（kernel smoothing）\mathindex{核平滑}{kernel smoothing}是更常用的术语。 虽然光子映射技术是和后者相关的，但是密度估计的称谓在计算机图形学中已经被广泛采用。}。
 
-为了从辐射通量计算出表面上某点的反射辐射亮度，我们需要推导出其公式。根据BRDF理论，某点$x$沿$\vec{\omega}$方向的辐射亮度等于沿$\vec{\omega}^{'}$方向到达点$x$的辐射亮度与BRDF反射系数$f_r$的乘积在该点半空间$\Omega_x$上的积分，即：
+为了从辐射通量计算出表面上某点的反射辐射亮度，我们需要推导出其公式。根据BRDF理论，某点$x$沿${\omega}$方向的辐射亮度等于沿${\omega}^{'}$方向到达点$x$的辐射亮度与BRDF反射系数$f_r$的乘积在该点半空间$\Omega_x$上的积分，即：
 
 \begin{equation}\label{e:pm-radiance}
-	L_r(x,\vec{\omega})={\rm \int}_{\Omega_x} f_r(x,\vec{\omega}^{'},\vec{\omega})L_i(x,\vec{\omega}^{'})|\vec{n}_x\cdot\vec{\omega}^{'}|{\rm d}\vec{\omega}^{'}
+	L_r(x,{\omega})={\rm \int}_{\Omega_x} f_r(x,{\omega}^{'},{\omega})L_i(x,{\omega}^{'})|\mathbf{n}_x\cdot{\omega}^{'}|{\rm d}{\omega}^{'}
 \end{equation}
 
 为了计算上述积分，我们需要知道入射方向的辐射亮度，由于光子图提供的是辐射通量，所以我们需要改写该部分。根据辐射通量和辐射亮度之间的关系可知：
 
 \begin{equation}
-	L_i(x,\vec{\omega}^{'})= \cfrac{d^{2}\Phi_i(x,\vec{\omega}^{'})}{|\vec{n}_x\cdot\vec{\omega}^{'}|d\vec{\omega}^{'} dA_i}	
+	L_i(x,{\omega}^{'})= \cfrac{{\rm d}^{2}\Phi_i(x,{\omega}^{'})}{|\mathbf{n}_x\cdot{\omega}^{'}|{\rm d}{\omega}^{'} {\rm d}A_i}	
 \end{equation}
 
 \noindent 所以我们可以重写式\ref{e:pm-radiance}为：
 
 \begin{equation}
 \begin{aligned}
-	L_r(x,\vec{\omega})&={\rm \int}_\Omega f_r(x,\vec{\omega}^{'},\vec{\omega})  \cfrac{d^{2}\Phi_i(x,\vec{\omega}^{'})}{|\vec{n}_x\cdot\vec{\omega}^{'}|d\vec{\omega}^{'} {\rm d}A_i}    |\vec{n}_x\cdot\vec{\omega}^{'}|{\rm d}\omega^{'}\\
-	&={\rm \int}_\Omega f_f(x,\vec{\omega}^{'},\vec{\omega})  \cfrac{d^{2}\Phi_i(x,\vec{\omega}^{'})}{{\rm d}A_i} 
+	L_r(x,{\omega})&={\rm \int}_\Omega f_r(x,{\omega}^{'},{\omega})  \cfrac{{\rm d}^{2}\Phi_i(x,{\omega}^{'})}{|\mathbf{n}_x\cdot{\omega}^{'}|{\rm d}{\omega}^{'} {\rm d}A_i}    |\mathbf{n}_x\cdot{\omega}^{'}|{\rm d}\omega^{'}\\
+	&={\rm \int}_\Omega f_f(x,{\omega}^{'},{\omega})  \cfrac{{\rm d}^{2}\Phi_i(x,{\omega}^{'})}{{\rm d}A_i} 
 \end{aligned}
 \end{equation}
 
-\noindent 上式中的入射辐射通量$\Phi_i$就可以光子图中的光子来近似，在光子映射技术中，我们常使用kNN最近邻估计，通过选择位置$x$附近最近的$n$个光子，每个光子携带能量为$\triangle\Phi_p(\vec{\omega_p})$，这样上式的积分形式可以转化为一个和的近似形式：
+上式中的入射辐射通量$\Phi_i$就可以用光子图中的光子来近似，在光子映射技术中，我们常使用kNN最近邻估计，通过选择位置$x$附近最近的$n$个光子，每个光子携带能量为$\triangle\Phi_p({\omega_p})$，这样上式的积分形式可以转化为一个和的近似形式：
 
 \begin{equation}\label{e:pm-approximated-radiance}
-	L_r(x,\vec{\omega})\approx \sum^{n}_{p=1}f_r(x,\vec{\omega}_p,\vec{\omega}) \cfrac{\triangle\Phi_p(x,\vec{\omega}_p)}{\triangle A}
+	L_r(x,{\omega})\approx \sum^{n}_{p=1}f_r(x,{\omega}_p,{\omega}) \cfrac{\triangle\Phi_p(x,{\omega}_p)}{\triangle A}
 \end{equation}
 
-\noindent 这个过程可以看做是围绕位置$x$逐步展开一个球体，直到该球体包含了$n$个光子，然后这$n$个光子便被用作辐射亮度的估计，如图\ref{f:pm-sphere-estimate}所示。
+这个过程可以看做是围绕位置$x$逐步展开一个球体，直到该球体包含了$n$个光子，然后这$n$个光子便被用作辐射亮度的估计，如图\ref{f:pm-sphere-estimate}所示。
 
 \begin{figure}
 \sidecaption
@@ -395,18 +394,22 @@ locate_photons( p ) {
 \noindent 这里$r$表示球体的半径，即$x$到所有选取的$n$个光子的最大距离，因此式\ref{e:pm-approximated-radiance}可以写为：
 
 \begin{equation}\label{e:pm-approximated-radiance-area}
-	L_r(x,\vec{\omega})\approx  \cfrac{1}{\pi r^{2}}\sum^{n}_{p=1}f_r(x,\vec{\omega}_p,\vec{\omega})\triangle\Phi_p(x,\vec{\omega}_p)
+	L_r(x,{\omega})\approx  \cfrac{1}{\pi r^{2}}\sum^{n}_{p=1}f_r(x,{\omega}_p,{\omega})\triangle\Phi_p(x,{\omega}_p)
 \end{equation}
  
-\noindent 该估计是基于局部区域是平坦的这样的假设的，因此其估计的精度与参与估计的光子数量有关，因为我们使用了一个球体去定位参与估计的光子，这就可能会包含一些不满足这个假设的光子，例如物体边缘和角落都可能导致面积估计是错误的。直观上看，参与估计的光子数量越多，则式\ref{e:pm-approximated-radiance-area}就会变得更加精确，因为球体区域就会收缩得越来越小，光子越靠近$x$则辐射能量的估计越准确。在极限的情况下，我们可以得到如下结果： 
+该估计是基于局部区域是平坦的这样的假设的，因此其估计的精度与参与估计的光子数量有关，因为我们使用了一个球体去定位参与估计的光子，这就可能会包含一些不满足这个假设的光子，例如物体边缘和角落都可能导致面积估计是错误的。直观上看，参与估计的光子数量越多，则式\ref{e:pm-approximated-radiance-area}就会变得更加精确，因为球体区域就会收缩得越来越小，光子越靠近$x$则辐射能量的估计越准确。在极限的情况下，我们可以得到如下结果： 
 
 \begin{equation}\label{e:pm-photon-estimate-limit}
-	\lim_{N\to\infty} \cfrac{1}{\pi r^{2}}\sum^{\lfloor N^{\alpha}\rfloor}_{p=1}f_r(x,\vec{\omega}_p,\vec{\omega})\triangle\Phi_p(x,\vec{\omega}_p)=L_r(x,\vec{\omega})\text{ for }\alpha\in ]0,1[
+	\lim_{N\to\infty} \cfrac{1}{\pi r^{2}}\sum^{\lfloor N^{\alpha}\rfloor}_{p=1}f_r(x,{\omega}_p,{\omega})\triangle\Phi_p(x,{\omega}_p)=L_r(x,{\omega})\text{ , }\alpha\in ]0,1[
 \end{equation}
 
 \noindent 其中，$N$表示光子图中光子的总数量。对于所有（不包含脉冲函数的）BRDF反射函数，并且局部区域平坦的所有表面上的点，式\ref{e:pm-photon-estimate-limit}都是成立的。式\ref{e:pm-photon-estimate-limit}背后的逻辑是：首先，无限的光子数量$N$能够更准确地表述物体表面的辐射能量分布，因此方差逐步降低；其次，被选取参与估计的光子数量$N^{\alpha}$也是无限的，因此包含这些用于估计的光子的球体体积也将变得无限小，因此偏差也会逐步降低。
 
-$\alpha$决定着式\ref{e:pm-photon-estimate-limit}中”极限“的程度，$N^{\alpha}$（$\alpha\in]0,1[$）保证了参与估计的光子数量无限小于总的光子数量，并且它说明我们始终可以通过增加光子图中光子的数量来提高辐射亮度估计的精度。
+$\alpha$决定着式\ref{e:pm-photon-estimate-limit}中“极限”的程度，$N^{\alpha}$保证了参与估计的光子数量无限小于总的光子数量，并且它说明我们始终可以通过增加光子图中光子的数量来提高辐射亮度估计的精度。
+
+球体是一种比较简单的体积，可以很高效地计算到表面上的投影面积。也可以使用其他体积用于最近邻光子的搜索，此时式\ref{e:pm-approximated-radiance}中的$\triangle A$项应该替换为对于的面积，它应该是表面上经过$x$点的正切面与使用体积的相交面积部分。
+
+例如一种更精确的体积是通过对球体沿表面$x$处的法线方向挤压形成的盘面（disc）或椭球体（ellipsoid），如图\ref{f:pm-sphere-and-disc}(b)所示。使用盘面的好处是可以减少对不在局部平面上光子的选取，例如墙角或者物体边缘处的光子。修改后的体积比较贴近于表面，例如它可以阻止墙表面上的光子进入门表面上位置的估计。但是盘面体积仍然不能阻止由于面积区域估计错误导致的问题，例如一个平面被一个垂直于该面的薄面分割，此时两边的辐射能量可能差别很大，但是两边的光子由于同处于一个平面而可能被放到一起进行估计，这样的问题可以通过后面介绍的过滤方法来减弱。
 
 \begin{figure}
 \sidecaption
@@ -415,10 +418,6 @@ $\alpha$决定着式\ref{e:pm-photon-estimate-limit}中”极限“的程度，$
 \label{f:pm-sphere-and-disc}
 \end{figure}
 
-球体是一种比较简单的体积，可以很高效地计算到表面上的投影面积。在实践中也可以使用其他体积用于最近邻光子的搜索，此时式\ref{e:pm-approximated-radiance}中的$\triangle A$项应该替换为对于的面积，它应该是表面上经过$x$点的正切面与使用体积的相交面积部分。
-
-例如一种更精确的体积是通过对球体沿表面$x$处的法线方向挤压形成的盘面（disc）或椭球体（ellipsoid），如图\ref{f:pm-sphere-and-disc}(b)所示。使用盘面的好处是可以减少对不在局部平面上光子的选取，例如墙角或者物体边缘处的光子。修改后的体积比较贴近于表面，例如它可以阻止墙表面上的光子进入门表面上位置的估计。但是盘面体积仍然不能阻止由于面积区域估计错误导致的问题，例如一个平面被一个垂直于该面的薄面分割，此时两边的辐射能量可能差别很大，但是两边的光子由于同处于一个平面而可能被放到一起进行估计，这样的问题可以通过后面介绍的过滤方法来减弱。
-
 
 
 
@@ -426,7 +425,7 @@ $\alpha$决定着式\ref{e:pm-photon-estimate-limit}中”极限“的程度，$
 \subsection{渲~~染}\label{sec:pm-rendering}
 光子映射技术并不是一个完整的全局光照解决方案，它主要是被设计用于加速蒙特卡洛光线追踪的计算，更具体地说，它仅处理间接漫反射光照以及焦散效果，而将光泽/镜面反射的光照计算留给光线追踪本身。
 
-上述的说法其实并没有告诉到底应该怎样利用光子图进行光照计算，或者说光子图到底提供了什么信息，说它相对于完整的全局光照还缺乏什么。所以我们来首先梳理一下这些问题，它们对于后面渲染的过程的理解将很有帮助。
+上述的说法其实并没有告诉到底应该怎样利用光子图进行光照计算，或者说光子图到底提供了什么信息，它相对于完整的全局光照还缺乏什么。所以我们来首先梳理一下这些问题，它们对于后面渲染的过程的理解将很有帮助。
 
 
 
@@ -438,7 +437,7 @@ $\alpha$决定着式\ref{e:pm-photon-estimate-limit}中”极限“的程度，$
 
 上述的分析告诉了我们渲染阶段应该干什么：从摄像机发出观察光线，如果第一次相交的表面为漫反射面，则该光线的光照贡献可以直接通过光子图中的光子进行估计，包括全局光子图和焦散光子图（直接焦散），这能够渲染所有包括$L\{S|D\}^{*}DE$的路径；如果第一个相交的面为镜面或光泽面，则使用一般的光线追踪方法使用重要性采样发射新的光线，重复此步骤直到遇到漫反射面，此时和前一种情况一样处理，这能够渲染所有包括$L\{S|D\}^{*}DS^{+}E$的路径。
 
-通常这样的方式，就可以结合光线追踪和光子图实现完全全局光照路径的渲染。并且可以看到，通过使用焦散光子图强制包含$LS^{+}D$路径，以及结合摄像机光线阶段对镜面和光泽面的处理，即$S^{*}E$路径，所以光子映射技术完全能够轻松处理$S^{+}DS^{+}$间接焦散路径。
+通过这样的方式，就可以结合光线追踪和光子图实现完全全局光照路径的渲染。并且可以看到，通过使用焦散光子图强制包含$LS^{+}D$路径，以及结合摄像机光线阶段对镜面和光泽面的处理，即$S^{*}E$路径，所以光子映射技术完全能够轻松处理$S^{+}DS^{+}$间接焦散路径。
 
 最后需要注意的是，尽管上述的分析没有什么问题，但由于受光子数量的限制，来自光子密度估计形成的光照贡献并不是很精确，为了提高渲染质量，\cite{a:GlobalIlluminationusingPhotonMaps}在使用光子图的时候提出了区分两种不同的场景：精确计算和近似计算。精确计算用于那些直接对摄像机可见，或者从摄像机出发首先经历了（少数）几次镜面/光泽反射的顶点，此外它也包括那些从光线起点到交点的距离小于某个阈值的顶点，这样可以避免例如墙角处不精确的颜色渗透（color bleeding）\myindex{颜色渗透}{color bleeding}；近似计算则适用于那些光线离开摄像机后已经经历过一次漫反射的交点，或者那些对像素值贡献很小的顶点。
 
@@ -447,34 +446,34 @@ $\alpha$决定着式\ref{e:pm-photon-estimate-limit}中”极限“的程度，$
 
 
 \subsubsection{渲染通道}
-通过上面的分析，在渲染阶段，我们还是使用一个传统的光线追踪的方式，由摄像机向场景中发射摄像机光线，这些光线在场景中传播并根据表面材质参数及光照情况返回该方向的辐射亮度值。唯一不同的是，当计算每个顶点处的漫反射光照贡献值时，我们直接从光子图中根据前面讨论的辐射亮度估计计算出该顶点出射方向的辐射亮度，而不是继续在该顶点半空间上对入射辐射亮度进行积分。
+在渲染阶段，我们还是使用一个传统的光线追踪的方式，由摄像机向场景中发射摄像机光线，这些光线在场景中传播并根据表面材质参数及光照情况返回该方向的辐射亮度值。唯一不同的是，当计算每个顶点处的漫反射光照贡献值时，我们直接从光子图中根据前面讨论的辐射亮度估计计算出该顶点出射方向的辐射亮度，而不是继续在该顶点半空间上对入射辐射亮度进行积分。
 
 首先，BRDF反射函数可以根据粗糙度划分成两个部分：光泽/镜面反射率：$f_{r,s}$，以及漫反射率：$f_{r,d}$：
 
 \begin{equation}
-	f_r(x,\vec{\omega}^{'},\vec{\omega})=f_{r,s}(x,\vec{\omega}^{'},\vec{\omega})+f_{r,d}(x,\vec{\omega}^{'},\vec{\omega})
+	f_r(x,{\omega}^{'},{\omega})=f_{r,s}(x,{\omega}^{'},{\omega})+f_{r,d}(x,{\omega}^{'},{\omega})
 \end{equation}
 
-\noindent 其次，在光子映射中，我们可以将光照的来源（即入射辐射亮度）划分成三个部分（可以看做三种不同类型的光源，所有路径最终当然光照贡献都来自它们）：
+其次，在光子映射中，光照的来源（即入射辐射亮度）可以划分成三个部分（可以看做三种不同类型的光源，所有路径最终光照贡献都来自它们）：
 
 \begin{itemize}
-	\item $L_{i,l}(x,\vec{\omega}^{'})$，直接光照（direct illumination）\myindex{直接光照}{direct illumination}，即直接接受来自真实光源的光照。
-	\item $L_{i,c}(x,\vec{\omega}^{'})$，焦散光照，它们是从光源出发至少经过一次镜面/光泽面反射/折射后到达漫反射面的间接光照。
-	\item $L_{i,d}(x,\vec{\omega}^{'})$，其他间接光照，它们是从光源出发至少经过一次漫反射后并落在漫反射表面的间接光照。
+	\item $L_{i,l}(x,{\omega}^{'})$，直接光照（direct illumination）\myindex{直接光照}{direct illumination}，即直接接受来自真实光源的光照。
+	\item $L_{i,c}(x,{\omega}^{'})$，焦散光照，它们是从光源出发至少经过一次镜面/光泽面反射/折射后到达漫反射面的间接光照。
+	\item $L_{i,d}(x,{\omega}^{'})$，其他间接光照，它们是从光源出发至少经过一次漫反射后并落在漫反射表面的间接光照。
 \end{itemize}
 
-有了上述这些光照效果（或者路径类型\footnote{通常，我们可以根据路径类型来区分不同的光照效果。}）分类，在光子映射技术中通常将反射方程划分成以下4个不同的组成部分，每个部分使用不同光照来源进行光照的计算：
+有了上述这些光照效果（或者路径类型）分类，在光子映射技术中通常将反射方程划分成以下4个不同的组成部分，每个部分使用不同光照来源进行光照的计算：
 
 \begin{equation}\label{e:pm-four-componenets-equation}
 \begin{aligned}
-	L_r(x,\vec{\omega})=&{\rm \int}_\Omega f_r(x,\vec{\omega}^{'},\vec{\omega}) L_{i,l}(x,\vec{\omega}^{'}) (\vec{\omega}^{'}\cdot\vec{n}) {\rm d}\vec{\omega}^{'}+ \\
-	&{\rm \int}_\Omega f_{r,s}(x,\vec{\omega}^{'},\vec{\omega}) (L_{i,c}(x,\vec{\omega}^{'})+L_{i,d}(x,\vec{\omega}^{'})) (\vec{\omega}^{'}\cdot\vec{n}) {\rm d}\vec{\omega}^{'}+ \\
-	&{\rm \int}_\Omega f_{r,d}(x,\vec{\omega}^{'},\vec{\omega}) L_{i,c}(x,\vec{\omega}^{'}) (\vec{\omega}^{'}\cdot\vec{n}) {\rm d}\vec{\omega}^{'}+ \\
-	&{\rm \int}_\Omega f_{r,d}(x,\vec{\omega}^{'},\vec{\omega}) L_{i,d}(x,\vec{\omega}^{'}) (\vec{\omega}^{'}\cdot\vec{n}) {\rm d}\vec{\omega}^{'}
+	L_r(x,{\omega})=&{\rm \int}_\Omega f_r(x,{\omega}^{'},{\omega}) L_{i,l}(x,{\omega}^{'}) ({\omega}^{'}\cdot\mathbf{n}) {\rm d}{\omega}^{'}+ \\
+	&{\rm \int}_\Omega f_{r,s}(x,{\omega}^{'},{\omega}) (L_{i,c}(x,{\omega}^{'})+L_{i,d}(x,{\omega}^{'})) ({\omega}^{'}\cdot\mathbf{n}) {\rm d}{\omega}^{'}+ \\
+	&{\rm \int}_\Omega f_{r,d}(x,{\omega}^{'},{\omega}) L_{i,c}(x,{\omega}^{'}) ({\omega}^{'}\cdot\mathbf{n}) {\rm d}{\omega}^{'}+ \\
+	&{\rm \int}_\Omega f_{r,d}(x,{\omega}^{'},{\omega}) L_{i,d}(x,{\omega}^{'}) ({\omega}^{'}\cdot\mathbf{n}) {\rm d}{\omega}^{'}
 \end{aligned}
 \end{equation}
 
-\noindent 在上式中，第一部分表示直接光照，由于直接光照往往非常重要，精确计算（例如摄像机直接观察到的漫反射表面）需要使用传统光线追踪的方法，这可以参考第\ref{sec:pt-direct-illumination}节的内容；近似的计算（如需要计算两次反弹的漫反射光照）则可以直接从全局光照图中估计获取。
+在上式中，第一部分表示直接光照，由于直接光照往往非常重要，精确计算（例如摄像机直接观察到的漫反射表面）需要使用传统光线追踪的方法，这可以参考第\ref{sec:pt-direct-illumination}节的内容；近似的计算（如需要计算两次反弹的漫反射光照）则可以直接从全局光照图中估计获取。
 
 第二部分表示光泽/镜面反射，使用的是光照/镜面反射系数$f_{r,s}$，由于光泽反射的光照贡献值通常很大，所以它们通过传统的光线追踪方式进行计算，不涉及任何光子的估计。
 
@@ -507,7 +506,7 @@ $\alpha$决定着式\ref{e:pm-photon-estimate-limit}中”极限“的程度，$
 	\label{f:pm-complex-caustics}
 \end{figure}
 
-为了克服光子映射内存限制的问题，\cite{a:ProgressivePhotonMapping}提出了渐进式光子映射技术，它将光子追踪阶段分拆成多个迭代的过程，每个迭代阶段只需要存储其对应的少量光子，因此整个迭代过程就可以任意提高总的光子的数量，通过这样的分拆就可以在不需要一次性存储所有光子的情况下，模拟任意精度的光照传输计算。这同时也使得第\ref{sec:pm-three-photon-maps}讨论的对光子图的分类变得不再必要。
+为了克服光子映射内存限制的问题，\cite{a:ProgressivePhotonMapping}提出了渐进式光子映射技术，它将光子追踪阶段分拆成多个迭代的过程，每个迭代阶段只需要存储少量光子，因此整个迭代过程就可以任意提高总的光子的数量，通过这样的分拆就可以在不需要一次性存储所有光子的情况下，模拟任意精度的光照传输计算。这同时也使得第\ref{sec:pm-three-photon-maps}讨论的对光子图的分类变得不再必要。
 
 渐进式光子映射的主要原理是随着迭代步骤的增加，在提高参与估计的光子数量的同时，减少参与估计光子的体积（半径范围，或是过滤的带宽），并使得整个迭代的结果符合式\ref{e:pm-photon-estimate-limit}的结果。因此渐进式光子映射的主要内容是关于怎样以及以什么标准划分每个迭代过程。
 
@@ -521,28 +520,28 @@ $\alpha$决定着式\ref{e:pm-photon-estimate-limit}中”极限“的程度，$
 首先回忆前面讨论的一般的光子密度估计：
 
 \begin{equation}
-	L(x,\vec{\omega})\approx \sum^{n}_{p=1} \cfrac{f_f(x,\vec{\omega},\vec{\omega}_p)\phi_p(x_p,\vec{\omega}_p)}{\pi r^{2}}
+	L(x,{\omega})\approx \sum^{n}_{p=1} \cfrac{f_f(x,{\omega},{\omega}_p)\phi_p(x_p,{\omega}_p)}{\pi r^{2}}
 \end{equation}
 
-\noindent 上述的估计假设$x$附近的局部区域是平坦的，因此参与该点辐射亮度估计的光子位于一个平坦的表面上。该估计也是光子映射算法偏差的来源，因为每个作为总的辐射亮度贡献值的其中一部分的光子能量被平滑了。
+上述的估计假设$x$附近的局部区域是平坦的，因此参与该点辐射亮度估计的光子位于一个平坦的表面上。该估计也是光子映射算法偏差的来源，因为每个作为总的辐射亮度贡献值的其中一部分的光子能量被平滑了。
 
 随着光子密度的增加，光子密度估计就会逐渐收敛至正确的结果（一致性），这要求光子图中光子的数量是无限的，同时参与估计的光子的数量也是无限的，并且覆盖参与估计光子的体积的半径应该逐渐收敛至0。
 
 我们可以通过以下方式来满足上述的要求：对于具有数量为$N$的光子图，其中仅有$N^{\beta}$个光子（$\beta\in[0,1]$）被用于每个位置的估计计算。在这种情况下，随着$N$逐步趋向于无限，$N^{\beta}$也会趋向于无限，但是$N^{\beta}$始终无限小于$N$，这样就保证了半径$r$会收敛至0，则极限情况下上式可以写为\cite{b:RealisticImageSynthesisUsingPhotonMapping}：
 
 \begin{equation}\label{e:pm-consistent-equation}
-	L(x,\vec{\omega})=\lim_{N\to\infty} \sum^{\lfloor N^{\beta} \rfloor}_{p=1} \cfrac{f_f(x,\vec{\omega},\vec{\omega}_p)\phi_p(x_p,\vec{\omega}_p)}{\pi r^{2}}
+	L(x,{\omega})=\lim_{N\to\infty} \sum^{\lfloor N^{\beta} \rfloor}_{p=1} \cfrac{f_f(x,{\omega},{\omega}_p)\phi_p(x_p,{\omega}_p)}{\pi r^{2}}
 \end{equation}
 
-\noindent 在标准的光子映射中，上述的结果只是理论上成立，因为无限数量的光子不可能被存储在内存中。但是渐进式光子映射则可以在不需要同时存储所有光子的情况下满足上式的要求。
+在标准的光子映射中，上述的结果只是理论上成立，因为无限数量的光子不可能被存储在内存中。但是渐进式光子映射则可以在不需要同时存储所有光子的情况下满足上式的要求。
+
+渐进式光子映射（progressive photon mapping）\myindex{渐进式光子映射}{progressive photon mapping}是一种多通道（multi-pass）\myindex{多通道}{multi-pass}的方法，其中第一个通道为传统的光线追踪，如图\ref{f:pm-progressive-photon-mapping}左边小图所示，它从摄像机向场景发射出光线，此后光线在场景中传播直至遇到漫反射表面时停止并被记录；第二个通道为多个迭代的光子追踪通道，如图\ref{f:pm-progressive-photon-mapping}右边小图所示，在每个迭代中对前面光线追踪的每个记录点进行光子辐射亮度估计计算，每一个迭代都可以增加整个光照的精度，整个算法是渐进式的。
 
 \begin{figure}
 	\includegraphics[width=\textwidth]{figures/pm/pm-18}
 	\caption{渐进式光子追踪使用一个光线追踪通道，以及紧随着多个光子追踪通道}
 	\label{f:pm-progressive-photon-mapping}
 \end{figure}
-
-渐进式光子映射（progressive photon mapping）\myindex{渐进式光子映射}{progressive photon mapping}是一种多通道（multi-pass）\myindex{多通道}{multi-pass}的方法，其中第一个通道为传统的光线追踪，如图\ref{f:pm-progressive-photon-mapping}左边小图所示，它从摄像机向场景发射出光线，此后光线在场景中传播直至遇到漫反射表面时停止并被记录；第二个通道为多个迭代的光子追踪通道，如图\ref{f:pm-progressive-photon-mapping}右边小图所示，在每个迭代中对前面光线追踪的每个记录点进行光子辐射亮度估计计算，每一个迭代都可以增加整个光照的精度，整个算法是渐进式的。
 
 
 
@@ -552,13 +551,13 @@ $\alpha$决定着式\ref{e:pm-photon-estimate-limit}中”极限“的程度，$
 
 为了提高光子映射及最终聚集计算的计算效率，\cite{a:FastFinalGatheringviaReversePhotonMapping}提出了反转光子映射（reverse photon mapping）\myindex{反转光子映射}{reverse photon mapping}的概念，反转光子映射在第一个通道使用光线追踪，并把最终聚集光线在漫反射表面的交点，称为命中点（hit point）\myindex{命中点}{hit point}，存储在一个特殊结构的k-d树\footnote{实际上是一个只有叶节点才会包含命中点的k-d树结构，且每个叶节点包含多个空间位置上相邻的命中点，这样可以加速对多个最近邻命中点的搜索。}中，然后在第二个阶段使用光子追踪。反转光子映射通过这样的方式提高最终聚集的性能：首先对光子图按空间排序（增加了内存访问的连贯性），然后遍历光子图中的每个光子，并搜索命中点k-d树中的kNN最近邻命中点以计算当前光子对该命中点的光照贡献。除了计算结构的修改，反转光子映射不涉及任何对基本光子映射算法的修改（例如近似计算等），因此它们渲染出的图像质量是完全一致的。
 
-渐进式光子映射使用了和反转光子映射类似的思路，但是其目的不是为了提高最终聚集的计算性能，而是通过克服传统光子映射内存的瓶颈提高最终图像的精度。渐进式光子映射首先在第一个通道使用光线追踪方法找到所有能够被图像空间上每个像素直接看到的表面（点），即是那些所有从摄像机出发经过所有镜面/光泽反射直到达到第一个非光泽面的命中点。对于每一个光线路径，我们存储该路径上所有BRDF反射函数中包含非光泽面分量的命中点，每个命中点的数据结构如算法\ref{a:pm-progressive-hit-point}所示。
+渐进式光子映射使用了和反转光子映射类似的思路，但是其目的不是为了提高最终聚集的计算性能，而是通过克服传统光子映射内存的瓶颈来提高最终图像的精度。渐进式光子映射首先在第一个通道使用光线追踪方法找到所有能够被图像空间上每个像素直接看到的表面（点），即是那些所有从摄像机出发经过所有镜面/光泽反射直到达到第一个非光泽面的命中点。对于每一个光线路径，我们存储该路径上所有BRDF反射函数中包含非光泽面分量的命中点，每个命中点的数据结构如算法\ref{a:pm-progressive-hit-point}所示。
 
 \begin{algorithm}
 \begin{lstlisting}[language=C++, mathescape]
 struct hitpoint {
 	position $x$            //命中点位置
-	normal $\vec{n}$              //命中点处的法线
+	normal $\mathbf{n}$              //命中点处的法线
 	vector $\vec{\sigma}$              //光线方向
 	integer $BRDF$             //BRDF反射函数索引
 	float $x,y$               //像素位置
@@ -572,7 +571,7 @@ struct hitpoint {
 \label{a:pm-progressive-hit-point}
 \end{algorithm}
 
-在上述算法\ref{a:pm-progressive-hit-point}中，前面的变量为命中点本身的固有属性，用于计算该命中点对其所在路径贡献，最后的三个变量是用于进行渐进式光子密度估计的辅助属性，它们是一些统计量，我们将在下面一节讨论。
+在上述算法\ref{a:pm-progressive-hit-point}中，前面的变量为命中点本身的固有属性，用于计算该命中点对其所在路径的贡献，最后的三个变量是用于进行渐进式光子密度估计的辅助属性，它们是一些统计量，我们将在下面一节讨论。
 
 此外，从这里也可以看出，渐进式光子映射需要缓存大量的命中点，即摄像机路径采样。为了降低噪点，摄像机路径的样本甚至可能会远远多于光子的数量，因此这又形成了新的内存制约，第\ref{sec:pm-stochastic-ppm}介绍的内容将进一步消除命中点缓存导致的问题。
 
@@ -595,31 +594,31 @@ struct hitpoint {
 \paragraph{半径缩减}
 如算法\ref{a:pm-progressive-hit-point}所示，每个命中点$x$的数据结构包含一个半径$R(x)$，以及该半径范围内参与光照估计的累积光子数量$N(x)$，我们的目标是在减少这个半径的同时增加其包含的累计光子数量，使得整个迭代过程满足式\ref{e:pm-consistent-equation}的要求。
 
-假设一定数量的光子追踪通道已经被执行过，在命中点$x$附件半径为$R(x)$的范围内累积的光子数量为$N(x)$，如图\ref{f:pm-radius-reduction}左边小图所示，如果此时新增加一个光子追踪通道，该通道内在$x$附近半径为$R(x)$的范围内内发现的光子数量为$M(x)$，如图\ref{f:pm-radius-reduction}中间小图所示，将这$M(x)$新的光子加入之前的累积光子数量$N(x)$中，则得到新的光子密度估计$\hat{d}(x)$:
+假设一定数量的光子追踪通道已经被执行过，在命中点$x$附近半径为$R(x)$的范围内累积的光子数量为$N(x)$，如图\ref{f:pm-radius-reduction}左边小图所示，如果此时新增加一个光子追踪通道，该通道内在$x$附近半径为$R(x)$的范围内内发现的光子数量为$M(x)$，如图\ref{f:pm-radius-reduction}中间小图所示，将这$M(x)$个新的光子加入之前的累积光子数量$N(x)$中，则得到新的光子密度估计$\hat{d}(x)$:
 
 \begin{equation}\label{e:radius-reduction-1}
 	\hat{d}(x)= \cfrac{N(x)+M(x)}{\pi R(x)^{2}}
 \end{equation}
 
-\noindent 由于我们需要在每次迭代中缩减估计半径$R(x)$，设减少的半径为$dR(x)$，如果我们假设在半径$R(x)$范围内的光子密度是一个常数，则我们可以计算出新的半径$\hat{R}(x)=R(x)-dR(x)$范围内的光子数量$\hat{N}(x)$为：
+由于我们需要在每次迭代中缩减估计半径$R(x)$，设减少的半径为${\rm d}R(x)$，如果我们假设在半径$R(x)$范围内的光子密度是一个常数，则我们可以计算出新的半径$\hat{R}(x)=R(x)-{\rm d}R(x)$范围内的光子数量$\hat{N}(x)$为：
 
 \begin{equation}\label{e:radius-reduction-2}
-	\hat{N}(x)=\pi\hat{R}{x}^{2}\hat{d}(x)=\pi (R(x)-dR(x))^{2}\hat{d}(x)
+	\hat{N}(x)=\pi\hat{R}{x}^{2}\hat{d}(x)=\pi (R(x)-{\rm d}R(x))^{2}\hat{d}(x)
 \end{equation}
 
-\noindent 为了满足式\ref{e:pm-consistent-equation}的要求，即每次迭代后对每个命中点参与估计的光子数量必须增加，这要求$\hat{N}(x)>N(x)$)。为了简便，这里增加一个参数$\alpha = (0, 1)$来控制每次迭代后的累积光子数量满足式\ref{e:pm-consistent-equation}的要求：
+为了满足式\ref{e:pm-consistent-equation}的要求，即每次迭代后对每个命中点参与估计的光子数量必须增加，这要求$\hat{N}(x)>N(x)$。为了简便，这里增加一个参数$\alpha \in (0, 1)$来控制每次迭代后的累积光子数量满足式\ref{e:pm-consistent-equation}的要求：
 
 \begin{equation}\label{e:radius-reduction-3}
 	\hat{N}(x)=N(x)+\alpha M(x)
 \end{equation}
 
-\noindent 上式说明每次迭代每个命中点增加了$\alpha M(x)$个光子参与估计，如图\ref{f:pm-radius-reduction}右边小图所示。综合式\ref{e:radius-reduction-1}，\ref{e:radius-reduction-2}以及\ref{e:radius-reduction-3}可以计算出$dR(x)$的值，最终得到缩减后的半径$\hat{R}(x)$为：
+上式说明每次迭代每个命中点增加了$\alpha M(x)$个光子参与估计，如图\ref{f:pm-radius-reduction}右边小图所示。综合式\ref{e:radius-reduction-1}，\ref{e:radius-reduction-2}以及\ref{e:radius-reduction-3}可以计算出${\rm d}R(x)$的值，最终得到缩减后的半径$\hat{R}(x)$为：
 
 \begin{equation}
-	\hat{R}(x)=R(x)-dR(x)=R(x)\sqrt{ \cfrac{N(x)+\alpha M(x)}{N(x)+M(x)}}
+	\hat{R}(x)=R(x)-{\rm d}R(x)=R(x)\sqrt{ \cfrac{N(x)+\alpha M(x)}{N(x)+M(x)}}
 \end{equation}
 
-\noindent 上式中，每次迭代都是独立于各个命中点的，这使得该算法不需要对传统的光子追踪作出任何修改。参数$\alpha$是一个用户输入参数，我们将在本章后面的误差分析相关章节看到它对于收敛速度的影响。
+上式中，每次迭代都是独立于各个命中点的，这使得该算法不需要对传统的光子追踪作出任何修改。参数$\alpha$是一个用户输入参数，我们将在本章后面的误差分析相关章节看到它对于收敛速度的影响。
 
 
 \begin{figure}
@@ -637,41 +636,43 @@ struct hitpoint {
 
 
 \paragraph{辐射通量更正}
-每个命中点在每次迭代中额外接收$M(x)$个光子，这需要被累积到总的辐射通量中，同时在这个累积的计算需要考虑半径缩减。每个命中点存储未经归一化的辐射通量总量，这个辐射通量来自每个光子与表面BRDF反射系数的乘积，记为$\tau(x,\vec{\omega})$:
+每个命中点在每次迭代中额外接收$M(x)$个光子，这需要被累积到总的辐射通量中，同时在这个累积的计算需要考虑半径缩减。每个命中点存储未经归一化的辐射通量总量，这个辐射通量来自每个光子与表面BRDF反射系数的乘积，记为$\tau(x,{\omega})$:
 
 \begin{equation}
 \begin{aligned}
-	\tau_N(x,\vec{\omega})&=\sum^{N(x)}_{p=1}f_r(x,\vec{\omega},\vec{\omega}_p)\phi^{'}_p(x_p,\vec{\omega}_p)\\
-	\tau_M(x,\vec{\omega})&=\sum^{M(x)}_{p=1}f_r(x,\vec{\omega},\vec{\omega}_p)\phi^{'}_p(x_p,\vec{\omega}_p)
+	\tau_N(x,{\omega})&=\sum^{N(x)}_{p=1}f_r(x,{\omega},{\omega}_p)\phi^{'}_p(x_p,{\omega}_p)\\
+	\tau_M(x,{\omega})&=\sum^{M(x)}_{p=1}f_r(x,{\omega},{\omega}_p)\phi^{'}_p(x_p,{\omega}_p)
 \end{aligned}
 \end{equation}
 
-\noindent 考虑到半径缩减，如图\ref{f:pm-radius-reduction}所示，假设$x$附近局部区域内的光照和光子密度是一个常数，可以得到下面经过调整的累积通量：
+考虑到半径缩减，如图\ref{f:pm-radius-reduction}所示，假设$x$附近局部区域内的光照和光子密度是一个常数，可以得到下面经过调整的累积通量：
 
 \begin{equation}
 	\begin{aligned}
-		\tau_{\hat{N}}(x,\vec{\omega})=&(\tau_N(x,\vec{\omega})+\tau_M(x,\vec{\omega})) \cfrac{\pi \hat{R}(x)^{2}}{\pi R(x)^{2}}\\
-		=&\tau_{N+M}(x,\vec{\omega}) \cfrac{N(x)+\alpha M(x)}{N(x)+M(x)}
+		\tau_{\hat{N}}(x,{\omega})=&(\tau_N(x,{\omega})+\tau_M(x,{\omega})) \cfrac{\pi \hat{R}(x)^{2}}{\pi R(x)^{2}}\\
+		=&\tau_{N+M}(x,{\omega}) \cfrac{N(x)+\alpha M(x)}{N(x)+M(x)}
 	\end{aligned}
 \end{equation}
 
-\noindent 其中，$\tau_{N+M}(x,\vec{\omega})=\tau_{N}(x,\vec{\omega})+\tau_{M}(x,\vec{\omega})$，这里$\tau_{\hat{N}}(x,\vec{\omega})$表示经过半径缩减后的累积通量，它对应于的光子数量为$\hat{N}(x)$。
+\noindent 其中，$\tau_{N+M}(x,{\omega})=\tau_{N}(x,{\omega})+\tau_{M}(x,{\omega})$，这里$\tau_{\hat{N}}(x,{\omega})$表示经过半径缩减后的累积通量，它对应的光子数量为$\hat{N}(x)$。
 
 
 
 
 \paragraph{辐射亮度计算}
-在每次光子追踪通道之后，我们就可以\footnote{当然我们只需要在最后一次光子追踪通道之后计算一次辐射亮度，而每次迭代中只需要计算每个命中点缩减的半径$R$，累积光子数量$N$以及累积辐射通量$\tau$。}计算每个命中点的辐射亮度，这和标准的光子映射算法是类似的，只是这里需要使用经过缩减后的半径$R(x)$，以及经过调整的累积辐射通量$\tau (x,\vec{\omega})$（已经包含了BRDF预乘），新的辐射亮度估计公式为：
+在每次光子追踪通道之后，我们就可以计算每个命中点的辐射亮度，这和标准的光子映射算法是类似的，只是这里需要使用经过缩减后的半径$R(x)$，以及经过调整的累积辐射通量$\tau (x,{\omega})$（已经包含了BRDF预乘），新的辐射亮度估计公式为：
 
-\begin{equation}
+\begin{equation}\label{sec:pm-radiance-estmator}
 	\begin{aligned}
-		L(x,\vec{\omega})&={\rm \int}_{2\pi}f_r(x,\vec{\omega},\vec{\omega}^{'})L(x,\vec{\omega}^{'})(\vec{n}\cdot\vec{\omega}^{'}){\rm d}\vec{\omega}^{'}\\
-		&\approx  \cfrac{1}{\triangle A}\sum^{n}_{p=1}f_r(x,\vec{\omega},\vec{\omega}_p)\triangle\phi_p(x_p,\vec{\omega}_p)\\
-		&= \cfrac{1}{\pi R(x)^{2}} \cfrac{\tau (x),\vec{\omega}}{N_{\rm emitted}}
+		L(x,{\omega})&={\rm \int}_{2\pi}f_r(x,{\omega},{\omega}^{'})L(x,{\omega}^{'})(\mathbf{n}\cdot{\omega}^{'}){\rm d}{\omega}^{'}\\
+		&\approx  \cfrac{1}{\triangle A}\sum^{n}_{p=1}f_r(x,{\omega},{\omega}_p)\triangle\phi_p(x_p,{\omega}_p)\\
+		&= \cfrac{1}{\pi R(x)^{2}} \cfrac{\tau (x),{\omega}}{N_{\rm emitted}}
 	\end{aligned}
 \end{equation}
 
-上式中$N_{\rm emitted}$表示所有迭代中全部光子的数量\footnote{前面内容如式\ref{e:pm-radiance}并没有包含$N_{\rm emitted}$这个因子，这是因为那里的每个光子的能量都被归一化了，即$ \cfrac{\Phi}{N}$，但是本节使用的$\Phi$是没有被光子数量归一化的。这两者结果是一样的，但是渐进式光子追踪的文献通常在最后计算辐射亮度的时候进行归一化，为了便于参考文献，这里使用一致的表述。}。有了每个命中点的辐射亮度，就可以根据该命中点对应的像素坐标以及该命中点（摄像机路径）对应的采样权重，就可以计算其对应像素的光照贡献值。
+当然我们只需要在最后一次光子追踪通道之后计算一次辐射亮度，而每次迭代中只需要计算每个命中点缩减的半径$R$，累积光子数量$N$以及累积辐射通量$\tau$。
+
+式\ref{sec:pm-radiance-estmator}中$N_{\rm emitted}$表示所有迭代中全部光子的数量\footnote{前面内容如式\ref{e:pm-radiance}并没有包含$N_{\rm emitted}$这个因子，这是因为那里的每个光子的能量都被归一化了，即$ \cfrac{\Phi}{N}$，但是本节使用的$\Phi$是没有被光子数量归一化的。这两者结果是一样的，但是渐进式光子追踪的文献通常在最后计算辐射亮度的时候进行归一化，为了便于参考文献，这里使用一致的表述。}。有了每个命中点的辐射亮度，就可以根据该命中点对应的像素坐标以及该命中点（摄像机路径）对应的采样权重，计算其对应像素的光照贡献值。
 
 
 
@@ -693,13 +694,13 @@ struct hitpoint {
 为了实现分布式光线追踪效果，\cite{a:StochasticProgressivePhotonMapping}提出了随机渐进式光子映射（stochastic progressive photon mapping，SPPM）\myindex{随机渐进式光子映射}{stochastic progressive photon mapping}，它对渐进式光子映射做了一个非常简单的修改：相对于渐进式光子映射对每个命中点存储一组统计变量，来实现渐进式提高估计的精度，随机渐进式光子映射对一个固定区域$S$使用一组共享的统计变量，来实现渐进式提高该区域内平均辐射亮度估计精度的提高。为此，我们首先定义一个区域$S$内平均辐射亮度值为：
 
 \begin{equation}
-	L_i(S,\vec{\omega})= \cfrac{\tau_i(S,\vec{\omega})}{\pi R_i(S)^{2}N_e(i)}
+	L_i(S,{\omega})= \cfrac{\tau_i(S,{\omega})}{\pi R_i(S)^{2}N_e(i)}
 \end{equation}
 
-其中，$i$表示第$i$个光子追踪通道，$\tau_i(S,\vec{\omega})$表示区域$S$内的共享累积辐射通量，$R_i(S)$表示区域$S$内的一个共享半径。有了上式的表述，随机渐进式光子映射的主要内容便是证明上述的近似估计收敛至正确值，即：
+\noindent 其中，$i$表示第$i$个光子追踪通道，$\tau_i(S,{\omega})$表示区域$S$内的共享累积辐射通量，$R_i(S)$表示区域$S$内的一个共享半径。有了上式的表述，随机渐进式光子映射的主要内容便是证明上述的近似估计收敛至正确值，即：
 
 \begin{equation}
-	\lim_{i\to\infty}L_i(S,\vec{\omega})=L(S,\vec{\omega})
+	\lim_{i\to\infty}L_i(S,{\omega})=L(S,{\omega})
 \end{equation}
 
 
@@ -709,7 +710,7 @@ struct hitpoint {
 \subsubsection{基本算法}
 由于SPPM是基于PPM的一个简单扩展，这使我们可以在缺乏具体证明之前了解该算法的一些基本思路，因此本小节首先讨论SPPM的一些基本思路，下一节再做严谨的证明。
 
-为了实现由基于（命中）点到基于区域的辐射亮度估计计算，SPPM对PPM做了两处修改：首先，它在每个光子追踪迭代之后抛弃现有的命中点，并使用一个新的分布式光线追踪通道产生一系列新的命中点，如图\ref{f:pm-stochastic-pmm}(b)所示；其次，它对于每个像素（而不是每个命中点）使用一组共享的统计变量，使得该像素对应的所有（分布式光线产生的）命中点共享这组统计变量，如图\ref{f:pm-stochastic-pmm}(c)所示。
+为了实现由基于（命中）点到基于区域的辐射亮度估计，SPPM对PPM做了两处修改：首先，它在每个光子追踪迭代之后抛弃现有的命中点，并使用一个新的分布式光线追踪通道产生一系列新的命中点，如图\ref{f:pm-stochastic-pmm}(b)所示；其次，它对每个像素（而不是每个命中点）使用一组共享的统计变量，使得该像素对应的所有（分布式光线产生的）命中点共享这组统计变量，如图\ref{f:pm-stochastic-pmm}(c)所示。
 
 \begin{figure}
 \begin{fullwidth}
@@ -721,7 +722,7 @@ struct hitpoint {
 
 上述的描述对于理解SPPM可能并不太直观，以下进一步使用SPPM算法的一般步骤对其进行描述。SPPM一般可以分为以下三个步骤，分别对应如图\ref{f:pm-stochastic-pmm}(a)，(b)和(c)，其中后两个步骤组成一个迭代的过程。
 
-首先，对每个像素构建共享统计变量，如图\ref{f:pm-stochastic-pmm}(a)所示。SPPM的目标是计算一个区域$S$内的平均辐射亮度，在这个区域内，所有的命中点都共享一组统计变量，它们分别是：共享半径$R_i(S,\vec{\omega})$，共享光子数量$N_i(S)$，以及共享辐射通量$\tau_i(S,\vec{\omega})$，这里的下标$i$表示第$i$个迭代，一个像素的定义如算法\ref{a:pm-sppmpixel}所示。
+首先，对每个像素构建共享统计变量，如图\ref{f:pm-stochastic-pmm}(a)所示。SPPM的目标是计算一个区域$S$内的平均辐射亮度，在这个区域内，所有的命中点都共享一组统计变量，它们分别是：共享半径$R_i(S,{\omega})$，共享光子数量$N_i(S)$，以及共享辐射通量$\tau_i(S,{\omega})$，这里的下标$i$表示第$i$个迭代，一个像素的定义如算法\ref{a:pm-sppmpixel}所示。
 
 \begin{algorithm}
 \begin{lstlisting}[language=C++, mathescape]
@@ -751,14 +752,14 @@ struct SPPMPixel {
 \begin{aligned}
 	N_{i+1}(S) &=N_i(S)+\alpha M_i(\vec{x}_i)\\
 	R_{i+1}(S) &=R_i(S)\sqrt{ \cfrac{N_i(S)+\alpha M_i(\vec{x}_i)}{N_i(S)+M_i(\vec{x}_i)}}\\
-	\Phi_i(\vec{x}_i,\vec{\omega})&=\sum^{M_i(\vec{x}_i)}_{p=1}f_r(\vec{x}_i,\vec{\omega},\vec{\omega}_p)\Phi_p(\vec{x}_p,\vec{\omega}_p)\\
-	\tau_{i+1}(S,\vec{\omega})&=(\tau_{i}(S,\vec{\omega})+\Phi_i(\vec{x}_i,\vec{\omega})) \cfrac{R_{i+1}(S)^{2}}{R_i (S)^{2}}
+	\Phi_i(\vec{x}_i,{\omega})&=\sum^{M_i(\vec{x}_i)}_{p=1}f_r(\vec{x}_i,{\omega},{\omega}_p)\Phi_p(\vec{x}_p,{\omega}_p)\\
+	\tau_{i+1}(S,{\omega})&=(\tau_{i}(S,{\omega})+\Phi_i(\vec{x}_i,{\omega})) \cfrac{R_{i+1}(S)^{2}}{R_i (S)^{2}}
 \end{aligned}
 \end{equation}
 
-那么如何选择$S$呢？初学者在理解SPPM中的共享区域$S$的时候往往容易感到困惑，认为这个区域是固定于物体表面上的，然后落于该区域的命中点就使用其对应的共享统计变量。实际上SPPM中的区域$S$是针对一个像素而言的\footnote{当然这个说法并不准确，SPPM中的区域是针对所有需要使用分布式光线追踪来计算光照的那些点，这对于运动模糊以及景深来说其实就是图像空间上的像素；然而如果考虑光泽反射，此时的区域$S$还应该对应于所有光泽面上的点，如图\ref{f:pm-distributed-rt}所示。}，通常每个像素对应一个区域，即每个像素包含一组共享变量，这个区域可以是一个像素大小，也可以包含相邻的多个像素（例如对于比较模糊区域，每个像素的值来自于周围多个像素范围内光照的混合），如图\ref{f:pm-stochastic-pmm}(a)中像素位置$x$处的区域$S$；然后所有为了计算该像素值而发出的摄像机光线产生的命中点都使用该像素对应的这组共享变量进行渐进式光子密度估计。所以这也和PPM有点区别：在PPM中从每个像素位置发出的摄像机光线一定是用于计算该像素的光照的，而在SPPM中从一个像素发射出的摄像机光线可能是用于计算相邻或附近像素的光照值的，这都由一些分布式光线追踪效果（如运动模糊，景深等）导致的结果。
+那么如何选择$S$呢？初学者在理解SPPM中的共享区域$S$的时候往往容易感到困惑，认为这个区域是固定于物体表面上的，然后落于该区域的命中点就使用其对应的共享统计变量。实际上SPPM中的区域$S$是针对一个像素而言的\footnote{当然这个说法并不准确，SPPM中的区域是针对所有需要使用分布式光线追踪来计算光照的那些点，这对于运动模糊以及景深来说其实就是图像空间上的像素；然而如果考虑光泽反射，此时的区域$S$还应该对应于所有光泽面上的点，如图\ref{f:pm-distributed-rt}所示。}，通常每个像素对应一个区域，即每个像素包含一组共享变量，这个区域可以是一个像素大小，也可以包含相邻的多个像素（例如对于比较模糊区域，每个像素的值来自于周围多个像素范围内光照的混合），如图\ref{f:pm-stochastic-pmm}(a)中像素位置$x$处的区域$S$；然后所有为了计算该像素值而发出的摄像机光线产生的命中点都使用该像素对应的这组共享变量进行渐进式光子密度估计。所以这也和PPM有点区别：在PPM中从每个像素位置发出的摄像机光线一定是用于计算该像素的光照的，而在SPPM中从一个像素发射出的摄像机光线可能是用于计算相邻或附近像素的光照值的，这都是由一些分布式光线追踪效果（如运动模糊，景深等）导致的结果。
 
-其次，使用分布式光子追踪对每个像素生成命中点，如图\ref{f:pm-stochastic-pmm}(b)所示。通常在每个迭代每个像素只产生一条摄像机光线，为了实现分布式光子追踪效果，该光线的方向从该像素对应的区域$S$中随机采样生成，该光线在场景中传播遇到漫反射表面时停止产生一个命中点，如算法\ref{a:pm-sppmpixel}中的$vp$变量即表示该像素对应的命中点。由于每个命中点都与一个像素关联，因此在后续的概率密度估计中，该命中点使用的统计变量来自于第一步中构建的该像素的共享统计变量。当当前的迭代结束之后，所有的命中点被删除，在下一次迭代中重新生成新的命中点。这也便是SPPM打破命中点内存限制的关键：它将所有摄像机光线分拆到多个迭代中，每个迭代只需要存储和总的像素数量相等的命中点数据。
+其次，使用分布式光子追踪对每个像素生成命中点，如图\ref{f:pm-stochastic-pmm}(b)所示。通常在每个迭代每个像素只产生一条摄像机光线，为了实现分布式光子追踪效果，该光线的方向从该像素对应的区域$S$中随机采样生成，该光线在场景中传播遇到漫反射表面时停止产生一个命中点，如算法\ref{a:pm-sppmpixel}中的vp变量即表示该像素对应的命中点。由于每个命中点都与一个像素关联，因此在后续的概率密度估计中，该命中点使用的统计变量来自于第一步中构建的该像素的共享统计变量。当当前的迭代结束之后，所有的命中点被删除，在下一次迭代中重新生成新的命中点。这也便是SPPM打破命中点内存限制的关键：它将所有摄像机光线分拆到多个迭代中，每个迭代只需要存储和总的像素数量相等的命中点数据。
 
 最后，使用光子追踪生成光子图并对命中点（所属的像素）进行估计，如图\ref{f:pm-stochastic-pmm}(c)所示。这和PPM中的光子追踪通道没有其他什么区别，唯一不同的是，式\ref{e:pm-shared-statistics}中的命中点$\vec{s}_i$的位置是由每次分布式光线追踪随机生成的，而不是像PPM中那样一个固定的命中点位置；光子追踪通道结束之后按式\ref{e:pm-shared-statistics}对每个命中点所属的像素的共享统计变量进行更新。
 
@@ -787,7 +788,7 @@ struct SPPMPixel {
 
 
 \subsubsection{基础条件}\label{sec:pm-ppm-basis}
-如前面的内容可知，渐进式光子映射的思路是通过逐渐减小估计的半径，并同时增加参与估计的光子数量，来实现估计的方差和偏差逐渐消失的结果，及满足一致性。这涉及多个变量的控制，它使得迭代算法变得复杂，实践上我们希望通过少量的变量来控制整个渐进式收敛的过程（例如SPPM通过一个参数$\alpha$来控制半径缩小的速度即整个收敛的过程），这就需要找出这些变量之间的关系。
+如前面的内容可知，渐进式光子映射的思路是通过逐渐减小估计的半径，并同时增加参与估计的光子数量，来实现估计的方差和偏差逐渐消失的结果，即满足一致性。这涉及多个变量的控制，它使得迭代算法变得复杂，实践上我们希望通过少量的变量来控制整个渐进式收敛的过程（例如SPPM通过一个参数$\alpha$来控制半径缩小的速度即整个收敛的过程），这就需要找出这些变量之间的关系。
 
 本节我们就通过概率的方法来寻找这些变量之间的关系。通过本章前面的内容可知，辐射亮度估计为：
 
@@ -795,7 +796,7 @@ struct SPPMPixel {
 	L(x,\omega)\approx \cfrac{1}{J}\sum^{J}_{j=1}k_r(x_j-x)\gamma_j
 \end{equation}
 
-其中，$J$表示该次迭代发射的光子总数，$\gamma_j$表示每个光子的光照贡献，$k_r$表示用于平滑的核函数。
+\noindent 其中，$J$表示该次迭代发射的光子总数，$\gamma_j$表示每个光子的光照贡献，$k_r$表示用于平滑的核函数。
 
 针对该估计，我们希望通过概率的方法来分析各个变量之间的关系，即我们要分析上述估计的误差$\epsilon(x,r)$的一些特征，该误差定义为估计和真实值之间的差：
 
@@ -803,13 +804,13 @@ struct SPPMPixel {
 	\epsilon(x,r)= \cfrac{1}{J}\sum^{J}_{j=1}k_r(x_j-x)\gamma_j-L(x,\omega)
 \end{equation}
 
-首先我们来分析该估计的方差，即$Var[\epsilon (x,r)]$，假设核函数$k_r$范围内的光子概率密度为常数$p_i(x)$，并将光子光照值$\gamma_j$看做一个随机变量，\cite{a:ProgressivePhotonMappingAProbabilisticApproach}得处该方差可以近似为：
+首先我们来分析该估计的方差，即$Var[\epsilon (x,r)]$，假设核函数$k_r$范围内的光子概率密度为常数$p_i(x)$，并将光子光照值$\gamma_j$看做一个随机变量，\cite{a:ProgressivePhotonMappingAProbabilisticApproach}得出该方差可以近似为：
 
 \begin{equation}
 	Var[\epsilon(x,r)]\approx \cfrac{(Var[\gamma]+E[\gamma]^{2})p_l(x)}{Mr^{2}}{\rm \int}_{\mathcal{R}^{2}}k(\psi)^{2}{\rm d}\psi
 \end{equation}
 
-上式说明，辐射亮度估计的方差与发射的光子数量和估计的半径的平方成反比，给定一个期望的方差值$Var[epsilon]$，我们可以通过下式计算出对应的估计半径：
+上式说明，辐射亮度估计的方差与发射的光子数量和估计的半径的平方成反比，给定一个预期的方差值$Var[\epsilon]$，可以通过下式计算出对应的估计半径：
 
 \begin{equation}
 	r(x,Var[\epsilon])\approx\sqrt{ \cfrac{(Var[\gamma]+E[\gamma]^{2})p_l(x)}{MVar[\epsilon]}{\rm \int}_{\mathcal{R}^{2}}k(\psi)^{2}{\rm d}\psi}
@@ -821,7 +822,7 @@ struct SPPMPixel {
 	E[\epsilon (x,r)]=r^{2}E[\gamma]\tau
 \end{equation}
 
-其中，$\tau$是一个常数我们将在第\ref{sec:pm-adaptive-ppm}节讨论。上式说明了辐射亮度估计的偏差与估计半径的平方成正比，因此随着半径的逐渐减小而消失。
+其中，$\tau$是一个常数，我们将在第\ref{sec:pm-adaptive-ppm}节讨论。上式说明了辐射亮度估计的偏差与估计半径的平方成正比，因此随着半径的逐渐减小而消失。
 
 本节的内容揭示了辐射亮度估计方差，偏差以及半径之间的关系，它们的结果将被用于后面的分析当中。
 
@@ -847,7 +848,7 @@ struct SPPMPixel {
 
 \noindent 其中，$W(x,\omega)$是一个权重系数，它描述每个表面位置$x$处沿$\omega$方向的辐射亮度对像素值的贡献。这个权重可以包含用于反走样的像素过滤器，也可以包含一些分布式光线追踪效果，如运动模糊，景深，光泽反射等。我们通过发射摄像机光线来计算$W$，它包含了该光线到达漫反射点之前的所有（权重）系数的乘积，如图\ref{f:pm-pppm}所示。与路径追踪不同的是，式\ref{e:pm-pixel-value}中的辐射亮度$L(x,\omega)$来源于光子映射估计的结果，如图\ref{f:pm-pppm}所示。
 
-为了便于分析，\cite{a:ProgressivePhotonMappingAProbabilisticApproach}使用$\hat{L}(x,\omega)=L(x,\omega)+\epsilon$来表述其估计的近似值，其中$L(x,\omega)$表示真实值，$\epsilon$表示由于光子密度估计而引入的误差，见式\ref{e:pm-ppm-error}。使用上述的模型，我们可以得到最终像素值的蒙特卡洛估计为：
+为了便于分析，\cite{a:ProgressivePhotonMappingAProbabilisticApproach}使用$\hat{L}(x,\omega)=L(x,\omega)+\epsilon$来表述其估计的近似值，其中$L(x,\omega)$表示真实值，$\epsilon$表示由于光子密度估计而引入的误差，见式\ref{e:pm-ppm-error}。使用上述的模型可以得到最终像素值的蒙特卡洛估计为：
 
 \begin{equation}\label{e:pm-mc-ppm}
 	\hat{I}_N= \cfrac{1}{N}\sum^{N}_{i=1} \cfrac{W_i}{p_{e,i}}(L(x_i,\omega_i)+\epsilon_i)
@@ -885,7 +886,7 @@ struct SPPMPixel {
 \end{aligned}
 \end{equation}
 
-\noindent 上式中，第一项可以看做是传统的蒙特卡洛估计的方差，其按$1/N$的速度收敛至0，所以我们只需要考虑第二项。假设$W/p_e$和$\epsilon_i$是相互独立的，则第二项可以重写为：
+\noindent 上式第一项可以看做是传统的蒙特卡洛估计的方差，其按$1/N$的速度收敛至0，所以只需要考虑第二项。假设$W/p_e$和$\epsilon_i$是相互独立的，则其可以重写为：
 
 \begin{equation}
 \begin{aligned}
@@ -910,7 +911,7 @@ struct SPPMPixel {
 \end{aligned}
 \end{equation}
 
-\noindent 上式使用了蒙特卡洛估计的期望等于其真实值的特性，所以要使$E[\hat{I}_N]=I$，必须随着$N\to\infty$时：
+上式使用了蒙特卡洛估计的期望等于其真实值的特性，所以要使$E[\hat{I}_N]=I$，必须随着$N\to\infty$时：
 
 \begin{equation}
 	 \cfrac{1}{N}\sum^{N}_{i=1}E[\epsilon_i]=E[\bar{\epsilon}_N]\to 0
@@ -950,7 +951,7 @@ struct SPPMPixel {
 
 通过使用后面第\ref{sec:pm-adaptive-ppm}会讨论的渐进分析可以得出$Var[\bar{\epsilon}_N]$随着$N$的逐渐增加而消失，并且其消失的速度为$\mathcal{O}(1/N^{\alpha})$。所以参数$\alpha$满足了式\ref{e:pm-consistent}的第一个条件。
 
-对于式\ref{e:pm-consistent}第二个条件，由第\ref{sec:pm-ppm-basis}节的内容可知$E[\epsilon]$跟估计半径的平方$r^{2}$成正比，而$Var[\epsilon]$又与$r^{2}$成反比，因此我们可以得出$r$和参数$\alpha$之间的关系为：
+对于式\ref{e:pm-consistent}第二个条件，由第\ref{sec:pm-ppm-basis}节的内容可知$E[\epsilon]$跟估计半径的平方$r^{2}$成正比，而$Var[\epsilon]$又与$r^{2}$成反比，因此$r$和参数$\alpha$之间的关系为：
 
 \begin{equation}\label{e:pm-pppm-radius}
 	 \cfrac{r^{2}_{i+1}}{r^{2}_i}= \cfrac{Var[\epsilon_i]}{Var[\epsilon_{i+1}]}= \cfrac{i+\alpha}{i+1}
@@ -971,14 +972,14 @@ struct SPPMPixel {
 
 
 \subsubsection{算法描述}\label{sec:pm-ppppm-algorithm}
-我们已经讨论了怎样通过概率分析的方法来解释和验证渐进式光子映射。在上述的分析中，不再需要对每个命中点或每个像素区域记录一些（共享）累积变量，整个过程只需要一个控制方差变换的变量$\alpha$。因此，新的算法对内容的依赖进一步减少，并且各个迭代之间相互独立，可以并行进行。
+我们已经讨论了怎样通过概率分析的方法来解释和验证渐进式光子映射。在上述的分析中，不再需要对每个命中点或每个像素区域记录一些（共享）累积变量，整个过程只需要一个控制方差变化的变量$\alpha$。因此，新的算法对内存的依赖进一步减少，并且各个迭代之间相互独立，可以并行进行。
 
-算法\ref{a:pm-pppm}给出了基于概率分析的渐进式光子映射的算法的伪代码：
+算法\ref{a:pm-pppm}给出了基于概率分析的渐进式光子映射的算法的伪代码，其中第2行的终止条件也可以改为使用像素值估计的方差$Var[\hat{I}_N]$小于某个给定阈值，这可以通过渐进分析计算得出，换句话说，我们可以预测在经过$N$次迭代之后输出像素值的方差；第9行的半径是根据式\ref{e:pm-pppm-radius}推导而出，它可以通过初始半径$r_1$和唯一的参数$\alpha$共同计算而出，也因此该算法不需要存储任何统计变量。
 
 \begin{algorithm}
-\begin{lstlisting}[language=C++]
+\begin{lstlisting}[language=C++,mathescape]
 i = 0
-while (t < t_{\max}) {   //迭代的终止条件为时间
+while (t < $t_{\max}$) {   //迭代的终止条件为时间
 	生成光子图
 	for all pixels {
 		对每个像素发射一条摄像机光线直到击中漫反射表面
@@ -996,8 +997,6 @@ while (t < t_{\max}) {   //迭代的终止条件为时间
 \label{a:pm-pppm}
 \end{algorithm}
 
-在算法\ref{a:pm-pppm}中，第2行的终止条件也可以改为使用像素值估计的方差$Var[\hat{I}_N]$小于某个给定阈值，这可以通过渐进分析计算得出，换句话说，我们可以预测在经过$N$次迭代之后输出像素值的方差；第9行的半径是根据式\ref{e:pm-pppm-radius}推导而出，它可以通过初始半径$r_1$和唯一的参数$\alpha$共同计算而出，也因此该算法不需要存储任何统计变量。
-
 上述算法只包含两个用户参数：决定着整个估计的收敛速度的$\alpha$，以及任意的初始半径$r_1$，然后每次迭代的估计半径可以通过这两个参数直接计算而出，因此不再需要传统渐进式光子映射使用的累积变量。我们将在下一节进一步讨论这些参数对估计的影响，以及怎样选择最优化的参数。
 
 
@@ -1014,7 +1013,7 @@ while (t < t_{\max}) {   //迭代的终止条件为时间
 其中，$N$表示迭代次数，$0<\alpha<1$。\cite{a:AdaptiveProgressivePhotonMapping}进一步将其简化为一个可以直接计算的公式：
 
 \begin{equation}\label{e:pm-radius}
-	r_N=r_{1}N^{ \cfrac{\alpha-1}{2}}\propto O(N^{ \cfrac{\alpha-1}{2}})
+	r_N=r_{1}N^{ \frac{\alpha-1}{2}}\propto O(N^{ \frac{\alpha-1}{2}})
 \end{equation}
 
 之前的方法并没有对收缩系数$\alpha$和初始半径$r_1$作出比较明确的说明和选择，这两个参数却对估计有很重要的影响。如图\ref{f:pm-parameters}表示传统的渐进式光子映射在不同参数选择下的渲染结果及与参考结果的差异，首先图\ref{f:pm-parameters}(b)使用了较大的初始半径（$k=50$）以及较小的收缩系数（$\alpha=0.5$），较大的半径导致了较大的偏差，例如焦散面被过度平滑而与参考结果呈现较大的差异，同时又由于过快的半径收缩使得噪点也过早出现；图\ref{f:pm-parameters}(a)减小了初始半径，因此减小了偏差，但是过小的估计半径以及过快的收缩速度使得噪点比较严重；同样，对于图\ref{f:pm-parameters}(d)，过大的初始半径以及过慢的收缩速度导致过大的偏差；对于图\ref{f:pm-parameters}(c)，太小的初始半径导致较多的噪点，并且由于收缩速度过慢而过早出现偏差。
@@ -1027,7 +1026,7 @@ while (t < t_{\max}) {   //迭代的终止条件为时间
 \end{fullwidth}
 \end{figure}
 
-本节，我们将以更严谨的理论分析这些参数的意义，以及怎样选择最合适的参数来使得估计的收敛速度最快，并且在有限的样本数量下，估计的均方差最小。
+本节将以更严谨的理论分析这些参数的意义，以及怎样选择最合适的参数来使得估计的收敛速度最快，并且在有限的样本数量下，估计的均方差最小。
 
 
 
@@ -1053,7 +1052,7 @@ while (t < t_{\max}) {   //迭代的终止条件为时间
 	\label{f:pm-opt-a}
 \end{figure}
 
-我们首先需要推导出渐进式光子映射估计的渐进均方差（asymptotic mean squared error，AMSE）\myindex{渐进均方差}{asymptotic mean squared error}，它由方差$Var[\hat{I}_N]$和偏差$B[\hat{I}_N]$的平方组成，其中方差由两个来源：即发射摄像机光线产生的方差以及核估计产生的方差，这里由于核估计产生的方差远远小于摄像机光线产生的方差，所以可以忽略不计，而偏差主要是来源于辐射亮度估计，综合前面的一些知识，可以得出AMSE的近似值为：
+我们首先需要推导出渐进式光子映射估计的渐进均方差（asymptotic mean squared error，AMSE）\myindex{渐进均方差}{asymptotic mean squared error}，它由方差$Var[\hat{I}_N]$和偏差$B[\hat{I}_N]$的平方组成，其中方差有两个来源：即发射摄像机光线产生的方差以及核估计产生的方差，这里由于核估计产生的方差远远小于摄像机光线产生的方差，所以可以忽略不计，而偏差主要是来源于辐射亮度估计，综合前面的一些知识，可以得出AMSE的近似值为：
 
 \begin{equation}\label{e:pm-mse}
 \begin{aligned}
@@ -1080,9 +1079,7 @@ while (t < t_{\max}) {   //迭代的终止条件为时间
 	r_N=r_1N^{-1/6}\propto O(N^{-1/6})
 \end{equation}
 
-这也是一般统计学中渐进分析中的最优收缩率。
-
-如果把最优$\alpha$参数值代入前面的方差和偏差的表述中，可以得到相同的收敛速度$O(N^{-2/3})$，因此$\alpha_{opt}$使得总的均方差MSE的收敛速度最快，任何其他非$\alpha_{opt}$值都会导致方差和偏差不一致的收敛速度，因此整个均方差的收敛速度减慢。
+这也是一般统计学中渐进分析中的最优收缩率。如果把最优$\alpha$参数值代入前面的方差和偏差的表述中，可以得到相同的收敛速度$O(N^{-2/3})$，因此$\alpha_{opt}$使得总的均方差MSE的收敛速度最快，任何其他非$\alpha_{opt}$值都会导致方差和偏差不一致的收敛速度，因此整个均方差的收敛速度减慢。
 
 
 
@@ -1097,7 +1094,7 @@ while (t < t_{\max}) {   //迭代的终止条件为时间
 
 我们来比较一下渐进式光子映射和传统蒙特卡洛估计的收敛速度，由于蒙特卡洛估计是无偏的，因此均方差只包含方差项，即：$AMSE[MC]=Var[MC]\propto O(M^{-1})$，这里$M$表示每个像素对应的全路径采样的数量。由于PPM的收敛速度为$O(N^{-2/3})$因此比蒙特卡洛估计的收敛速度要慢，这是因为在PPM中构造一条全路径（从光源到摄像机）的概率同时还正比于估计面积$\pi r^{2}_N$，其收敛速度为$O(N^{-1/3})$，因此减小了全路径构造的概率。
 
-然而这并不意味着我们应该总是采样无偏的蒙特卡洛估计，尽管蒙特卡洛估计具有更快的收敛速度，但是它包含较大的方差，其产生的噪点需要无限的路径采样才能消除，而有偏的光子映射利用偏差来换取方差的降低，因此可以在有效样本下实现更好的结果；其次，正确本章开头所描述，例如SDS路径等效果对于蒙特卡洛方法几乎是完全无能为力的。
+然而这并不意味着我们应该总是采用无偏的蒙特卡洛估计，尽管蒙特卡洛估计具有更快的收敛速度，但是它包含较大的方差，其产生的噪点需要无限的路径采样才能消除，而有偏的光子映射利用偏差来换取方差的降低，因此可以在有限样本数量下实现更好的结果；其次，正如本章开头所描述，例如SDS路径等效果对于蒙特卡洛方法几乎是完全无能为力的。
 
 
 
@@ -1105,7 +1102,7 @@ while (t < t_{\max}) {   //迭代的终止条件为时间
 
 
 \subsubsection{适应性带宽选择}
-上述我们从像素值估计的均方差$AMSE[\hat{I}_N]$与收缩系数$\alpha$之间的关系出发，推导出了渐进式光子映射的最优收缩系数$\alpha_{opt}$，然而上述最优的$\alpha_{opt}$仅定义了在无限光子数量下带宽的收缩速率，很显然我们更关心的是有限的光子数量或迭代下的最优结果，即特定迭代次数下最小的均方差值，例如在图\ref{f:pm-alpha}中，初始带宽$r_1$的不同会导致特定光子数量下均方差呈现较大的差异，尽管它们可能具有相同的收缩速率，因此初始带宽$r_1$对特定迭代次数（或光子数量）下的均方差具有更重要的影响。
+上面从像素值估计的均方差$AMSE[\hat{I}_N]$与收缩系数$\alpha$之间的关系出发，推导出了渐进式光子映射的最优收缩系数$\alpha_{opt}$，然而$\alpha_{opt}$仅定义了无限光子数量下带宽的收缩速率，我们更关心的是有限的光子数量下的最优结果，即特定迭代次数下最小的均方差值，例如在图\ref{f:pm-alpha}中，初始带宽$r_1$的不同会导致特定光子数量下均方差呈现较大的差异，尽管它们可能具有相同的收缩速率，因此初始带宽$r_1$对特定迭代次数（或光子数量）下的均方差具有更重要的影响。
 
 其次，目前我们讨论的渐进式光子映射的初始带宽$r_1$都是全局的，即对所有像素使用相同的初始带宽，由于具有相同的收缩速率$\alpha$，因此所有像素在每次迭代也都使用相同的带宽$r_N$，这显然不是最优的结果，例如对那些稀疏的区域应该使用较大的带宽以减小方差，而那些频率变化较大的边缘区域，则应该使用较小的带宽以减低偏差，因此带宽应该具有局部适应性。
 
@@ -1135,8 +1132,7 @@ while (t < t_{\max}) {   //迭代的终止条件为时间
 	\label{f:pm-path-space}
 \end{figure}
 
-这个新的表述形式使得我们可以将统计中核平滑相关的一些结论运用于PPM中最优带宽的选择。
-
+这个新的表述形式使得我们可以将统计中核平滑相关的一些结论运用于PPM中最优带宽的选择。这是PPM中辐射亮度估计的误差分析的结果，所以可以将误差分析放到这里作为基础。即误差分析的目的或结果就是用来指导适应性PPM，这有点和上一章的降噪技术类似。
 
 \begin{figure}
 	\sidecaption
@@ -1145,7 +1141,9 @@ while (t < t_{\max}) {   //迭代的终止条件为时间
 	\label{f:pm-pppm-error}
 \end{figure}
 
-这是PPM中辐射亮度估计的误差分析的结果，所以可以将误差分析放到这里作为基础。即误差分析的目的或结果就是用来指导适应性PPM，这有点和上一章的降噪技术类似。
+
+
+
 
 
 \section{顶点连接与合并}\label{sec:pm-vcm}
@@ -1194,7 +1192,7 @@ while (t < t_{\max}) {   //迭代的终止条件为时间
 	\hat{I}=\sum^{m}_{i=1} \cfrac{1}{n_i}\sum^{n_i}_{j=1}w_i(X_{i,j}) \cfrac{f(X_{i,j})}{p_i(X_{i,j})}
 \end{equation}
 
-\noindent 这里$i$表示$m$不同的采样技术，$n_i$表示每种采样技术对应的样本数量，权重系数$w_i(X_{i,j})=[n_ip_i(x)]^{\beta}/\sum^{n}_{k=1}[n_kp_k(x)]^{\beta}$称为一个幂启发式（power heuristic）\myindex{幂启发式}{power heuristic}，该权重系数用来使上述组合的估计的误差最小，当$\beta=1$时称为平衡启发式（更多相关知识详见第5章的内容），可以证明，当$\sum_iw_i(x)=1$（因此该式表述的是一种加权组合（weighted combination）\myindex{加权组合}{weighted combination}）时，式\ref{e:pm-mis}表述的组合估计是无偏的。
+这里$i$表示$m$不同的采样技术，$n_i$表示每种采样技术对应的样本数量，权重系数$w_i(X_{i,j})=[n_ip_i(x)]^{\beta}/\sum^{n}_{k=1}[n_kp_k(x)]^{\beta}$称为一个幂启发式（power heuristic）\myindex{幂启发式}{power heuristic}，该权重系数用来使上述组合的估计的误差最小，当$\beta=1$时称为平衡启发式（更多相关知识详见第5章的内容），可以证明，当$\sum_iw_i(x)=1$（因此该式表述的是一种加权组合（weighted combination）\myindex{加权组合}{weighted combination}）时，式\ref{e:pm-mis}表述的组合估计是无偏的。
 
 式\ref{e:pm-mis}为我们提供了一种组合多种采样技术的简单而有效的方法，并且能够给予那些贡献值更大的样本以更大的权重。例如对于第4章中讨论的计算一个光泽面的来自圆形面积光源的光照贡献，当光源面积较小时，对光源面积分布函数进行采样将得到更优的结果，而当光源面积足够大时，直接对光泽面的BRDF分布函数进行方向采样得到的结果更优，而更好的办法就是使用上面讨论的复合重要性采样来组合两种采样技术。
 
@@ -1204,15 +1202,15 @@ while (t < t_{\max}) {   //迭代的终止条件为时间
 
 
 \paragraph{路径采样技术}
-那么，在路径追踪技术中，一种采样技术是如何定义的呢，或者是复合重要性采样如何运用于路径追踪技术。
+那么，在路径追踪技术中，一种采样技术是如何定义的呢，或者说复合重要性采样如何运用于路径追踪技术。
 
-在传统的单向路径追踪（unidirectional path tracing）\myindex{单向路径追踪}{unidirectional path tracing}技术中，很显然它只包含一种采样技术：即首先从摄像机经过某个像素区域内的一个随机位置开始，然后光线在场景中的传播过程中通过对每个顶点处的BRDF分布采样来反射/折射光线，最后直到随机的BRDF方向采样击中某个光源或者被某种终止条件（如俄罗斯轮盘）丢弃。在这个过程中，对于所有路径样本，它们都使用同一个分布函数采样而得。如果算上从光源出发直到击中摄像机的反向路径采样，则单向路径追踪总共包含2中采样技术，如图\ref{f:pm-sampling-techniques}(a)所示。需要注意的是，单向路径的长短并不能形成不同的采样技术，因为其使用的概率分布函数的形式没变，只是在该分布下作用域内某些区域的取值很小或者为0。
+在传统的单向路径追踪（unidirectional path tracing）\myindex{单向路径追踪}{unidirectional path tracing}技术中，很显然它只包含一种采样技术：即首先从摄像机经过某个像素区域内的一个随机位置开始，然后光线在场景中的传播过程中通过对每个顶点处的BRDF分布采样来反射/折射光线，最后直到随机的BRDF方向采样击中某个光源或者被某种终止条件（如俄罗斯轮盘）丢弃。在这个过程中，对于所有路径样本，它们都使用同一个分布函数采样而得。如果算上从光源出发直到击中摄像机的反向路径采样，则单向路径追踪总共包含2种采样技术，如图\ref{f:pm-sampling-techniques}(a)所示。需要注意的是，单向路径的长短并不能形成不同的采样技术，因为其使用的概率分布函数的形式没变，只是在该分布下作用域内某些区域的取值很小或者为0。
 
 \begin{myshaded}
-	为什么单向路径追踪包含两种采样技术？这是因为前向路径的概率分布函数为像素区域中均匀分布与路径中各个BRDF及可见性函数的乘积，而反向路径的概率分布函数为光源分布函数与路径中各个BRDF及可见性函数的乘积，由此可见这两个是完全不同的概率分布函数，因此单向路径追踪对应2中采样技术。
+	为什么单向路径追踪包含两种采样技术？这是因为前向路径的概率分布函数为像素区域中均匀分布与路径中各个BRDF及可见性函数的乘积，而反向路径的概率分布函数为光源分布函数与路径中各个BRDF及可见性函数的乘积，由此可见这两个是完全不同的概率分布函数，因此单向路径追踪对应2种采样技术。
 \end{myshaded}
 
-对于双向路径采样，它通过连接两条分别来自摄像机和光源的子路径形成一条完全路径，其中来自光源子路径的$s$个顶点和来自摄像机子路径的$t$个顶点连接形成一条包含$s+t$个顶点的长度为$k=s+1-1$的全路径。每条路径的概率密度函数为两条子路径概率密度函数的乘积，可表述为：
+对于双向路径采样，它通过连接两条分别来自摄像机和光源的子路径形成一条完全路径，其中来自光源子路径的$s$个顶点和来自摄像机子路径的$t$个顶点连接形成一条包含$s+t$个顶点的长度为$k=s+t-1$的全路径。每条路径的概率密度函数为两条子路径概率密度函数的乘积，可表述为：
 
 \begin{equation}\label{e:pm-mis-pdf}
 	p_{s,t}(\vec{x}_{s,t})=\Biggl(p(y_1)\prod^{s-1}_{i=1}p(y_{i+1}|y_i)\Biggl)\Biggl(p(z_1)\prod^{t-1}_{i=1}p(z_{i+1}|z_i)\Biggl)
@@ -1223,11 +1221,11 @@ while (t < t_{\max}) {   //迭代的终止条件为时间
 \begin{figure}
 	\sidecaption
 	\includegraphics[width=.65\textwidth]{figures/pm/sampling-techniques}
-	\caption{路径采样使用的不同的采样技术，对于路径长度为$k$（这里$k=3$）的全路径，传统的单向路径采样使用2中采样技术，双向路径采样增加$k$中采样技术，而顶点合并增加$k-1$种新的采样技术}
+	\caption{路径采样使用的不同的采样技术，对于路径长度为$k$（这里$k=3$）的全路径，传统的单向路径采样使用2种采样技术，双向路径采样增加$k$种采样技术，而顶点合并增加$k-1$种新的采样技术}
 	\label{f:pm-sampling-techniques}
 \end{figure}
 
-很显然，在双向路径追踪技术中，对于相同长度$k$的全路径，不同的$s$和$t$形成的路径的概率密度函数是不同的\footnote{注意，对于式\ref{e:pm-mis-pdf}，不能简单地看成为光源面积分布$p_(y_1)$，像素位置分布$p(z_1)$以及中间各路径顶点BRDF分布和可见性函数几项的乘积，这里两条路径的连接处并没有遵循对应的BRDF分布，而是直接连接形成一条全路径，这导致了每个$s,t$的组合具有完全不同的概率分布。}，也因此对于整个路径空间，每个路径长度对应的路径的概率分布也是不同的，因此每一个长度$k$以及对应的每一个$s,t$的组合都构成一个不同的采样技术。长度为$k$的双向路径采样一共包含$k$中采样技术（这里排除了包含$s=0,t=k+1$以及$s=k+1,t=0$的两种特殊情况，即单向路径采样），如图\ref{f:pm-sampling-techniques}(b)所示。
+很显然，在双向路径追踪技术中，对于相同长度$k$的全路径，不同的$s$和$t$形成的路径的概率密度函数是不同的\footnote{注意，对于式\ref{e:pm-mis-pdf}，不能简单地看成为光源面积分布$p_(y_1)$，像素位置分布$p(z_1)$以及中间各路径顶点BRDF分布和可见性函数几项的乘积，这里两条路径的连接处并没有遵循对应的BRDF分布，而是直接连接形成一条全路径，这导致了每个$s,t$的组合具有完全不同的概率分布。}，也因此对于整个路径空间，每个路径长度对应的路径的概率分布也是不同的，因此每一个长度$k$以及对应的每一个$s,t$的组合都构成一个不同的采样技术。长度为$k$的双向路径采样一共包含$k$种采样技术（这里排除了包含$s=0,t=k+1$以及$s=k+1,t=0$的两种特殊情况，即单向路径采样），如图\ref{f:pm-sampling-techniques}(b)所示。
 
 由此，双向路径追踪下的复合重要性采样估计可以表述为：
 
@@ -1235,9 +1233,9 @@ while (t < t_{\max}) {   //迭代的终止条件为时间
 	\hat{I}=\sum^{\infty}_{M=1}\sum^{M+1}_{s=0}w_{s,t}(\vec{x}_{s,t}) \cfrac{f(\vec{x}_{s,t})}{p_{s,t}(\vec{x}_{s,t})}
 \end{equation}
 
-\noindent 为了表述简便这里定义$t=M+1-s$，通常这里设置$n_i=1$（参见\cite{a:OptimallyCombiningSamplingTechniquesforMonteCarloRendering}）。
+为了表述简便这里定义$t=M+1-s$，通常这里设置$n_i=1$（参见\cite{a:OptimallyCombiningSamplingTechniquesforMonteCarloRendering}）。
 
-至此，我们便复习了理解顶点合并技术需要的全部基础知识，在下一节我们还将讨论顶点合并技术并且看到它为长度为$k$的全路径额外增加$k-1$种采样技术，如图\ref{f:pm-sampling-techniques}(c)所示。
+至此，我们复习了理解顶点合并技术需要的全部基础知识，在下一节我们还将讨论顶点合并技术并且看到它为长度为$k$的全路径额外增加$k-1$种采样技术，如图\ref{f:pm-sampling-techniques}(c)所示。
 
 
 
@@ -1282,7 +1280,7 @@ while (t < t_{\max}) {   //迭代的终止条件为时间
 
 我们已经将光子映射定义为一种在扩展路径空间下的采样技术，以及其对应的概率密度函数，因此我们可以直接使用上述定义对光子映射技术使用复合重要性采样：即和双向路径追踪的复合重要性采样类似，路径上每一个不同位置处被运用辐射亮度估计都被对应一种不同的采样技术，最后对所有这些采样技术的值进行加权组合，例如\cite{a:BidirectionalPhotonMapping}。
 
-然而，我们并不能直接将像素值的估计在BPT和PM之间进行复合重要性组合，这是因为，对于给定长度的路径，相较于使用BPT采样得到的常规路径，使用PM采样得到的扩展路径拥有一个额外的顶点，即光子所在的位置$x^{*}_s$。因此，扩展路径空间对应的概率密度函数比常规路径空间的概率密度函数的作用域拥有跟高的维度，而复合重要性采样技术中的幂启发式依赖于所有概率密度函数具有相同的定义域以产生一个有意义的权重值。
+然而，我们并不能直接将像素值的估计在BPT和PM之间进行复合重要性组合，这是因为，对于给定长度的路径，相较于使用BPT采样得到的常规路径，使用PM采样得到的扩展路径拥有一个额外的顶点，即光子所在的位置$x^{*}_s$。因此，扩展路径空间对应的概率密度函数比常规路径空间的概率密度函数的作用域拥有更高的维度，而复合重要性采样技术中的幂启发式依赖于所有概率密度函数具有相同的定义域以产生一个有意义的权重值。
 
 所以，为了组合BPT和PM并对它们运用复合重要性采样，我们需要将具有相同路径长度并分别通过BPT和PM进行采样的概率密度函数表述在相同的测量空间，任意选取常规路径空间和扩展路径空间都是合适的，例如\cite{a:APathSpaceExtensionforRobustLightTransportSimulation}选择使用扩展空间，而\cite{a:LightTransportSimulationwithVertexConnectionandMerging}选择常规空间，它们两者本质上产生相同的结果，以下我们以后者为例进行介绍，因为这可以保持原始路径积分公式及其相关技术不需要发生改变，同时其过程更易于理解。
 
@@ -1291,7 +1289,7 @@ while (t < t_{\max}) {   //迭代的终止条件为时间
 
 
 \subsubsection{光子映射在常规路径下的采样}
-为了将光子映射视作在常规（而不是扩展）路径空间的采样，\cite{a:LightTransportSimulationwithVertexConnectionandMerging}使用顶点合并（vertex merging）\myindex{顶点合并}{vertex merging}的技术，将光子映射产生的全路径中光子所在的顶点$x^{*}_s$移除掉，形成一条常规路径：$\bar{x}=x_0\cdots x_k$，如图\ref{f:pm-vcm}(b)所示，对于$x_s$周围距离$r$范围内的所有光子，每一个光子都产生一条这样的常规路径。这样光子映射使用的采样概率密度函数就和双向路径追踪使用的概率密度函数具有相同的定义域\footnote{与之相对的是，我们也可以选择以扩展路径空间为基准，例如\cite{a:APathSpaceExtensionforRobustLightTransportSimulation}，这时我们只需要将BPT和PM中具有相同数量顶点（包括参与光子密度估计的顶点$x^{*}_s$）路径的样本进行复合重要性组合即可。}，因此它们之间可以进行复合重要性复合。由此也可以看出，对于长度为$k$的路径，光子映射能够增加$k-1$种新的采样技术，它们分别对应于路径内部各顶点处的合并操作，如图\ref{f:pm-sampling-techniques}(c)所示。
+为了将光子映射视作在常规（而不是扩展）路径空间的采样，\cite{a:LightTransportSimulationwithVertexConnectionandMerging}使用顶点合并（vertex merging）\myindex{顶点合并}{vertex merging}的技术，将光子映射产生的全路径中光子所在的顶点$x^{*}_s$移除掉，形成一条常规路径：$\bar{x}=x_0\cdots x_k$，如图\ref{f:pm-vcm}(b)所示，对于$x_s$周围距离$r$范围内的所有光子，每一个光子都产生一条这样的常规路径。这样光子映射使用的采样概率密度函数就和双向路径追踪使用的概率密度函数具有相同的定义域\footnote{与之相对的是，我们也可以选择以扩展路径空间为基准，例如\cite{a:APathSpaceExtensionforRobustLightTransportSimulation}，这时我们只需要将BPT和PM中具有相同数量顶点（包括参与光子密度估计的顶点$x^{*}_s$）路径的样本进行复合重要性组合即可。}，因此它们之间可以进行重要性复合。由此也可以看出，对于长度为$k$的路径，光子映射能够增加$k-1$种新的采样技术，它们分别对应于路径内部各顶点处的合并操作，如图\ref{f:pm-sampling-techniques}(c)所示。
 
 我们应该怎样解释这样一条光子映射产生的常规路径呢？首先该路径的贡献值显然是不变的，每个采样值按照传统的光子映射算法计算而出，我们需要解释的是其使用的概率密度函数的形式及其逻辑。
 
@@ -1311,7 +1309,7 @@ while (t < t_{\max}) {   //迭代的终止条件为时间
 
 
 \subsubsection{统一的公式形式}
-通过使用顶点合并，我们将光子映射表述为一种在常规路径空间下的采样技术，并得到了其概率密度函数，因此我们便可以将双向路径追踪和光子映射两种采样技术通过复合重要性采样组合起来，得到一个误差更小的估计。我们称这种组合的渲染算法为顶点连接与合并（vertex connection and merging，VCM）\myindex{顶点连接与合并}{vertex connection and merging}。与之对应，\cite{a:APathSpaceExtensionforRobustLightTransportSimulation}针对扩展路径空间对BPT和PM两种技术的复合重要性组合称为统一路径采样（unified path sampling，UPS）\myindex{统一路径采样}{unified path sampling}，由于这两种技术本质上是一致的，所以也统称这种技术为VCM/UPS。
+通过使用顶点合并，我们将光子映射表述为一种在常规路径空间下的采样技术，并得到了其概率密度函数，因此我们便可以将双向路径追踪和光子映射两种采样技术通过复合重要性采样组合起来，得到一个误差更小的估计。这种组合的渲染算法称为顶点连接与合并（vertex connection and merging，VCM）\myindex{顶点连接与合并}{vertex connection and merging}。与之对应，\cite{a:APathSpaceExtensionforRobustLightTransportSimulation}针对扩展路径空间对BPT和PM两种技术的复合重要性组合称为统一路径采样（unified path sampling，UPS）\myindex{统一路径采样}{unified path sampling}，由于这两种技术本质上是一致的，所以也统称这种技术为VCM/UPS。
 
 使用$\hat{I}_{VC}$表示通过顶点连接（BPT）产生的估计值，$\hat{I}_{VM}$表示通过顶点合并产生的估计值：
 
@@ -1323,9 +1321,9 @@ while (t < t_{\max}) {   //迭代的终止条件为时间
 \end{aligned}
 \end{equation}
 
-\noindent 上式可以看成是对双向路径追踪\cite{a:RobustMonteCarloMethodsforLightTransportSimulation}（即式\ref{e:pm-bpt-mis}）的一个扩展，针对摄像机子路径上的每个顶点，它们分别被$n_{VC}$条光源子路径上的顶点相连接，或者与$n_{VM}$个光源子路径的顶点发生合并。注意这里BPT采样部分包含了2种单向路径采样技术（$t=0$或者$s=0$），而PM采样部分则排除了每个子路径首尾两个顶点（$t=0,1$或者$s=0,1$）的合并：光源直接可见的点使用直接光计算贡献值更大，而对于摄像机可见的顶点，光子密度估计的误差很大。
+上式是对双向路径追踪\cite{a:RobustMonteCarloMethodsforLightTransportSimulation}（即式\ref{e:pm-bpt-mis}）的一个扩展，针对摄像机子路径上的每个顶点，它们分别与$n_{VC}$条光源子路径上的顶点相连接，或者与$n_{VM}$个光源子路径的顶点发生合并。注意这里BPT采样部分包含了2种单向路径采样技术（$t=0$或者$s=0$），而PM采样部分则排除了每个子路径首尾两个顶点（$t=0,1$或者$s=0,1$）的合并：光源直接可见的点使用直接光计算贡献值更大，而对于摄像机可见的顶点，光子密度估计的误差很大。
 
-通过式\ref{e:pm-bpt-and-pm-mis}还可以实现在UPT，BPT和PM之间的自由切换和组合，例如设置$n_{VC}=0$，则该算法变为纯光子映射；如果设置$n_{VM}=0$，则该算法变为双向路径追踪，如果同时设置$n_{VM}=0$，并且限制$s=0$或者$t=0$，则该算法变为单向路径追踪。实际上Renderman\footnote{参见：\url{https://rmanwiki.pixar.com/display/REN/PxrVCM}。}就通过connectPaths和mergePaths两个参数来控制是否需要双向路径采样或光子映射采样，从而实现三者之间的无缝切换，这可以用来对比不同的技术对光照的不同贡献。
+通过式\ref{e:pm-bpt-and-pm-mis}还可以实现在UPT，BPT和PM之间的自由切换和组合，例如设置$n_{VC}=0$，则该算法变为纯光子映射；如果设置$n_{VM}=0$，则该算法变为双向路径追踪，如果同时设置$n_{VM}=0$，并且限制$s=0$或者$t=0$，则该算法变为单向路径追踪。实际上Renderman就通过connectPaths和mergePaths两个参数来控制是否需要双向路径采样或光子映射采样，从而实现三者之间的无缝切换，这可以用来对比不同的技术对光照的不同贡献。
 
 式\ref{e:pm-bpt-and-pm-mis}中的权重系数通过使用幂启发式计算可得：
 
@@ -1333,7 +1331,7 @@ while (t < t_{\max}) {   //迭代的终止条件为时间
 	w_{v,s,t}(\bar{x})= \cfrac{n^{\beta}_vp^{\beta}_{v,s,t}(\bar{x})}{n^{\beta}_{VC}\sum_{s^{'}\geq 0,t^{'}\geq 0}p^{\beta}_{VC,s^{'},t^{'}}(\bar{x})+n^{\beta}_{VM}\sum_{s^{'}\geq 2,t^{'}\geq 2}p^{\beta}_{VM,s^{'},t^{'}}(\bar{x})}
 \end{equation}
 
-\noindent 这里$v$表示使用顶点连接（$VC$）或者顶点合并（$VM$）采样技术。由于幂启发式这样的观察计算的：即更大值的概率密度函数导致更低的方差，所以上式可以用来比较不同采样技术的相对贡献，如图\ref{f:pm-bpt-vs-ppm}最右边小图所示。
+\noindent 这里$v$表示使用顶点连接（$VC$）或者顶点合并（$VM$）采样技术。由于幂启发式基于这样的观察：即更大值的概率密度函数导致更低的方差，所以上式可以用来比较不同采样技术的相对贡献，如图\ref{f:pm-bpt-vs-ppm}最右边小图所示。
 
 \begin{figure}
 \begin{fullwidth}
@@ -1347,7 +1345,7 @@ while (t < t_{\max}) {   //迭代的终止条件为时间
 
 因此$n_{VM}$的数量通常远远大于$n_{VC}$，实践中常设$n_{VC}=1$，而$n_{VM}$等于总的光源子路径的数量。这里设置$n_{VC}=1$的原因是因为渲染算法通常是迭代进行的，每个迭代通常只对每个像素发射一条摄像机路径，见下面算法的详细讨论。
 
-算法\ref{a:pm-vcm}描述了VCM的一般实现。由于路径采样的计算量比较复杂，所以一般实现都是迭代进行的，这里每个迭代处理pixelCount个摄像机子路径和pixelCount个光源子路径（pixelCount为屏幕上总的像素数量），这解释了为什么$n_{VC}=1$。其次，由于BPT和PM均需要对路径进行重用，所以这里采样和PM一样的思路，将路径采样和贡献值计算分开成两个阶段。
+算法\ref{a:pm-vcm}描述了VCM的一般实现。由于路径采样的计算量比较复杂，所以一般实现都是迭代进行的，这里每个迭代处理pixelCount个摄像机子路径和pixelCount个光源子路径（pixelCount为屏幕上总的像素数量），这解释了为什么$n_{VC}=1$。其次，由于BPT和PM均需要对路径进行重用，所以这里采用和PM一样的思路，将路径采样和贡献值计算分开成两个阶段。
 
 \begin{algorithm}
 \begin{lstlisting}[language=C++, mathescape]
@@ -1389,7 +1387,7 @@ void ACCUM(path, technique, r, i) {
 \label{a:pm-vcm}
 \end{algorithm}
 
-在第一个阶段，首先生成pixelCount条光源子路径，并构建光子图，这里其实将BPT和PM的光源子路径合并了，唯一不同的就是在漫反射表面处存储一个光子即可；在第二个阶段，首先对每个像素随机产生一条摄像机子路径，并使该路径在场景中随机行走直至满足终止条件，然后摄像机子路径的每个顶点与所有光源子路径进行连接或合并以计算各自对应的光照贡献，最后再按照权重系数累积计算最终的像素值。读者也可以进一步阅读该篇论文提供的开源代码\footnote{请参见：\url{https://github.com/SmallVCM/SmallVCM}}。
+在第一个阶段，首先生成pixelCount条光源子路径，并构建光子图，这里其实将BPT和PM的光源子路径合并了，唯一不同的就是在漫反射表面处存储一个光子即可；在第二个阶段，首先对每个像素随机产生一条摄像机子路径，并使该路径在场景中随机行走直至满足终止条件，然后摄像机子路径的每个顶点与所有光源子路径进行连接或合并以计算各自对应的光照贡献，最后再按照权重系数累积计算最终的像素值。读者也可以进一步阅读该篇论文提供的开源代码\cite{m:SmallVCM}。
 
 由于顶点合并引入了偏差，因此式\ref{e:pm-bpt-and-pm-mis}是有偏的，但是和PPM一样，通过渐进地减小合并半径$r$，方差和偏差在极限的情况下收敛至0，从而使估计变得一致。式\ref{e:pm-bpt-and-pm-mis}的渐进式变种可以表述为：
 
@@ -1429,56 +1427,56 @@ void ACCUM(path, technique, r, i) {
 
 消光系数的值取决于介质中粒子的密度以及尺寸等物理特性，它是两种类型的光照交互作用的结果：即当光子与粒子发生交互时，它要么被粒子吸收（其光子能量被转化为另一种形式，例如热能），或者光子被散射到另一个方向；这两种交互事件发生的相对概率分别表述为吸收系数（absorption coefficient）$\sigma_a$，如图\ref{f:pm-medium-properties}(a)所示，和散射系数（scattering coefficient）$\sigma_s$，如图\ref{f:pm-medium-properties}(c)所示，因此消光系数可表述为：$\sigma_t=\sigma_a+\sigma_s$。需要注意的是，同$\sigma_t$一样，$\sigma_a$和$\sigma_s$的单位仍为$1/m$，因为在实际问题中我们更专注光束在其传输的一定厚度（thickness）内的衰减情况，而不是与单个粒子的交互行为。
 
-由上述定义可知，吸收和散射描述的均是光子在单位长度距离传播过程中的衰减行为，当考虑一束光$L(\mathbf{x}\to\vec{\omega})$沿$\omega$方向穿过一个介质时（如图\ref{f:pm-participating-media}所示），由于该光束中光子的数量正比于该光束的辐射亮度$L(\mathbf{x}\to\vec{\omega})$，因此上述光束在介质中传播的净损失（net loss）可用微分方程表述为：
+由上述定义可知，吸收和散射描述的均是光子在单位长度距离传播过程中的衰减行为，当考虑一束光$L(x\to{\omega})$沿$\omega$方向穿过一个介质时（如图\ref{f:pm-participating-media}所示），由于该光束中光子的数量正比于该光束的辐射亮度$L(x\to{\omega})$，因此上述光束在介质中传播的净损失（net loss）可用微分方程表述为：
 
 \begin{equation}\label{e:pm-net-loss}
 \begin{aligned}
-	(\vec{\omega}\cdot\nabla_t)L(\mathbf{x}\to\vec{\omega})=&-(\sigma_a(\mathbf{x})+\sigma_s(\mathbf{x}))L(\mathbf{x}\to\vec{\omega})\\
-	=&-\sigma_t(\mathbf{x})L(\mathbf{x}\to\vec{\omega})
+	({\omega}\cdot\nabla_t)L(x\to{\omega})=&-(\sigma_a(x)+\sigma_s(x))L(x\to{\omega})\\
+	=&-\sigma_t(x)L(x\to{\omega})
 \end{aligned}
 \end{equation}
 
-\noindent 这里$(\vec{\omega}\cdot\nabla)$计算沿$\vec{\omega}$方向的方向导数，负数符号表示辐射亮度的减少。为了更直观地描述光束在介质中的传播，我们使用一个光束透射比（beam transmittance）\myindex{光束透射比}{beam transmittance}的概念来解上述的微分方程，记为$T_r$，光束透射比描述的是光束在介质中的两点之间沿光线传播后，保留下来的光子数量的分量，其他的光子则要么被吸收了，要么被散射到其他方向了。根据比尔定律（Beer’s Law）\mathindex{比尔定律}{Beer’s Law}，即通过对式\ref{e:pm-net-loss}执行积分计算可得：
+\noindent 这里$({\omega}\cdot\nabla)$计算沿${\omega}$方向的方向导数，负数符号表示辐射亮度的减少。为了更直观地描述光束在介质中的传播，我们使用一个光束透射比（beam transmittance）\myindex{光束透射比}{beam transmittance}的概念来解上述的微分方程，记为$T_r$，光束透射比描述的是光束在介质中的两点之间沿光线传播后，保留下来的光子数量的分量，其他的光子则要么被吸收了，要么被散射到其他方向了。根据比尔定律（Beer’s Law）\mathindex{比尔定律}{Beer’s Law}，即通过对式\ref{e:pm-net-loss}执行积分计算可得：
 
 \begin{equation}\label{e:pm-transmittance}
-	T_r(\mathbf{x}\leftrightarrow\mathbf{x}^{'})={\rm e}^{-\tau(\mathbf{x}\leftrightarrow\mathbf{x}^{'})}
+	T_r(x\leftrightarrow x^{'})={\rm e}^{-\tau(x\leftrightarrow x^{'})}
 \end{equation}
 
 \noindent 其中，$\tau$称为光学厚度（optical thickness）\myindex{光学厚度}{optical thickness}或者光学深度（optical depth）\myindex{光学深度}{optical depth}，它可以通过对消光系数沿一个线段执行积分计算而得：
 
 \begin{equation}
-	\tau(\mathbf{x}\leftrightarrow\mathbf{x}^{'})={\rm \int}^{d}_{0}\sigma_t(\mathbf{x}+t\vec{\omega}){\rm d}t
+	\tau(x\leftrightarrow x^{'})={\rm \int}^{d}_{0}\sigma_t(x+t{\omega}){\rm d}t
 \end{equation}
 
-\noindent 这里$\mathbf{x}+t\vec{\omega}$表示的是$\mathbf{x}$和$\mathbf{x}^{'}$之间的一条线段，其中$d=||\mathbf{x}^{'}-\mathbf{x}||$。在均质介质（homogeneous medium）\myindex{均质介质}{homogeneous medium}中，$\sigma_t$，$\sigma_s$和$\sigma_a$均是与位置无关的常数，则$\tau$可以简化为：
+\noindent 这里$x+t{\omega}$表示的是$x$和$x^{'}$之间的一条线段，其中$d=||x^{'}-x||$。在均质介质（homogeneous medium）\myindex{均质介质}{homogeneous medium}中，$\sigma_t$，$\sigma_s$和$\sigma_a$均是与位置无关的常数，则$\tau$可以简化为：
 
 \begin{equation}
-	\tau(\mathbf{x}\leftrightarrow\mathbf{x}^{'})=d\sigma_t
+	\tau(x\leftrightarrow x^{'})=d\sigma_t
 \end{equation}
 
-光束透射比的值总是介于0和之间，当仅考虑吸收和向外散射时，透射比可以用于计算减少的辐射亮度（reduced radiance）\myindex{减少的辐射亮度}{reduced radiance}：
+光束透射比的值总是介于0和1之间，当仅考虑吸收和向外散射时，透射比可以用于计算减少的辐射亮度（reduced radiance）\myindex{减少的辐射亮度}{reduced radiance}：
 
 \begin{equation}
-	L(\mathbf{x}\leftarrow\vec{\omega})=T_r(\mathbf{x}^{'}\leftrightarrow\mathbf{x})L(\mathbf{x}^{'}\to-\vec{\omega})
+	L(x\leftarrow{\omega})=T_r(x^{'}\leftrightarrow x)L(x^{'}\to-{\omega})
 \end{equation}
 
-\noindent 上式描述了辐射亮度在介质中的传播中怎样被减少了。不难看出，透射比在一条直线的三个点之间满足可乘性：
+上式描述了辐射亮度在介质中的传播中怎样被减少了。不难看出，透射比在一条直线的三个点之间满足可乘性：
 
 \begin{equation}
-	T_r(\mathbf{x}\leftrightarrow\mathbf{x}^{''})=T_r(\mathbf{x}^{'}\leftrightarrow\mathbf{x}^{'})T_r(\mathbf{x}^{'}\leftrightarrow\mathbf{x}^{''})
+	T_r(x\leftrightarrow x^{''})=T_r(x^{'}\leftrightarrow x^{'})T_r(x^{'}\leftrightarrow x^{''})
 \end{equation}
 
-\noindent 其中，$\mathbf{x}^{'}$位于$\mathbf{x}$和$\mathbf{x}^{''}$之间。
+\noindent 其中，$x^{'}$位于$x$和$x^{''}$之间。
 
-我们将在第\ref{sec:pm-transmittance-estimate}详细介绍透射比的各种估计方法。
+我们将在第\ref{sec:pm-transmittance-estimate}节详细介绍透射比的各种估计方法。
 
 
 
 
 \subsubsection{向内散射和辐射}
-光束在介质中的传播过程中，除了有原有入射辐射亮度的损失（即吸收和散射，如图\ref{f:pm-medium-properties}(a)和(c)所示），其辐射亮度也可能随着光束的传播而增加，这些增加的辐射亮度来源于向内散射和自发光。
+光束在介质中的传播过程中，除了有原有入射辐射亮度的损失，即吸收和散射，如图\ref{f:pm-medium-properties}(a)和(c)所示，其辐射亮度也可能随着光束的传播而增加，这些增加的辐射亮度来源于向内散射和自发光。
 
-粒子的散射行为在将$\vec{\omega}$方向的光子散射到其他方向的同时，也会将来自其他方向的入射光子散射到$\vec{\omega}$方向上，使增加原有光束的光子数量。我们称前者为向外散射（out-scattering）\myindex{向外散射}{out-scattering}，如图\ref{f:pm-medium-properties}(c)所示，而称后者为向内散射（in-scattering）\myindex{向内散射}{in-scattering}，如图\ref{f:pm-medium-properties}(d)所示。光子散射的方向分布使用后面即将介绍的相位函数描述，它跟表面的双向反射函数BRDF是类似的概念。
+粒子的散射行为在将${\omega}$方向的光子散射到其他方向的同时，也会将来自其他方向的入射光子散射到${\omega}$方向上，使增加原有光束的光子数量。我们称前者为向外散射（out-scattering）\myindex{向外散射}{out-scattering}，如图\ref{f:pm-medium-properties}(c)所示，而称后者为向内散射（in-scattering）\myindex{向内散射}{in-scattering}，如图\ref{f:pm-medium-properties}(d)所示。光子散射的方向分布使用后面即将介绍的相位函数描述，它跟表面的双向反射函数BRDF是类似的概念。
 
 \begin{figure}
 	\includegraphics[width=1.\textwidth]{figures/pm/medium-properties}
@@ -1486,43 +1484,43 @@ void ACCUM(path, technique, r, i) {
 	\label{f:pm-medium-properties}
 \end{figure}
 
-假设向内散射在$\vec{\omega}$方向的辐射亮度为$L_i(\mathbf{x}\to\vec{\omega})$（将在下面讨论），同前面的吸收和向外散射，向内散射导致的辐射亮度的变化（这里是增加）可有微分方程表述为：
+假设向内散射在${\omega}$方向的辐射亮度为$L_i(x\to{\omega})$（将在下面讨论），同前面的吸收和向外散射，向内散射导致的辐射亮度的变化（这里是增加）可由微分方程表述为：
 
 \begin{equation}\label{e:pm-in-scattering}
-	(\vec{\omega}\cdot\nabla_i)L(\mathbf{x}\to\vec{\omega})=
-	\sigma_s(\mathbf{x})L_i(\mathbf{x}\to\vec{\omega})
+	({\omega}\cdot\nabla_i)L(x\to{\omega})=
+	\sigma_s(x)L_i(x\to{\omega})
 \end{equation}
 
 同理，对于自发光的介质\footnote{注意，辐射传输理论中的自发光往往是指满足热平衡条件下不同形式能量的转换，例如这里使用吸收系数$\sigma_a$就表示这些发射的能量来自于吸收的能量部分，图形学中一般不模拟这种形式的自发光，而是直接使用光源，以下我们将忽略这种形式的光照的改变。}，由于自发光导致的辐射亮度的增加也可以表述为：
 
 \begin{equation}\label{e:pm-emission}
-	(\vec{\omega}\cdot\nabla_e)L(\mathbf{x}\to\vec{\omega})=
-	\sigma_a(\mathbf{x})L_e(\mathbf{x}\to\vec{\omega})
+	({\omega}\cdot\nabla_e)L(x\to{\omega})=
+	\sigma_a(x)L_e(x\to{\omega})
 \end{equation}
 
 
 
 
 \paragraph{相位函数}
-在式\ref{e:pm-in-scattering}中，$L_i(\mathbf{x}\to\vec{\omega})$表示点$\mathbf{x}$处来自所有方向的光照最终散射到$\vec{\omega}$方向上的辐射亮度的总和，如图\ref{f:pm-medium-properties}(d)所示，它涉及对整个球面方向进行积分：
+在式\ref{e:pm-in-scattering}中，$L_i(x\to{\omega})$表示点$x$处来自所有方向的光照最终散射到${\omega}$方向上的辐射亮度的总和，如图\ref{f:pm-medium-properties}(d)所示，它涉及对整个球面方向进行积分：
 
 \begin{equation}
-	L_i(\mathbf{x}\to\vec{\omega})={\rm \int}_{\Omega_{4\pi}}p(\mathbf{x},\vec{\omega}^{'}\to\vec{\omega})L(\mathbf{x}\leftarrow\vec{\omega}^{'}){\rm d}\vec{\omega}^{'}
+	L_i(x\to{\omega})={\rm \int}_{\Omega_{4\pi}}p(x,{\omega}^{'}\to{\omega})L(x\leftarrow{\omega}^{'}){\rm d}{\omega}^{'}
 \end{equation}
 
-\noindent 这里$p(\mathbf{x},\vec{\omega}^{'}\to\vec{\omega})$称为一个相位函数（phase function）\myindex{相位函数}{phase function}，其单位为$1/sr$，它描述光子在介质中某个位置处散射的方向分布，如图\ref{f:pm-phase-function}所示；相位函数的概念和表面的双向反射分布函数BRDF是类似的，其区别为相位函数用于介质内部，因此适用于整个球面空间的所有方向。此外，BRDF函数返回的是一个完整的散射函数的光照值，而相位函数仅仅返回一个相位的值，它必须乘以散射系数$\sigma_s$才能表示散射的光照结果，这也是式\ref{e:pm-in-scattering}中需要乘以散射系数的原因。所以，这里我们重新定义散射函数（scattering function）\myindex{散射函数}{scattering function}为：
+\noindent 这里$p(x,{\omega}^{'}\to{\omega})$称为一个相位函数（phase function）\myindex{相位函数}{phase function}，其单位为$1/sr$，它描述光子在介质中某个位置处散射的方向分布，如图\ref{f:pm-phase-function}所示；相位函数的概念和表面的双向反射分布函数BRDF是类似的，其区别为相位函数用于介质内部，因此适用于整个球面空间的所有方向。此外，BRDF函数返回的是一个完整的散射函数的光照值，而相位函数仅仅返回一个相位的值，它必须乘以散射系数$\sigma_s$才能表示散射的光照结果，这也是式\ref{e:pm-in-scattering}中需要乘以散射系数的原因。所以，这里我们重新定义散射函数（scattering function）\myindex{散射函数}{scattering function}为：
 
 \begin{equation}\label{e:pm-scattering}
-\rho(\mathbf{x},\vec{\omega}^{'}\leftrightarrow\vec{\omega})=\begin{cases}
-	\rho_s(\mathbf{x},\vec{\omega}^{'}\leftrightarrow\vec{\omega})&\text{$\mathbf{x}$在表面上}\\
-	p(\mathbf{x},\vec{\omega}^{'}\leftrightarrow\vec{\omega})\sigma_s(\mathbf{x})&\text{$\mathbf{x}$在介质中}\\
+\rho(x,{\omega}^{'}\leftrightarrow{\omega})=\begin{cases}
+	\rho_s(x,{\omega}^{'}\leftrightarrow{\omega})&\text{$x$在表面上}\\
+	p(x,{\omega}^{'}\leftrightarrow{\omega})\sigma_s(x)&\text{$x$在介质中}\\
 \end{cases}
 \end{equation}
 
-同BRDF一样，相位函数也具有互换性（reciprocity），即$p(\mathbf{x},\vec{\omega}^{'}\to\vec{\omega})=p(\mathbf{x},\vec{\omega}^{'}\leftarrow\vec{\omega})$，因此以下我们统一使用标记：$p(\mathbf{x},\vec{\omega}^{'}\leftrightarrow\vec{\omega})$；并且它一般是归一化的，即对所有方向满足：
+同BRDF一样，相位函数也具有互换性（reciprocity），即$p(x,{\omega}^{'}\to{\omega})=p(x,{\omega}^{'}\leftarrow{\omega})$，因此以下我们统一使用标记：$p(x,{\omega}^{'}\leftrightarrow{\omega})$；并且它一般是归一化的，即对所有方向满足：
 
 \begin{equation}
-	{\rm \int}_{\Omega_{4\pi}}p(\mathbf{x},\vec{\omega}^{'}\leftrightarrow\vec{\omega}){\rm d}\vec{\omega}^{'}=1
+	{\rm \int}_{\Omega_{4\pi}}p(x,{\omega}^{'}\leftrightarrow{\omega}){\rm d}{\omega}^{'}=1
 \end{equation}
 
 相位函数可以是各向同性的，它将光照均匀地散射到各个方向，对所有方向的值为一个常数$ \cfrac{1}{4\pi}$，例如图\ref{f:pm-phase-function}(b)所示；根据材质不同，相位函数更多呈现各向异性，例如其中一个被广泛使用的各向异性相位函数是Henyey-Greenstein相位函数\cite{a:Diffuseradiationinthegalaxy,a:EfficientMonteCarloMethodsforLightTransportinScatteringMedia}\myindex{Henyey-Greenstein相位函数}{Henyey-Greenstein phase function}，其已被用于模拟云，海洋，皮肤等散射材质。
@@ -1530,7 +1528,7 @@ void ACCUM(path, technique, r, i) {
 Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 
 \begin{equation}
-	p_{HG}(\mathbf{x},\theta)= \cfrac{1-g^{2}}{4\pi(1+g^{2}-2g\cos{\theta})^{1.5}}
+	p_{HG}(x,\theta)= \cfrac{1-g^{2}}{4\pi(1+g^{2}-2g\cos{\theta})^{1.5}}
 \end{equation}
 
 \noindent 这里唯一的参数$g\in[-1,1]$用于决定散射的相对朝向：当$g<0$时相位呈后向分布，如图\ref{f:pm-phase-function}(a)所示，当$g>0$时相位呈前向分布，如图\ref{f:pm-phase-function}(c)所示，当$g=0$时则变为各向同性分布，如图\ref{f:pm-phase-function}(b)所示。读者可阅读\cite{a:EfficientMonteCarloMethodsforLightTransportinScatteringMedia}了解更多相位函数的例子。
@@ -1538,7 +1536,7 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 \begin{figure}
 \begin{fullwidth}
 	\includegraphics[width=\thewidth]{figures/pm/phase-function}
-	\caption{相位函数描述的是介质内部任意位置$\mathbf{x}$处光子散射的方向分布，在最简单的情况下，光子被均匀地散射到各个方向(b)，但是自然界中的很多材质具有更趋向于后向(a)或者前向(c)散射的方向分布}
+	\caption{相位函数描述的是介质内部任意位置$x$处光子散射的方向分布，在最简单的情况下，光子被均匀地散射到各个方向(b)，但是自然界中的很多材质具有更趋向于后向(a)或者前向(c)散射的方向分布}
 	\label{f:pm-phase-function}
 \end{fullwidth}
 \end{figure}
@@ -1549,29 +1547,31 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 
 
 \subsubsection{辐射传输方程}
-我们已经讨论了光子在介质中的传输过程中可能发生的4种交互事件：即吸收，向外散射，自发光及向内散射（如图\ref{f:pm-medium-properties}所示），其中前两者会减小入射辐射亮度，而后两者会增加额外的辐射亮度，由此我们可以推导出一个完整的光照在介质中的传输模型，通过组合式\ref{e:pm-net-loss}和式\ref{e:pm-in-scattering}，在介质中沿一条光束传输的光线其位于$\mathbf{x}$处辐射亮度的改变可以表述为（这里我们忽略了自发光）：
+我们已经讨论了光子在介质中的传输过程中可能发生的4种交互事件：即吸收，向外散射，自发光及向内散射（如图\ref{f:pm-medium-properties}所示），其中前两者会减小入射辐射亮度，而后两者会增加额外的辐射亮度，由此我们可以推导出一个完整的光照在介质中的传输模型，通过组合式\ref{e:pm-net-loss}和式\ref{e:pm-in-scattering}，在介质中沿一条光束传输的光线其位于$x$处辐射亮度的改变可以表述为（这里我们忽略了自发光）：
 
 \begin{equation}
-	(\vec{\omega}\cdot\nabla_t)L(\mathbf{x}\to\vec{\omega})=-\sigma_t(\mathbf{x})L(\mathbf{x}\to\vec{\omega})+\sigma_s(\mathbf{x})L_i(\mathbf{x}\to\vec{\omega})
+	({\omega}\cdot\nabla_t)L(x\to{\omega})=-\sigma_t(x)L(x\to{\omega})+\sigma_s(x)L_i(x\to{\omega})
 \end{equation}
 
-\noindent 该方程称为辐射传输方程（radiative transport equation，RTE）\cite{a:RadiativeTransfer}\myindex{辐射传输方程}{radiative transport equation}，它描述了光照在介质中传播的可能发生的交互事件。上式表述的是光线传输过程中位置$\mathbf{x}$处的光照改变，通过对介质内的整个传输长度进行积分，可以得到一个积分形式的辐射传输方程（如图\ref{f:pm-transmittance}所示）：
+该方程称为辐射传输方程（radiative transport equation，RTE）\cite{a:RadiativeTransfer}\myindex{辐射传输方程}{radiative transport equation}，它描述了光照在介质中传播时可能发生的交互事件。上式表述的是光线传输过程中位置$x$处的光照改变，通过对介质内的整个传输长度进行积分，可以得到一个积分形式的辐射传输方程（如图\ref{f:pm-transmittance}所示）：
 
 \begin{equation}\label{e:pm-rte}
 \begin{aligned}
-	L(\mathbf{x}\leftarrow\vec{\omega})=&T_r(\mathbf{x}\leftrightarrow\mathbf{x}_s)L(\mathbf{x}_s\to -\vec{\omega})\\ &+{\rm \int}^{s}_{0}T_r(\mathbf{x}\leftrightarrow\mathbf{x}_t)\sigma_s(\mathbf{x}_t)L_i(\mathbf{x}_t\to -\vec{\omega}){\rm d}t
+	L(x\leftarrow{\omega})=&T_r(x\leftrightarrow x_s)L(x_s\to -{\omega})\\ &+{\rm \int}^{s}_{0}T_r(x\leftrightarrow x_t)\sigma_s(x_t)L_i(x_t\to -{\omega}){\rm d}t
 \end{aligned}
 \end{equation}
 
-\noindent 在上式中，$L(\mathbf{x}\leftarrow\vec{\omega})$表示沿$\vec{\omega}$方向到达$\mathbf{x}$点处的辐射亮度，$s$表示从$\mathbf{x}$点起沿$\vec{\omega}$方向位于介质内的深度，$\mathbf{x}_s$表示介质外部与该光线相交的一个表面上的点，$\mathbf{x}_t$为介质内的某个点，$t$为其到$\mathbf{x}$在介质内部的深度，$T_r$表述辐射亮度在介质中传播的减少行为（吸收和散射），如图\ref{f:pm-transmittance}所示。
+在上式中，$L(x\leftarrow{\omega})$表示沿${\omega}$方向到达$x$点处的辐射亮度，$s$表示从$x$点起沿${\omega}$方向位于介质内的深度，$x_s$表示介质外部与该光线相交的一个表面上的点，$x_t$为介质内的某个点，$t$为其到$x$在介质内部的深度，$T_r$表述辐射亮度在介质中传播的减少行为（吸收和散射），如图\ref{f:pm-transmittance}所示。
 
 \begin{figure}
-	\includegraphics[width=\textwidth]{figures/pm/transmittance}
+\begin{center}
+	\includegraphics[width=0.8\textwidth]{figures/pm/transmittance}
+\end{center}
 	\caption{参与介质被认为是一些微观散射粒子的组合，其物体几何形状为这些粒子所在体积的边界，当光线穿过这些介质时，其辐射亮度$L$会随着传输的距离而发生变化}
 	\label{f:pm-transmittance}
 \end{figure}
 
-式\ref{e:pm-rte}表示的辐射传输的积分形式在计算机图形学中又称为体积渲染方程（volume rendering equation）\myindex{体积渲染方程}{volume rendering equation}。相交于4维（2D的表面位置及2D的球面坐标方向）的表面渲染方程，体积渲染方程是一个5维的方程：介质中3D的位置及其2D的（球面坐标）方向，并且光线在介质中每个位置处的辐射亮度都依赖于介质中其他所有位置，所以计算量非常复杂。在本书中我们将会介绍各种不同的方法用于体积渲染，其中本章介绍的光子映射是参与介质渲染最具吸引力的算法。
+式\ref{e:pm-rte}表示的辐射传输的积分形式在计算机图形学中又称为体积渲染方程（volume rendering equation）\myindex{体积渲染方程}{volume rendering equation}。相较于4维（2D的表面位置及2D的球面坐标方向）的表面渲染方程，体积渲染方程是一个5维的方程：介质中3D的位置及其2D的（球面坐标）方向，并且光线在介质中每个位置处的辐射亮度都依赖于介质中其他所有位置，所以计算量非常复杂。在本书中我们将会介绍各种不同的方法用于体积渲染，其中本章介绍的光子映射是参与介质渲染最具吸引力的算法。
 
 
 
@@ -1585,11 +1585,11 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 \subsubsection{光子追踪}
 我们的目标是要生成一个符合光子在介质中传播特征（更确切地说，光子在介质中的传播受消光系数的影响）的一个光子分布图。在表面间的传输中，光子仅与表面发生交互而被记录到光子图中，但是光子在介质中的传播过程中，它可能与光线上的任意粒子发生交互，例如被吸收或散射，因此我们的目标便变成获得一个光子在介质中传输的距离值，使得光子在与任意粒子发生交互之前可以在该距离内自由传播，我们称这样的一个路径为自由路径（free-path）\myindex{自由路径}{free-path}，获得这样一个自由路径的过程则称为自由路径采样（free-path sampling）\myindex{自由路径采样}{free-path sampling}。
 
-很显然，根据重要性采样原理，我们希望这样的自由路径的距离分布是复合介质特征的，由于光子在介质中的传播过程中与粒子发生交互的几率取决于前面介绍的消光系数$\sigma_t$，而根据上一节的内容，透射比$T_r$实际上给出了一条光线在介质中两点之间无障碍传输的概率，因此我们可以对一条光线上\footnote{这里是指从光线起点开始，沿着其传播方向直到离开介质的整个光线片段部分，因为光子可能根据不同的概率与该片段上的任意位置处的粒子发生交互。}透射比$T_r$的分布来对自由路径进行采样，以产生一个光子，那么这样的光子分布图将是符合光子在该介质中的传输特征的，如图\ref{f:pm-volumetric-photon-tracing}所示。
+很显然，根据重要性采样原理，我们希望这样的自由路径的距离分布是符合介质特征的，由于光子在介质中的传播过程中与粒子发生交互的几率取决于前面介绍的消光系数$\sigma_t$，而根据上一节的内容，透射比$T_r$实际上给出了一条光线在介质中两点之间无障碍传输的概率，因此我们可以对一条光线上\footnote{这里是指从光线起点开始，沿着其传播方向直到离开介质的整个光线片段部分，因为光子可能根据不同的概率与该片段上的任意位置处的粒子发生交互。}透射比$T_r$的分布来对自由路径进行采样，以产生一个光子，那么这样的光子分布图将是符合光子在该介质中的传输特征的，如图\ref{f:pm-volumetric-photon-tracing}所示。
 
 \begin{figure}
 	\sidecaption
-	\includegraphics[width=0.55\textwidth]{figures/pm/volumetric-photon-tracing}
+	\includegraphics[width=0.65\textwidth]{figures/pm/volumetric-photon-tracing}
 	\caption{在体积光子映射中，除了表面的光子，在介质中传播的光子还需要对每条光线的透射比进行采样得到一个与粒子进行交互的距离，从而在介质内产生一个光子，如果光子在采样距离处被散射，则对相位函数进行采样得到新的散射方向}
 	\label{f:pm-volumetric-photon-tracing}
 \end{figure}
@@ -1597,10 +1597,10 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 例如对于同质介质，由于其消光系数为常数，其距离采样的概率密度函数可以表述为：
 
 \begin{equation}
-	{\rm pdf}(d)={\rm e}^{-\sigma_t(\mathbf{x})d}
+	{\rm pdf}(d)={\rm e}^{-\sigma_t(x)d}
 \end{equation}
 
-对于异质介质，可以通过求平均消光系数$\bar{\sigma}_t(\mathbf{x})$等方式来近似计算距离采样的概率密度函数。我们将在第\ref{sec:pm-transmittance-estimate}节详细讨论各种更高级的透射比估计方法。
+对于异质介质，可以通过求平均消光系数$\bar{\sigma}_t(x)$等方式来近似计算距离采样的概率密度函数。我们将在本章后面第\ref{sec:pm-transmittance-estimate}节详细讨论各种更高级的透射比估计方法。
 
 当计算出光子与介质发生交互的位置之后，光子在该位置可能被散射或吸收，其各自发生的概率分别为$\sigma_s/\sigma_t$和$\sigma_a/\sigma_t$，这里使用俄罗斯轮盘（Russian roulette）\myindex{俄罗斯轮盘}{Russian roulette}进行选择即可；如果光子没有被吸收，则它会被散射到其他方向，该方向可以通过对其相位函数进行重要性采样得出。
 
@@ -1616,17 +1616,17 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 
 \begin{equation}
 \begin{aligned}
-	L(\mathbf{x}\leftarrow\vec{\omega})\approx &T_r(\mathbf{x}\leftrightarrow\mathbf{x}_s)L(\mathbf{x}_s\to -\vec{\omega})\\ +&\Biggl(\sum^{S-1}_{t=0}T_r(\mathbf{x}\leftrightarrow\mathbf{x}_t)\sigma_s(\mathbf{x}_t)L_i(\mathbf{x}_t\to -\vec{\omega})\Delta_t\Biggl)
+	L(x\leftarrow{\omega})\approx &T_r(x\leftrightarrow x_s)L(x_s\to -{\omega})\\ +&\Biggl(\sum^{S-1}_{t=0}T_r(x\leftrightarrow x_t)\sigma_s(x_t)L_i(x_t\to -{\omega})\Delta_t\Biggl)
 \end{aligned}
 \end{equation}
 
-其中，上式右边第一部分表示来自介质外的辐射亮度，该部分光照在介质中的传输受到透射比$T_r$的影响，通常入射光照$L(\mathbf{x}_s\to -\vec{\omega})$来自于该光线与表面的第一个交点（如图\ref{f:pm-vpm-ray-marching}中的$\mathbf{x}_s$点），其值通常使用表面光子映射计算而得；右边第二部分则是来自光线在介质内部的传输过程中各个位置$\mathbf{x}_t$处的向内散射贡献的光照，对于向内散射的辐射亮度$L_i(\mathbf{x}_t\to -\vec{\omega})$，则使用本节讨论的体积辐射亮度估计（volumetric radiance estimate）\myindex{体积辐射亮度估计}{volumetric radiance estimate}近似计算而得，与表面光子密度估计类似，它通过对点$\mathbf{x}_t$周围最近的$k$个光子进行概率密度估计而得（如图\ref{f:pm-vpm-ray-marching}所示）：
+其中，上式右边第一部分表示来自介质外的辐射亮度，该部分光照在介质中的传输受到透射比$T_r$的影响，通常入射光照$L(x_s\to -{\omega})$来自于该光线与表面的第一个交点，如图\ref{f:pm-vpm-ray-marching}中的$x_s$点，其值通常使用表面光子映射计算得出；右边第二部分则是来自光线在介质内部的传输过程中各个位置$x_t$处的向内散射贡献的光照，对于向内散射的辐射亮度$L_i(x_t\to -{\omega})$，则使用本节讨论的体积辐射亮度估计（volumetric radiance estimate）\myindex{体积辐射亮度估计}{volumetric radiance estimate}近似计算而得，与表面光子密度估计类似，它通过对点$x_t$周围最近的$k$个光子进行概率密度估计来进行计算（如图\ref{f:pm-vpm-ray-marching}所示）：
 
 \begin{equation}
-	L_i(\mathbf{x},\vec{\omega})\approx\sum^{k}_{p=1}p(\mathbf{x}_t,\vec{\omega}\leftrightarrow\vec{\omega}_p) \cfrac{\Phi_p(\mathbf{x}\to-\vec{\omega}_p)}{\mathcal{V}(\mathbf{x})}
+	L_i(x,{\omega})\approx\sum^{k}_{p=1}p(x_t,{\omega}\leftrightarrow{\omega}_p) \cfrac{\Phi_p(x\to-{\omega}_p)}{\mathcal{V}(x)}
 \end{equation}
 
-\noindent 其值$\mathcal{V}(\mathbf{x})= \cfrac{4}{3}\pi d_k(\mathbf{x})^{3}$表示$k$个最近邻光子构成的球体积。
+\noindent 其值$\mathcal{V}(x)= \cfrac{4}{3}\pi d_k(x)^{3}$表示$k$个最近邻光子构成的球体积。
 
 \begin{figure}
 	\sidecaption
@@ -1657,7 +1657,7 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 
 
 \subsubsection{光子图的缺陷}
-光线图（ray maps）\cite{a:RayMapsforGlobalIllumination}的提出源于弥补光子图（photon maps）的一些缺陷。由于光子图仅记录光照传输的结果，即最终落在表面上的一个光子，而不是光照传输的过程，即光线路径，最终我们仅能通过表面之间的接近度（proximity）来寻找这些光子，这直接导致了边界偏差（boundary bias）\myindex{边界偏差}{boundary bias}，如图\ref{f:pm-biases}(b)所示，即在边界部分，实际参与估计的光子数量很少，而用于估计计算的面积却没变，这导致光照被过低估计（underestimation）\myindex{过低估计}{underestimation}，例如一些线状类物体或者物体边缘会变暗。
+光线图（ray maps）\cite{a:RayMapsforGlobalIllumination}的提出源于弥补光子图（photon maps）的一些缺陷。由于光子图仅记录光照传输的结果，即最终落在表面上的一个光子，而不是光照传输的过程，即光线路径，最终仅能通过表面之间的接近度（proximity）来寻找这些光子，这直接导致了边界偏差（boundary bias）\myindex{边界偏差}{boundary bias}，如图\ref{f:pm-biases}(b)所示，即在边界部分，实际参与估计的光子数量很少，而用于估计计算的面积却没变，这导致光照被过低估计（underestimation）\myindex{过低估计}{underestimation}，例如一些线状类物体或者物体边缘会变暗。
 
 \begin{figure}
 	\includegraphics[width=\textwidth]{figures/pm/biases}
@@ -1667,12 +1667,12 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 
 怎样才能减小这类偏差呢？显然通过比较精确地匹配参与估计的光子及其实际对应的面积（或体积）是非常困难的，这也是我们一般使用圆形等简单几何形状来描述核函数的原因。通过观察图\ref{f:pm-biases}可以看出，如果我们对估计点附近的光线（rays）而不是其落在表面上的光子（photon）进行估计，则其结果会更为准确，这就要求我们记录每个光子对应的光线，而不是仅仅是光子的光照值本身。
 
-\cite{a:AParticlePathbasedMethodforMonteCarloDensityEstimation}第一次从概念和方法上提出了使用光线来进行光子密度估计的方法，它同时记录每个光子所在的光线，然后使用最近的$k$个与估计点$\mathbf{x}$的正切面相交的光线来进行概率密度估计，这样表面上最近邻的光子搜索转换为光线-圆盘相交（ray-disc intersection）\myindex{光线-圆盘相交}{ray-disc intersection}测试，如图\ref{f:pm-ray-disc}所示。通过光线来进行光子密度估计不仅能够消除边界偏差，并且该方法并不依赖于物体的尺寸，甚至它不要求物体局部是平坦的，因为正切面上的圆盘是独立于其局部几何形状的。
+\cite{a:AParticlePathbasedMethodforMonteCarloDensityEstimation}第一次从概念和方法上提出了使用光线来进行光子密度估计的方法，它同时记录每个光子所在的光线，然后使用最近的$k$个与估计点$x$的正切面相交的光线来进行概率密度估计，这样表面上最近邻的光子搜索转换为光线-圆盘相交（ray-disc intersection）\myindex{光线-圆盘相交}{ray-disc intersection}测试，如图\ref{f:pm-ray-disc}所示。通过光线来进行光子密度估计不仅能够消除边界偏差，并且该方法并不依赖于物体的尺寸，甚至它不要求物体局部是平坦的，因为正切面上的圆盘是独立于其局部几何形状的。
 
 \begin{figure}
 	\sidecaption
 	\includegraphics[width=0.4\textwidth]{figures/pm/ray-disc}
-	\caption{\cite{a:AParticlePathbasedMethodforMonteCarloDensityEstimation}通过记录每个光子所在的光线，然后通过这些光线与表面$\mathbf{x}$处周围一个圆面进行光线-圆面的相交计算来确定待估计的光子，这减少了边界偏差}
+	\caption{\cite{a:AParticlePathbasedMethodforMonteCarloDensityEstimation}通过记录每个光子所在的光线，然后通过这些光线与表面$x$处周围一个圆面进行光线-圆面的相交计算来确定待估计的光子，这减少了边界偏差}
 	\label{f:pm-ray-disc}
 \end{figure}
 
@@ -1697,7 +1697,7 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 	\item \textbf{相交点查询}\\
 		使用不同的空间区域：(a)圆盘面（disc），(b)半球空间（hemisphere），(c)球体空间，(d)与坐标轴对齐的包围盒。
 	\item \textbf{最近邻查询}\\
-		使用不要的最近邻距离度量：估计点到(a)光线与正切面的交点的距离，(b)光线线段的垂直距离，(c)光线辅助线与正切面交点的距离。
+		使用不同的最近邻距离度量：估计点到(a)光线与正切面的交点的距离，(b)光线线段的垂直距离，(c)光线辅助线与正切面交点的距离。
 \end{enumerate}
 
 上述的查询操作通常可以联合起来使用，例如首先通过相交点查询来筛选潜在可能的最近邻光线，然后通过最近邻距离查询来得到具体对应的光线；或者例如后面介绍的使用其中一些距离度量来查询光线，而使用另一些距离度量的查询结果来作为核函数的权重系数计算依据。此外，根据上述的分类，\cite{a:AParticlePathbasedMethodforMonteCarloDensityEstimation}可以看做是使用\Romannum{2}.(a)的距离度量进行最近邻查询。
@@ -1708,7 +1708,7 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 \subsubsection{光线图的表述}\label{sec:pm-ray-maps-data}
 我们已经讨论了存储光线而不是光子的必要性，以及常用的对光子图的操作，这样我们能够理解使用何种数据结构存储光线图会使得查询更加高效。
 
-在光子图中，每条光线就是一条完整路径中的每个线段（line segment），它记录了每个光线的起点，方向，长度等基本信息，此外它还包含一些其他信息用于辐射亮度估计的计算，算法\ref{a:pm-photon-beam}给出了一条光线的定义。
+在光子图中，每条光线就是一条完整路径中的每个线段（line segment），它记录了每个光线的起点，方向，长度等基本信息，此外它还包含一些其他信息用于辐射亮度估计的计算。
 
 我们的目标是要寻找距离某个位置最近的光线\footnote{除了点查询，在本章后面光束相关的内容中，还将看到光线图（在那里称为光束）被用于沿着另一条光线查询，以及需要识别光线与某个区域相交的部分，而不仅仅是相交，所以后面还将看到根据不同的操作需要使用不同的数据结构。}，\cite{a:RayMapsforGlobalIllumination}使用了基于空间细分的k-d树数据结构，每个非叶节点对空间进行划分，每个节点维护着一个与该部分空间相交的光线的列表。当进行相交点查询时，首先检查各个节点是否与给定空间域相交，然后在叶节点则比较每条光线是否与给定空间域相交；当进行最近邻查询时，首先选择最近的非叶节点，然后再确定遍历叶节点中的光线寻找距离最近的$k$条光线。相关的一些k-d树的遍历思路和上一章讨论的内容是相似的。
 
@@ -1720,10 +1720,10 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 
 \begin{enumerate}
 	\item 光线必须与估计点周围半径为$R$的球形空间相交，即\Romannum{2}.(b)，以及
-	\item 光线本身或者光线的延长线（辅助线）与估计点正切空间的一个盘面相交，即\Romannum{2}.(a)
+	\item 光线本身或者光线的延长线（辅助线）与估计点正切空间的一个盘面相交，即\Romannum{2}.(a)。
 \end{enumerate}
 
-图\ref{f:pm-hemisphere-disc}显式了几种不同的相交情形，光线1是标准的情况；光线2与表面的交点即使超出球面空间，但是仍然被包含在内；光线3不与正切面相交，但是其延长线与盘面相交；光线4虽然与球体相交，但是其延长线与正切面的交点没有落于盘面内；需要注意的是，光线7实际上被遮挡了，但是这里没有处理这种情况，所以当做标准情形处理了。
+图\ref{f:pm-hemisphere-disc}显示了几种不同的相交情形，光线1是标准的情况；光线2与表面的交点即使超出球面空间，但是仍然被包含在内；光线3不与正切面相交，但是其延长线与盘面相交；光线4虽然与球体相交，但是其延长线与正切面的交点没有落于盘面内；需要注意的是，光线7实际上被遮挡了，但是这里没有处理这种情况，所以当做标准情形处理了。
 
 \begin{figure}
 	\sidecaption
@@ -1732,9 +1732,9 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 	\label{f:pm-hemisphere-disc}
 \end{figure}
 
-当然上述方法知识一个启发式方法，它并不总能保证最优的结果，但是它比单纯使用正切盘面的方法\cite{a:AParticlePathbasedMethodforMonteCarloDensityEstimation}要好得多。首先，该方法和传统使用盘面的光子映射算法一样是一致的；其次，通过在空间对光线进行最近邻查找，而不是在物体表面对光子进行查找，这完全消除了边界偏差（如图\ref{f:pm-biases}(b)所示）；最后，因为只有与正切盘面相交的光线才被考虑，这避免了落于拓扑结构较复杂的区域（如图\ref{f:pm-biases}(c)所示），这减少了拓扑偏差；此外，通过同时要求光线落于球体区域以及与正切盘面相交，这剔除了大部分空间上与待估点相邻，但是却不能贡献光照的光线，例如图\ref{f:pm-hemisphere-disc}中的光线4，这也减小了方差。
+当然上述方法只是一个启发式方法，它并不总能保证最优的结果，但是它比单纯使用正切盘面的方法\cite{a:AParticlePathbasedMethodforMonteCarloDensityEstimation}要好得多。首先，该方法和传统使用盘面的光子映射算法一样是一致的；其次，通过在空间对光线进行最近邻查找，而不是在物体表面对光子进行查找，这完全消除了边界偏差，如图\ref{f:pm-biases}(b)所示；最后，因为只有与正切盘面相交的光线才被考虑，这避免了落于拓扑结构较复杂的区域，如图\ref{f:pm-biases}(c)所示，这减少了拓扑偏差；此外，通过同时要求光线落于球体区域以及与正切盘面相交，这剔除了大部分空间上与待估点相邻，但是却不能贡献光照的光线，例如图\ref{f:pm-hemisphere-disc}中的光线4，这也减小了方差。
 
-最后，半球-盘面相交发使用待估点距离光线本身或其延长线与正切盘面交点的距离作为密度估计核函数的权重计算依据。
+最后，半球-盘面相交发使用待估点距离光线本身或其延长线与正切盘面交点的距离作为密度估计核函数的权重计算的依据。
 
 
 
@@ -1749,7 +1749,7 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 \begin{figure}
 	\sidecaption
 	\includegraphics[width=0.65\textwidth]{figures/pm/points-vs-beams}
-	\caption{传统的体积光子映射(a)存储所有发生散射事件的点，然后使用这些点进行密度估计；而光子束(b)则存储整个光子的轨迹（一些线段），然后使用这些线段进行密度估计。光子束大大增加了辐射亮度估计的质量，因为介质中线段占据的空间更多，“光子”密度更高}
+	\caption{传统的体积光子映射(a)存储所有发生散射事件的点，然后使用这些点进行密度估计；而光束(b)则存储整个光子的轨迹（一些线段），然后使用这些线段进行密度估计。光子束大大增加了辐射亮度估计的质量，因为介质中线段占据的空间更多，“光子”密度更高}
 	\label{f:pm-points-vs-beams}
 \end{figure}
 
@@ -1766,23 +1766,23 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 \subsubsection{几何设定}
 \cite{a:AComprehensiveTheoryofVolumetricRadianceEstimationusingPhotonPointsandBeams}提出了一个基于点和光线的统一框架，在新的框架下，传统的基于点采样的体积光子映射是其中一种特殊形式。
 
-摄像机子路径和光源子路径都可以使用点（point）或者光束\footnote{从本节起，我们将称一条光线（ray）或一个线段（line segment）为光束。}(beam）的形式进行表述，这里称摄像机子路径的表述为查询表述（query representation）\myindex{查询表述}{query representation}，它表示了要进行估计的量（例如对单个点进行估计，或者对一整条光束进行估计），称光源子路径的表述为数据表述（data representation）\myindex{数据表述}{data representation}，它表示了平衡状态下光照的表述形式（例如以点的形式表述，或者以光束的形式表述），再加上每个估计方法可以使用不同的核估计函数（例如3D，2D或者1D的核估计函数），我们可以按data$\times$query（kernel）的组合来唯一区分一个估计方法，\cite{a:AComprehensiveTheoryofVolumetricRadianceEstimationusingPhotonPointsandBeams}一共提出了9种独立的估计方法，如图\ref{f:pm-estimators}所示。
+摄像机子路径和光源子路径都可以使用点（point）或者光束\footnote{从本节起，我们将称一条光线（ray）或一个线段（line segment）为光束。}(beam）的形式进行表述，称摄像机子路径的表述为查询表述（query representation）\myindex{查询表述}{query representation}，它表示了要进行估计的量（例如对单个点进行估计，或者对一整条光束进行估计），称光源子路径的表述为数据表述（data representation）\myindex{数据表述}{data representation}，它表示了平衡状态下光照的表述形式（例如以点的形式表述，或者以光束的形式表述），再加上每个估计方法可以使用不同的核估计函数（例如3D，2D或者1D的核估计函数），我们可以按${\rm data} \times {\rm query}$（kernel）的组合来唯一区分一个估计方法，\cite{a:AComprehensiveTheoryofVolumetricRadianceEstimationusingPhotonPointsandBeams}一共提出了9种独立的估计方法，如图\ref{f:pm-estimators}所示。
 
-为了使将注意力集中于不同路径表述形式下的辐射亮度估计部分，我们将完整路径的其他部分做一些简化，这里遵循\cite{a:UnifyingPointsBeamsandPathsinVolumetricLightTransportSimulation}中使用的定义及设定。图\ref{f:pm-estimators}(a)表示了所有估计形式的共享的几何设定部分，设一条光源子路径的第$s$个顶点为$\mathbf{x}_{s-1}\equiv \mathbf{a}$，对$\mathbf{a}$点的反射系数进行采样得到一个方向$\omega_{\mathbf{a}}$，则光线$(\mathbf{a},\omega_{\mathbf{a}})$定义了一个光子光束（photon beam）\myindex{光子光束}{photon beam}，则该光束的能量可以表述为该子路径的权重\footnote{注意，为了便于后面的表述，本节中涉及的路径能量都被除于采样概率了，因此称为路径权重（path weight）\myindex{路径权重}{path weight}；例如这里在$\mathbf{a}$点的散射其光照贡献为散射系数$\rho(\mathbf{a})$，但是这里除于了对应的概率密度，因此其结果就对应于蒙特卡洛估计中被平均前的每一项的值，即$ \cfrac{f(x)}{p(x)}$。}（weight）乘以$\mathbf{a}$点处的反射系数：
-
-\begin{equation}
-	C_l(\mathbf{x}_0\cdots\mathbf{a}]=C_l(\mathbf{x}_0\cdots\mathbf{a}) \cfrac{\rho(\mathbf{a})}{p(\omega_{\mathbf{a}})}
-\end{equation}
-
-同理，设摄像机子路径的顶点$\mathbf{x}_{s+1}\equiv\mathbf{c}$，并对$\mathbf{c}$点的散射系数进行采样得到方向$\omega_{\mathbf{c}}$，则光线$(\mathbf{c},\omega_{\mathbf{c}})$定义了一条查询光束（query beam）\myindex{查询光束}{query beam}，相应地，该光束的能量可以表述为：
+为了使将注意力集中于不同路径表述形式下的辐射亮度估计部分，我们将完整路径的其他部分做一些简化，这里遵循\cite{a:UnifyingPointsBeamsandPathsinVolumetricLightTransportSimulation}中使用的定义及设定。图\ref{f:pm-estimators}(a)表示了所有估计形式的共享的几何设定部分，设一条光源子路径的第$s$个顶点为$x_{s-1}\equiv \mathbf{a}$，对$\mathbf{a}$点的反射系数进行采样得到一个方向$\omega_{\mathbf{a}}$，则光线$(\mathbf{a},\omega_{\mathbf{a}})$定义了一个光子光束（photon beam）\myindex{光子光束}{photon beam}，则该光束的能量可以表述为该子路径的权重\footnote{注意，为了便于后面的表述，本节中涉及的路径能量都被除于采样概率了，因此称为路径权重（path weight）\myindex{路径权重}{path weight}；例如这里在$\mathbf{a}$点的散射其光照贡献为散射系数$\rho(\mathbf{a})$，但是这里除于了对应的概率密度，因此其结果就对应于蒙特卡洛估计中被平均前的每一项的值，即$ \cfrac{f(x)}{p(x)}$。}（weight）乘以$\mathbf{a}$点处的反射系数：
 
 \begin{equation}
-	C_e(\mathbf{c}\cdots\mathbf{x}_k]= \cfrac{\rho(\mathbf{c})}{p(\omega_{\mathbf{c}})}C_e(\mathbf{c}\cdots\mathbf{x}_k)
+	C_l(x_0\cdots\mathbf{a}]=C_l(x_0\cdots\mathbf{a}) \cfrac{\rho(\mathbf{a})}{p(\omega_{\mathbf{a}})}
 \end{equation}
 
-通过沿光线$(\mathbf{a},\omega_{\mathbf{a}})$的方向采样\footnote{这里的距离需要对前面介绍的透射比$T_r$采样而得，也就是自由路径采样，它表示光子能够无障碍达到点$\tilde{\mathbf{b}}$的概率。}得到一个距离$t_{\mathbf{a}}$，我们可以在光子光束$(\mathbf{a},\omega_{\mathbf{a}})$上的位置$\tilde{b}\equiv\tilde{\mathbf{x}}_s$处创建一个光子，该光子的权重为$C_l(\mathbf{x}_0\cdots\mathbf{a}] \cfrac{T_r(t_a)}{p(t_a)}$；同理，通过沿着查询光束$(\mathbf{c},\omega_{\mathbf{c}})$采样得到一个距离$t_{\mathbf{c}}$，可以在未知$\mathbf{b}\equiv\mathbf{x}_s$处创建一个查询点（query point）\myindex{查询点}{query point}，其权重为$ \cfrac{T_r(t_c)}{p(t_c)}C_e[\mathbf{c}\cdots\mathbf{x}_k)$。
+同理，设摄像机子路径的顶点$x_{s+1}\equiv\mathbf{c}$，并对$\mathbf{c}$点的散射系数进行采样得到方向$\omega_{\mathbf{c}}$，则光线$(\mathbf{c},\omega_{\mathbf{c}})$定义了一条查询光束（query beam）\myindex{查询光束}{query beam}，相应地，该光束的能量可以表述为：
 
-上述的基本设定适用于以下将讨论的所有估计，即所有的估计共享相同的前缀$C_l(\mathbf{x}_0\cdots\mathbf{a}]$及后缀$C_e(\mathbf{c}\cdots\mathbf{x}_k]$，因此我们将在表述中省略这两部分以简化估计公式；这里的散射函数$\rho$是包含消光系数$\sigma_s$的，参见式\ref{e:pm-scattering}；所有的估计类型按照数据表述（\textbf{P}oint/\textbf{B}eam）-查询表述（\textbf{P}oint/\textbf{B}eam）以及核函数的维度（1D，2D或3D）进行区分，例如B-P3D表示beam data$\times$ point query, 3D kernel，如图\ref{f:pm-estimators}(e)所示。
+\begin{equation}
+	C_e(\mathbf{c}\cdots x_k]= \cfrac{\rho(\mathbf{c})}{p(\omega_{\mathbf{c}})}C_e(\mathbf{c}\cdots x_k)
+\end{equation}
+
+通过沿光线$(\mathbf{a},\omega_{\mathbf{a}})$的方向采样\footnote{这里的距离需要对前面介绍的透射比$T_r$采样而得，也就是自由路径采样，它表示光子能够无障碍达到点$\tilde{\mathbf{b}}$的概率。}得到一个距离$t_{\mathbf{a}}$，我们可以在光子光束$(\mathbf{a},\omega_{\mathbf{a}})$上的位置$\tilde{b}\equiv\tilde{x}_s$处创建一个光子，该光子的权重为$C_l(x_0\cdots\mathbf{a}] \cfrac{T_r(t_a)}{p(t_a)}$；同理，通过沿着查询光束$(\mathbf{c},\omega_{\mathbf{c}})$采样得到一个距离$t_{\mathbf{c}}$，可以在位置$\mathbf{b}\equiv x_s$处创建一个查询点（query point）\myindex{查询点}{query point}，其权重为$ \cfrac{T_r(t_c)}{p(t_c)}C_e[\mathbf{c}\cdots x_k)$。
+
+上述的基本设定适用于以下将讨论的所有估计，即所有的估计共享相同的前缀$C_l(x_0\cdots\mathbf{a}]$及后缀$C_e(\mathbf{c}\cdots x_k]$，因此我们将在表述中省略这两部分以简化估计公式；这里的散射函数$\rho$是包含消光系数$\sigma_s$的，参见式\ref{e:pm-scattering}；所有的估计类型按照数据表述（\textbf{P}oint/\textbf{B}eam）-查询表述（\textbf{P}oint/\textbf{B}eam）以及核函数的维度（1D，2D或3D）进行区分，例如B-P3D表示${\rm beam data}\times {\rm point query}$, 3D kernel，如图\ref{f:pm-estimators}(e)所示。
 	
 \begin{figure}
 \begin{fullwidth}
@@ -1792,8 +1792,7 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 \end{fullwidth}
 \end{figure}
 
-
-以下，我们将从最基本的Point-Point 3D（这也对应于传统的体积光子映射）的估计开始逐个推导，介绍它们在各个步骤上和传统点采样方法区别和思路，以及各个估计之间的一些内在联系，在后面我们将分析这些估计在处理不同属性介质时效率上的差异，因此第\ref{sec:pm-upbp}将介绍怎样使用复合重要性采样将这些估计组合起来形成更高效的采样方法。
+以下，我们将从最基本的Point-Point 3D（这也对应于传统的体积光子映射）的估计开始逐个推导，介绍它们在各个步骤上和传统点采样方法区别和思路，以及各个估计之间的一些内在联系，在后面我们将分析这些估计在处理不同属性介质时效率上的差异，最后第\ref{sec:pm-upbp}将介绍怎样使用复合重要性采样将这些估计组合起来形成更高效的采样方法。
 
 
 
@@ -1846,7 +1845,7 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 \paragraph{Point-Beam 2D估计}
 式\ref{e:pm-pb3d}虽然减少了对光子的重复搜索操作，但是对于每个光子，它仍然需要在光子球体与查询光束相交的区域，即$t^{-}_{c}$到$t^{+}_{c}$的区域做积分运算，这个计算大大影响了估计的效率。\cite{a:TheBeamRadianceEstimateforVolumetricPhotonMapping}进一步提出了一个近似方法用于计算式\ref{e:pm-bp3d}。
 
-观察式\ref{e:pm-bp3d}，可以假设在局部范围内，$\rho(\tilde{\mathbf{b}},\mathbf{b}_{t_c})$的变化很小，因此可以进行将其抽取到积分外，而$K_3(\tilde{\mathbf{b}},\mathbf{b}_{t_c})$也是一个常数（因为这里的概率密度估计只计算落入估计范围内光子的数量），因此积分部分被简化为仅在$t^{-}_{c}$到$t^{+}_{c}$的区域对透射比$T_r(t_c)$进行积分，如图\ref{f:pm-averaging-transmittance}(a)所示。
+观察式\ref{e:pm-bp3d}，可以假设在局部范围内，$\rho(\tilde{\mathbf{b}},\mathbf{b}_{t_c})$的变化很小，因此可以将其抽取到积分外，而$K_3(\tilde{\mathbf{b}},\mathbf{b}_{t_c})$也是一个常数（因为这里的概率密度估计只计算落入估计范围内光子的数量），因此积分部分被简化为仅在$t^{-}_{c}$到$t^{+}_{c}$的区域对透射比$T_r(t_c)$进行积分，如图\ref{f:pm-averaging-transmittance}(a)所示。
 
 \cite{a:AComprehensiveTheoryofVolumetricRadianceEstimationusingPhotonPointsandBeams}指出，由于这里的密度估计对于核函数的几何形状是没有限制的，因为我们仅计算落入估计范围的光子数量，因此我们可以使用一个围绕光线的圆柱形来作为核函数的范围，其长度为$h=t^{+}_c-t^{-}_c$，半径与原球形核函数的半径相等，如图\ref{f:pm-averaging-transmittance}(b)所示，则此时透射比沿$t^{-}_{c}$到$t^{+}_{c}$的积分值除以该区域的长度等于该区域的平均透射比，由此此时的圆柱形体积为$\pi r^{2}h$，$h$被用作平均计算之后还剩$\pi r^{2}$，它刚好是一个以$r$为半径的2D核函数。所示式\ref{e:pm-bp3d}可以近似为：
 
@@ -1879,7 +1878,7 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 	\item 将所有光子构建为一个k-d树以满足下一步的最近邻查询需求。
 	\item 对每个光子执行最近邻搜索以产生搜索半径。
 	\item 为每个光子构建一个能够包围搜索半径的包围盒。
-	\item 根据每个光子的包围盒边界构建包围盒层次机构。
+	\item 根据每个光子的包围盒边界构建包围盒层次结构。
 \end{enumerate}
 
 上述过程构建的BBH结构将用于光子与查询光束的相交测试，由此也可以看出，基于光束的辐射亮度估计很自然地支持适应性的核估计带宽。当然，如果我们只是对所有光子使用固定带宽，则不需要对光子构建k-d树，或者也可以使用光子微分来计算每个光子使用的带宽。
@@ -1895,7 +1894,7 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 \subsubsection{基于光子光束的辐射亮度估计}
 上一节将光束的概念运用于摄像机子路径，直接对一条查询光束（而不是单个查询点）进行估计，它减少了光子重复搜索的计算量，并且通过一些近似方法大大简化了复杂的积分计算，本节我们将相似的概念扩展到光源子路径。
 
-不同于摄像机子路径的是，光源子路径的每一条路径线段都可能对估计产生贡献，而摄像机子路径只需要考虑最后一条光束（即是通过介质的光束），因此光子光束（photon beam）\myindex{光子光束}{photon beam}需要记录光子追踪过程中的每一个路径线段。如前面的内容所述，光子路径在每个点对相位函数采用得到一个散射方向，该方向形成一条光子光束，该光子光束从该点出发直到介质边界，这样的光束在下一节中称为长光束（long beam）\myindex{长光束}{long beam}；对于每一条光子光束，对该光束的方向进行自由路径采样（free-path sampling）\myindex{自由路径采样}{free-path sampling}得到一个与粒子发生交互的距离，然后在该位置处产生一个新的光子。通过上述过程产生的光子光束分布如图\ref{f:pm-points-vs-beams}(b)所示，有了光子光束的分布我们便可以利用其进行辐射亮度估计。
+不同于摄像机子路径的是，光源子路径的每一条路径线段都可能对估计产生贡献，而摄像机子路径只需要考虑最后一条光束（即是通过介质的光束），因此光子光束（photon beam）\myindex{光子光束}{photon beam}需要记录光子追踪过程中的每一个路径线段。如前面的内容所述，光子路径在每个点对相位函数采样得到一个散射方向，该方向形成一条光子光束，该光子光束从该点出发直到介质边界，这样的光束在下一节中称为长光束（long beam）\myindex{长光束}{long beam}；对于每一条光子光束，对该光束的方向进行自由路径采样（free-path sampling）\myindex{自由路径采样}{free-path sampling}得到一个与粒子发生交互的距离，然后在该位置处产生一个新的光子。通过上述过程产生的光子光束分布如图\ref{f:pm-points-vs-beams}(b)所示，有了光子光束的分布我们便可以利用其进行辐射亮度估计。
 
 
 
@@ -1907,13 +1906,13 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 	\langle I\rangle_{B-P3D}={\rm \int}^{t^{+}_{a}}_{t^{-}_{a}}T_r(t_a) \rho(\tilde{\mathbf{b}_{t_a}},\mathbf{b})K_3(\tilde{\mathbf{b}_{t_a}},\mathbf{b}){\rm d}t_a \underbrace{ \cfrac{T_r(t_c)}{p(t_c)}}_{\text{query point sampling}}
 \end{equation}
 
-不难看出，上式与式\ref{e:pm-pb3d}有着相似之处，因为它们在几何配置上式相似的，对比图\ref{f:pm-estimators}(e)和图\ref{f:pm-estimators}(c)，前者以查询点和光子光束进行相交，而后者以光子点和查询光束相交，它们彼此称为是互补的。式\ref{e:pm-bp3d}与式\ref{e:pm-pb3d}的不同在于它的积分是针对光子光束路径上的相交部分，并且透射比作用于光子光束，这是向内散射的光子在光子光束方向上被消光系数作用而减少；另一个不同点是，B-P3D估计是以查询点为中心的。
+不难看出，上式与式\ref{e:pm-pb3d}有着相似之处，因为它们在几何配置上是相似的，对比图\ref{f:pm-estimators}(e)和图\ref{f:pm-estimators}(c)，前者以查询点和光子光束进行相交，而后者以光子点和查询光束相交，它们彼此称为是互补的。式\ref{e:pm-bp3d}与式\ref{e:pm-pb3d}的不同在于它的积分是针对光子光束路径上的相交部分，并且透射比作用于光子光束，这使向内散射的光子在光子光束方向上被消光系数作用而减少；另一个不同点是，B-P3D估计是以查询点为中心的。
 
 
 
 
 \paragraph{Beam-Point 2D估计}
-是式\ref{e:pm-pb2d}类似的原理，我们可以将式\ref{e:pm-bp3d}中的积分去掉，而使用一个平均透射比来近似，得到使用2D核函数的估计（如图\ref{f:pm-estimators}(f)所示）：
+与式\ref{e:pm-pb2d}类似的原理，我们可以将式\ref{e:pm-bp3d}中的积分去掉，而使用一个平均透射比来近似，得到使用2D核函数的估计（如图\ref{f:pm-estimators}(f)所示）：
 
 \begin{equation}\label{e:pm-bp2d}
 	\langle I\rangle_{B-P2D}=T_r(t_a)\rho(\tilde{\mathbf{b}},\mathbf{b})K_2(\tilde{\mathbf{b}},\mathbf{b})\underbrace{ \cfrac{T_r(t_c)}{p(t_c)}}_{\text{query point sampling}}
@@ -1925,20 +1924,20 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 \paragraph{光子光束的数据结构}
 光子光束的使用和前面讨论的光线图有些类似，例如我们要查询一条光束是否与某个空间范围（例如一个球体）相交，第\ref{sec:pm-ray-maps-data}中的光线图使用了一个k-d树结构来表述光线，然后由于光束可以穿越较大的空间，因此k-d树的节点之间可能存在大量光束的重叠，增加了光束遍历的计算量。
 
-\cite{a:AComprehensiveTheoryofVolumetricRadianceEstimationusingPhotonPointsandBeams}使用了一个简单的BVH结构来存储光速，但是作出了一定的修改。为了避免BVH的节点在相同的空间重叠，较长的光束被分割为多个子光束，这在运行时加快了遍历的速度。
+\cite{a:AComprehensiveTheoryofVolumetricRadianceEstimationusingPhotonPointsandBeams}使用了一个简单的BVH结构来存储光束，但是作出了一定的修改。为了避免BVH的节点在相同的空间重叠，较长的光束被分割为多个子光束，这在运行时加快了遍历的速度。
 
 
 
 
 
 \subsubsection{基于光子光束的查询光束估计}\label{sec:pm-beam-based-estimator}
-最后，我们来考虑使用光子光束直接对查询光束进行辐射亮度估计。式\ref{e:pm-bp3d}表示的单个查询点的向内散射，如果将此式代入查询光线的几分钟，则可以得到B-B3D的估计如下：
+最后，我们来考虑使用光子光束直接对查询光束进行辐射亮度估计。式\ref{e:pm-bp3d}表示的单个查询点的向内散射，如果将此式代入查询光线的积分中，则可以得到B-B3D的估计如下：
 
 \begin{equation}\label{e:pm-bb3d}
 	\langle I\rangle_{B-B3D}={\rm \int}^{t^{+}_{c}}_{t^{-}_{c}}\Biggl[{\rm \int}^{t^{+}_{a}(t_c)}_{t^{-}_{a}(t_c)}T_r(t_a) \rho(\tilde{\mathbf{b}_{t_a}},\mathbf{b}_{t_c})K_3(\tilde{\mathbf{b}_{t_a}},\mathbf{b}_{t_c}){\rm d}t_a\Biggl]T_r(t_c){\rm d}t_c
 \end{equation}
 
-上式中$t^{-}_c$和$t^{+}_c$表示查询光束与沿着光子光束的3D核估计范围的交叉部分，如图\ref{f:pm-estimators}(g)所示，其中光子光束对查询光线的估计产生向内散射光照贡献的光子的取值范围为$t^{-}_a()t_c$到$t^{+}_a(t_c)$，即是对于其中的每个点。
+上式中$t^{-}_c$和$t^{+}_c$表示查询光束与沿着光子光束的3D核估计范围的交叉部分，如图\ref{f:pm-estimators}(g)所示，其中光子光束对查询光线的估计产生向内散射光照贡献的光子的取值范围为$t^{-}_a(t_c)$到$t^{+}_a(t_c)$，即是对于其中的每个点。
 
 由于式\ref{e:pm-bb3d}的被积函数包含3D的卷积计算，因此计算相当复杂而在实践中变得不可取。
 
@@ -1979,13 +1978,13 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 \end{fullwidth}
 \end{figure}
 
-为了消除该积分，这里可以采用前面提到的核函数降维的方法（见图\ref{f:pm-averaging-transmittance}），首先将该圆形的2D核函数表述为沿查询光束视角\footnote{因为我们的目标是要降维，所以必须首先确定在哪一维度上进行模糊。}的2D矩形核函数，如图\ref{f:pm-bb1d}(c)所示。对于重叠区域（即是积分范围），它们来自于光照光束上一个步进尺寸$\Delta$在图\ref{f:pm-bb1d}(c)上的投影，所以这里平均透射比需要平均的长度为$\Delta t\sin{\theta_a}$。所以最后我们可以得到降维的估计为（如图\ref{f:pm-bb1d}(d)所示）：
+为了消除该积分，这里可以采用前面提到的核函数降维的方法（见图\ref{f:pm-averaging-transmittance}），首先将该圆形的2D核函数表述为沿查询光束视角\footnote{因为我们的目标是要降维，所以必须首先确定在哪一维度上进行模糊。}的2D矩形核函数，如图\ref{f:pm-bb1d}(c)所示。对于重叠区域（即是积分范围），它们来自于光子光束上一个步进尺寸$\Delta$在图\ref{f:pm-bb1d}(c)上的投影，所以这里平均透射比需要平均的长度为$\Delta t\sin{\theta_a}$。所以最后我们可以得到降维的估计为（如图\ref{f:pm-bb1d}(d)所示）：
 
 \begin{equation}\label{e:pm-bb1d}
 	\langle I\rangle_{B-B1D}=T_r(t_a) \rho(\tilde{\mathbf{b}},\mathbf{b}) \cfrac{K_1(\tilde{\mathbf{b}},\mathbf{b})}{\sin{\theta_{ac}}}T_r(t_c)
 \end{equation}
 
-上述保证了1D核函数之间无论从什么角度看都不会重叠，实际上1D核函数在光子光束上步进形成的面，与查询光束的角度正好为$\theta_{ac}$，，你可以想象图\ref{f:pm-bb1d}(d)中的穿过绿色光子光束并垂直于纸面的平面，1D核函数和光子光束和查询光束都是垂直的，如图\ref{f:pm-estimators}(i)所示。
+上式保证了1D核函数之间无论从什么角度看都不会重叠，实际上1D核函数在光子光束上步进形成的面，与查询光束的角度正好为$\theta_{ac}$，我们可以想象图\ref{f:pm-bb1d}(d)中的穿过绿色光子光束并垂直于纸面的平面，1D核函数和光子光束和查询光束都是垂直的，如图\ref{f:pm-estimators}(i)所示。
 
 
 
@@ -1998,7 +1997,7 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 
 
 
-\subsection{异质介质中的透射比估计}
+\subsection{异质介质中的透射比估计}\label{sec:pm-transmittance-estimate}
 从上节的内容我们看到，参与介质中光照传输的问题最后都可以归结为透射比（transmittance）\myindex{透射比}{transmittance}的计算，也可以称作部分可见性（fractional visibility）它表示光子沿直线传输一定距离$d$之后存活下来的光子的比率，用于计算在介质存在的情况下，光照在两点之间的传输：
 
 \begin{equation}
@@ -2039,7 +2038,7 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 	P(s)=1-T(s)=1-\exp(-\tau(0,s))
 \end{equation}
 
-由此我们可以通过对一个均匀分布的随机数$r$采样，然后通过求解下述方差来获得该随机数对应的自由路径长度$s$的值：
+由此我们可以通过对一个均匀分布的随机数$r$采样，然后通过求解下述方程来获得该随机数对应的自由路径长度$s$的值：
 
 \begin{equation}\label{e:pm-free-path-random-number}
 	r=P(s)\Leftrightarrow -\log(1-r)=\tau(0,s)
@@ -2065,7 +2064,7 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 \subsubsection{增量跟踪}\label{sec:pm-delta-tracking}
 严格意义上说，上面讨论的常规跟踪并不完全是一种近似方法，它使用的是第\ref{chp:mc}章讨论的逆变换方法，根据那里的内容，逆变换方法首先对累积分布函数进行均匀分布采样，然后通过求该累积分布函数的反函数来求随机抽样的值，该反函数和欲求的随机变量具有相同的分布。但是这里的反函数并没有解析的方法可以求得，因此常规跟踪在求反函数值的时候使用了近似方法，这也使得原本的随机方法仍然包含了偏差。
 
-当逆变换算法的反函数计算成本较高，或者根本没有显示表达式时，另一种常见的替代方法是取舍算法（acceptance-rejection method）\myindex{取舍算法}{acceptance-rejection method}，取舍方法在一个更均匀的空间内产生一个随机数，然后判断该随机数处的值是否满足一定的条件而被接受，否则重复上述过程。在路径的自由采样中，消光系数提供了某个位置被接受或拒绝的条件，剩下的我们还需要构造一定的边界空间就可以使用取舍算法来估计自由路径的长度。
+当逆变换算法的反函数计算成本较高，或者根本没有显式表达式时，另一种常见的替代方法是取舍算法（acceptance-rejection method）\myindex{取舍算法}{acceptance-rejection method}，取舍方法在一个更均匀的空间内产生一个随机数，然后判断该随机数处的值是否满足一定的条件而被接受，否则重复上述过程。在路径的自由采样中，消光系数提供了某个位置被接受或拒绝的条件，剩下的我们还需要构造一定的边界空间就可以使用取舍算法来估计自由路径的长度。
 
 增量跟踪（delta tracking）\myindex{增量跟踪}{delta tracking}就是一种基于取舍方法的用来进行自由路径采样的方法，它又称为伍德科克跟踪（Woodcock tracking）\myindex{伍德科克跟踪}{Woodcock tracking}\cite{a:TechniquesusedintheGEMcodeforMonteCarloneu-tronicscalculationsinreactorsandothersystemsofcomplexgeometry}，伪散射（pseudo scattering）\myindex{伪散射}{pseudo scattering}，洞穴跟踪（hole tracking）\myindex{空穴跟踪}{hole tracking}或者空位碰撞\footnote{我们将在后面说明这些名字的含义。}（null-collision）\myindex{空位碰撞}{null-collision}，它首次被\cite{a:UnbiasedGlobalIlluminationwithParticipatingMedia}引入计算机图形学中用于渲染参与介质。现在已成为介质渲染中透射比计算与自由路径采样的主要基础，例如\cite{a:FreePathSamplinginHighResolutionInhomogeneousParticipatingMedia,a:EfficientFreePathSamplinginInhomogeneousMedia,a:ResidualRatioTrackingforEstimatingAttenuationinParticipatingMedia,a:ProgressivePhotonBeams}等。
 
@@ -2077,7 +2076,7 @@ Henyey-Greenstein相位函数仅与散射的角度$\theta$有关：
 
 回想前面的内容，要想使用取舍方法对某个函数进行采样，我们首先需要使用一个更简单形式的函数“包围住”采样函数，该简单函数通常具有非常简洁的形式使得可以以非常低的计算量对其直接进行采样，例如一个常数函数（如图\ref{f:mc-rejection-idea}所示）或者一个更接近采样函数形状的分段线性函数（如图\ref{f:mc-rejection-generalized}所示），然后使用采样函数的值对每个简单函数的采样值进行取舍判断。
 
-所以为了对每个位置处都具有不同消光系数值的异质介质进行路径采样，增量跟踪首先使用以下方法来生成一个更简单的常数函数：即在异质介质中每个“空位处”加入一些虚拟粒子（virtual particles）\myindex{虚拟粒子}{virtual particles}，或称为虚构粒子（fictitious particles）\myindex{虚构粒子}{fictitious particles}，使得对于混合后的“同质介质”，其消光系数$\bar{\sigma}(s)=\sigma_t(s)+\sigma_v(s)$为一个常数，这里$\sigma_v(s)$表示虚拟粒子的消光系数，$\sigma_t(s)$表示原介质中的真实粒子的消光系数。由于混合后的介质其相关系数为常数，因此上述的操作也称为使异质介质同质化（homogenize）\myindex{同质化}{homogenize}，如图\ref{f:pm-tracking}(c)所示，其组合的消光系数又称为一个强函数（majorant）\footnote{majorant的英文原意为： ”A function, or an element of a set, that dominates others or is greater than all others“。}\myindex{强函数}{majorant}，它表示一个大于所有真实粒子消光系数$\sigma_t(s)$的值，例如$\sigma(s)=1$\cite{a:ProgressivePhotonBeams}，如图\ref{f:pm-delta-tracking}右边小图所示。
+所以为了对每个位置处都具有不同消光系数值的异质介质进行路径采样，增量跟踪首先使用以下方法来生成一个更简单的常数函数：即在异质介质中每个“空位处”加入一些虚拟粒子（virtual particles）\myindex{虚拟粒子}{virtual particles}，或称为虚构粒子（fictitious particles）\myindex{虚构粒子}{fictitious particles}，使得对于混合后的“同质介质”，其消光系数$\bar{\sigma}(s)=\sigma_t(s)+\sigma_v(s)$为一个常数，这里$\sigma_v(s)$表示虚拟粒子的消光系数，$\sigma_t(s)$表示原介质中的真实粒子的消光系数。由于混合后的介质其相关系数为常数，因此上述的操作也称为使异质介质同质化（homogenize）\myindex{同质化}{homogenize}，如图\ref{f:pm-tracking}(c)所示，其组合的消光系数又称为一个强函数（majorant）\footnote{majorant的英文原意为： “A function, or an element of a set, that dominates others or is greater than all others”。}\myindex{强函数}{majorant}，它表示一个大于所有真实粒子消光系数$\sigma_t(s)$的值，例如$\sigma(s)=1$\cite{a:ProgressivePhotonBeams}，如图\ref{f:pm-delta-tracking}右边小图所示。
 
 那怎样保证新加入的虚构粒子能够不改变原有异质介质的传输行为呢，这通过一个特殊的设置来实现：即使得虚构粒子的反射率为1，并且其相位函数为沿光线传输方向$\omega$的一个脉冲值$\delta(\omega)$，这就使得虚构粒子并不会改变原有粒子的传输行为，因此这就是光子与虚构粒子的碰撞又称为空位碰撞（null-collision）\myindex{空位碰撞}{null-collision}的原因。
 
@@ -2099,8 +2098,7 @@ float DeltaTracking(o, $\omega$, d) {
 \label{a:pm-delta-tracking}
 \end{algorithm}
 
-
-有了以上这些准备工作，现在就可以来描述增量跟踪的思路，如算法\ref{a:pm-delta-tracking}所示，首先我们消光系数为$\bar{\sigma}$的同质介质进行距离采样，由于其消光系数为常数，所以式\ref{e:pm-free-path-random-number}可以简化为\footnote{请注意，由于消光系数本身（如图\ref{f:pm-delta-tracking}右边小图所示）并不能作为自由路径的概率分布函数，所以这里仍然需要使用上节讨论的逆变换算法来将随机数与消光系数产生联系。}（算法\ref{a:pm-delta-tracking}第4行）：
+有了以上这些准备工作，现在就可以来描述增量跟踪的思路，如算法\ref{a:pm-delta-tracking}所示，首先我们对消光系数为$\bar{\sigma}$的同质介质进行距离采样，由于其消光系数为常数，所以式\ref{e:pm-free-path-random-number}可以简化为\footnote{请注意，由于消光系数本身（如图\ref{f:pm-delta-tracking}右边小图所示）并不能作为自由路径的概率分布函数，所以这里仍然需要使用上节讨论的逆变换算法来将随机数与消光系数产生联系。}（算法\ref{a:pm-delta-tracking}第4行）：
 
 \begin{equation}
 	-\log(1-r)=\bar{\sigma}\zeta
@@ -2122,7 +2120,7 @@ float DeltaTracking(o, $\omega$, d) {
 
 \begin{figure}
 	\sidecaption
-	\includegraphics[width=0.5\textwidth]{figures/pm/super-voxels}
+	\includegraphics[width=0.45\textwidth]{figures/pm/super-voxels}
 	\caption{超体素网格存储着最大消光系数值$\sigma_{\max}$，它可以用多项式插值的方法计算出网格内每个位置处的最大消光系数$\sigma_{\max}(s)$的值}
 	\label{f:pm-super-voxels}
 \end{figure}
@@ -2136,15 +2134,15 @@ float DeltaTracking(o, $\omega$, d) {
 
 很显然，光线步进的方法是有偏的。为了获得一个无偏的估计，重新考虑如图\ref{f:pm-free-path-cdf}所示的透射比和自由路径的关系，对于$N$个光子在场景中传播，所有传播路径大于$x$的光子的比例就可以作为$T_r(x)$的估计。
 
-基于此观察，一种基于自由路径采样来对透射比进行估计的方法被提出。假设一个给定的自由路径采样方法，例如前面讨论的增量跟踪及其改进方法，$d(\mathbf{x},\vec{\omega})$，它对于一个给定的起始点$x$及光线传输方向$\vec{\omega}$返回一个距离采样值，则距离$s$处的透射比可以通过数那些距离$\geq s$的路径的比例来进行估计：
+基于此观察，一种基于自由路径采样来对透射比进行估计的方法被提出。假设一个给定的自由路径采样方法，例如前面讨论的增量跟踪及其改进方法，$d(x,{\omega})$，它对于一个给定的起始点$x$及光线传输方向${\omega}$返回一个距离采样值，则距离$s$处的透射比可以通过数那些距离$\geq s$的路径的比例来进行估计：
 
 \begin{equation}
-	T_r(\mathbf{x},\vec{\omega},s)=E\Bigg[ \cfrac{1}{n}\sum^{n}_{j=0}H(d(\mathbf{x},\vec{\omega})-s)\Bigg]
+	T_r(x,{\omega},s)=E\Bigg[ \cfrac{1}{n}\sum^{n}_{j=0}H(d(x,{\omega})-s)\Bigg]
 \end{equation}
 
 这里$H$是一个海维赛阶梯函数（Heaviside step function）\myindex{海维赛阶梯函数}{Heaviside step function}，或称为单位阶梯函数（unit step function）\myindex{单位阶梯函数}{unit step function}，对于$n\geq 0$，$H[n]=1$，否则$H[n]=0$。上述方法又称为平均自由路径采样（mean free path sampling）\myindex{平均自由路径采样}{mean free path sampling}法，它被运用于\cite{a:ProgressivePhotonBeams,a:FreePathSamplinginHighResolutionInhomogeneousParticipatingMedia}等。
 
-上述方法的缺点是，每个自由路径采样对透射比的贡献是一个二元的值：当路径长度超过$s$时为1，否则为0，因此透射比的估计包含很大的方差；此外，和传统的增量跟踪一样，上述方法的缺点是当介质中的虚拟粒子数量很多的时候，由于自由路径会更多地与虚拟粒子发生碰撞，导致计算量增加，图\ref{f:pm-delta-vs-ratio}(a)和(b)显式了单个相同长度的自由路径在不同密度介质中与虚拟粒子发生碰撞的次数（垂直方向的虚线）。
+上述方法的缺点是，每个自由路径采样对透射比的贡献是一个二元的值：当路径长度超过$s$时为1，否则为0，因此透射比的估计包含很大的方差；此外，和传统的增量跟踪一样，上述方法的缺点是当介质中的虚拟粒子数量很多的时候，由于自由路径会更多地与虚拟粒子发生碰撞，导致计算量增加，图\ref{f:pm-delta-vs-ratio}(a)和(b)显示了单个相同长度的自由路径在不同密度介质中与虚拟粒子发生碰撞的次数（垂直方向的虚线）。
 
 \begin{figure}
 \begin{fullwidth}
@@ -2162,13 +2160,15 @@ float DeltaTracking(o, $\omega$, d) {
 
 上述过程可以看做是一个基于俄罗斯轮盘的随机行走的过程，只不过其使用的终止概率为0或1；与此相反，我们可以将终止概率设置为局部真实光子的比例，即消光系数。在蒙特卡洛模拟中，俄罗斯轮盘经常被用来作为对贡献值进行加权的方法\cite{a:ComparativeanalysisofdiscreteandcontinuousabsorptionweightingestimatorsusedinMonteCarlosimulationsofradiativetransportinturbidmedia}：与其概率性地终止一个事件，我们让它继续随机行走直到达到指定的边界条件，并对其贡献值使用分配一个权重系数。
 
-\cite{a:ResidualRatioTrackingforEstimatingAttenuationinParticipatingMedia}基于此提出了比例跟踪（ratio tracking）\myindex{比例跟踪}{ratio tracking}的方法，在每一步距离采样中，它对路径分配一个与该出虚拟粒子比例相等的权重系数，并使每条路径持续随机行走知道满足超出指定的传输长度，最终每条路径的贡献值被所有与虚拟粒子发生碰撞的联合概率加权：
+\cite{a:ResidualRatioTrackingforEstimatingAttenuationinParticipatingMedia}基于此提出了比例跟踪（ratio tracking）\myindex{比例跟踪}{ratio tracking}的方法，在每一步距离采样中，它对路径分配一个与该出虚拟粒子比例相等的权重系数，并使每条路径持续随机行走直到满足超出指定的传输长度，最终每条路径的贡献值被所有与虚拟粒子发生碰撞的联合概率加权：
 
 \begin{equation}\label{e:pm-ratio}
 	\langle T(d)\rangle_R=\prod^{K}_{i=1}\Bigg(1- \cfrac{\sigma(x_i)}{\bar{\sigma}}\Bigg)
 \end{equation}
 
 这里被乘数表示每个碰撞发生的位置$x_i$处虚拟粒子相对于所有粒子的比例，这可以通过该位置处的消光系数计算而出。
+
+算法\ref{a:pm-ratio-tracking}显示了比例跟踪估计的伪代码，图\ref{f:pm-delta-vs-ratio}(c)显示了一条路径下各个碰撞点处贡献值随路径长度的变化。比例跟踪的优点是它很好地利用了在路径跟踪过程中的信息，而不是简单地使用一个二元的判断。比例跟踪提供了一个分段常数来近似透射比函数，相比增量跟踪，它与真实的透射比曲线的形状更加接近。
 
 \begin{algorithm}
 \begin{lstlisting}[language=C++, mathescape]
@@ -2189,8 +2189,6 @@ float RatioTrackingEstimator(o, $\omega$, d) {
 \label{a:pm-ratio-tracking}
 \end{algorithm}
 
-算法\ref{a:pm-ratio-tracking}显式了比例跟踪估计的伪代码，图\ref{f:pm-delta-vs-ratio}(c)显式了一条路径下各个碰撞点处贡献值随路径长度的变化。比例跟踪的优点是它很好地利用了在路径跟踪过程中的信息，而不是简单地使用一个二元的判断。比例跟踪提供了一个分段常数来近似透射比函数，相比增量跟踪，它与真实的透射比曲线的形状更加接近。
-
 相较于增量跟踪，比例跟踪唯一的缺点是对于每条路径，它需要多一些额外的路径采样计算，这在一些情况下会比增量跟踪要低效，但是大多数情况下比例跟踪的结果都要好得多。例如当联合消光系数对介质的包围较为松散（即虚拟粒子的数量较多）时，如图\ref{f:pm-delta-tracking}右边小图所示，这需要更多的路径跟踪步骤，比例跟踪能够以更好的分段常数函数来近似真实透射比的分布，如图\ref{f:pm-delta-vs-ratio}(c)所示；当联合消光系数对介质的包围较为密集时，比例跟踪的优势就逐步下降，在极端的$\bar{\sigma}=\sigma_t$的情况下，光子不与任何虚拟粒子发生交互，此时两者呈现一样的结果。
 
 所以从中可以看出，比例跟踪在虚拟粒子越多的情况下，对估计结果的帮助更大，反之越小。接下来我们将介绍一种改进的方法用于在虚拟粒子数量较少的情况下改善比例跟踪的效率。
@@ -2201,7 +2199,7 @@ float RatioTrackingEstimator(o, $\omega$, d) {
 \paragraph{残留跟踪}
 当组合消光系数$\bar{\sigma}$的值比较大时，此时介质具有较多的虚拟粒子，光子更容易与虚拟粒子发生碰撞，因此上面讨论的比例跟踪需要经历更多的尝试才能达到终止条件。\cite{a:ResidualRatioTrackingforEstimatingAttenuationinParticipatingMedia}进一步提出了一种称为残留跟踪的方法用于降低组合消光系数的值，以提高比例跟踪（或者甚至某些条件下）增量跟踪的计算效率。
 
-残留跟踪（residual tracking）\myindex{残留跟踪}{residual tracking}借鉴了分离变量的思路，首先一个控制消光系数（control extinction coefficient）\myindex{控制消光系数}{control extinction coefficient}$\sigma_c(x)$被引入介质中，控制消光系数是一个简单的可以以分析的方法就光线深度的消光系数，此时新的透射比公式变为：
+残留跟踪（residual tracking）\myindex{残留跟踪}{residual tracking}借鉴了分离变量的思路，首先一个控制消光系数（control extinction coefficient）\myindex{控制消光系数}{control extinction coefficient}$\sigma_c(x)$被引入介质中，控制消光系数是一个简单的可以以分析的方法计算光线深度的消光系数，此时新的透射比公式变为：
 
 \begin{equation}\label{e:pm-residual}
 \begin{aligned}
@@ -2213,13 +2211,13 @@ float RatioTrackingEstimator(o, $\omega$, d) {
 
 上式的第一个指数项称为控制透射比（control transmittance）\myindex{控制透射比}{control transmittance}，它使用控制消光系数计算而得，它可以看做是$T(d)$的一个粗略近似；第二项表示控制透射比和实际透射比之间的一个差值，称为残留透射比（residual transmittance）\myindex{残留透射比}{residual transmittance}$T_r$，对应的残留消光系数为：$\sigma_r(x)=\sigma(x)-\sigma_c(x)$，可以看出，在某些情况下残留消光系数的值可能是负数。
 
+图\ref{f:pm-residual}显示了残留跟踪将消光系数分离为控制消光系数和残留消光系数的概念，残留透射比可以使用上述的增量跟踪进行估计，而控制透射比可以用任何可以以简单分析方法计算，例如常数控制消光系数。
+
 \begin{figure}
 	\includegraphics[width=1.0\textwidth]{figures/pm/residual}
 	\caption{残留跟踪采用了控制变量的思路，它将消光系数(a)分割为控制消光系数(b)和残留消光系数(c)，最终实际的透射比为控制透射比和残留透射比的乘积，前者通过分析的方法计算而出，而后者是以如比例跟踪或增量跟踪等方法计算}
 	\label{f:pm-residual}
 \end{figure}
-
-图\ref{f:pm-residual}显式了残留跟踪将消光系数分离为控制消光系数和残留消光系数的概念，残留透射比可以使用上述的增量跟踪进行估计，而控制透射比可以用任何可以以简单分析方法计算，例如常数控制消光系数。
 
 值得注意的是，由于透射比是指数形式的积分，所以即使是一个常数的控制变量，如果它减少了残留指数积分项的变化率，则也能够减少估计的方差。可以看到，残留跟踪将比例跟踪的分段常数转变为了分段指数的形式。
 
@@ -2231,7 +2229,7 @@ float RatioTrackingEstimator(o, $\omega$, d) {
 
 由于残留消光系数可能是负的，如图\ref{f:pm-residual}(c)所示，这意味着光子的能量反而会增加（负的吸收相当于正的增加），因此这种情况下使用增量跟踪是不合适的，因为它无法正确处理这种情况；而在比例跟踪中，对每条路径被记录一个权重系数，这意味着权重系数可能大于1而已，可以很容易地处理这种情况。
 
-对于控制消光系数，一般可以简单地选择原始消光系数的最小，最大或者平均值，通常平均值具有更好的结果（更小的方差）。需要注意的是，平均消光系数是针对一条光线上的平均消光系数，所以它需要对每条单向单独计算，这增加了计算成本，\cite{a:ResidualRatioTrackingforEstimatingAttenuationinParticipatingMedia}使用了\cite{a:FreePathSamplinginHighResolutionInhomogeneousParticipatingMedia}中的超体素的概念，分别对一个较大范围的空间计算一个平均值来加上平均消光系数的计算。
+对于控制消光系数，一般可以简单地选择原始消光系数的最小，最大或者平均值，通常平均值具有更好的结果（更小的方差）。需要注意的是，平均消光系数是针对一条光线上的平均消光系数，所以它需要对每条光线单独计算，这增加了计算成本，\cite{a:ResidualRatioTrackingforEstimatingAttenuationinParticipatingMedia}使用了\cite{a:FreePathSamplinginHighResolutionInhomogeneousParticipatingMedia}中的超体素的概念，分别对一个较大范围的空间计算一个平均值来加速平均消光系数的计算。
 
 残留比例跟踪已经被运用于Disney的Hyperion渲染器\cite{a:ResidualRatioTrackingforEstimatingAttenuationinParticipatingMedia}以及《超能陆战队》\cite{a:BigHero6:IntothePortal}及其后续电影产品中。
 
@@ -2244,7 +2242,7 @@ float RatioTrackingEstimator(o, $\omega$, d) {
 \subsection{统一光子，光束和路径估计}\label{sec:pm-upbp}
 到目前为止，我们已经介绍了很多不同的参与介质采样技术，例如传统的双向路径追踪，基于光子和光束的辐射亮度估计以及光束辐射亮度估计，不同的采样技术都具有不同的方差，偏差（对于辐射亮度估计）及收敛速度，也有着自己独特的对目标函数某些重要部分的采样能力，虽然每种采样技术理论上都可以收敛到正确的结果，但是我们希望估计具有最小的方差以及最快的收敛速度，使用复合重要性采样将这些不同的采样技术组合起来是我们本节要讨论的内容。
 
-为了对进行复合重要性采样的必要性提供依据，\cite{a:UnifyingPointsBeamsandPathsinVolumetricLightTransportSimulation}对上述各种不同采样技术的方差进行了分析，其展示了不同采样技术在不同几何配置下的相对性能，例如不同的核估计带宽以及不同的平均自由路径长度都会对估计有不同的影响，从其结果可以看出，没有任何一个采样技术能够在所有条件下优于其他采样技术。我们这里不会方差分析的过程进行讨论，而是直接介绍怎样使用复合重要性采样将它们组合起来，这里很多概念和原理与前面介绍的顶点连接与合并是类似的，但是这里多了一些针对光束的一些新的概念，因此涉及的内容要相对复杂一些。
+为了对进行复合重要性采样的必要性提供依据，\cite{a:UnifyingPointsBeamsandPathsinVolumetricLightTransportSimulation}对上述各种不同采样技术的方差进行了分析，其展示了不同采样技术在不同几何配置下的相对性能，例如不同的核估计带宽以及不同的平均自由路径长度都会对估计有不同的影响，从其结果可以看出，没有任何一个采样技术能够在所有条件下优于其他采样技术。我们这里不会对方差分析的过程进行讨论，而是直接介绍怎样使用复合重要性采样将它们组合起来，这里很多概念和原理与前面介绍的顶点连接与合并是类似的，但是这里多了一些针对光束的一些新的概念，因此涉及的内容要相对复杂一些。
 
 
 
@@ -2264,9 +2262,9 @@ float RatioTrackingEstimator(o, $\omega$, d) {
 	\langle I^{E}_i\rangle= \cfrac{1}{m}\sum^{m}_{j=1} \cfrac{f(X_j,Y_{i,j})}{p(X_j,Y_{i,j})}
 \end{equation}
 
-\noindent 在这里，假设围绕$\mathcal{D}_{yi}$空间的积分被看做使用不同核函数进行模糊，则随机变量$Y_{i,j}$对应于光子或者光束，因此上式可以看做是$I$的一个有偏估计，其中$I$为$\mathcal{D}_x$空间的积分。为此我们的目标便是将一些在扩展空间具有不同的形式估计$I^{E}_i$，在常规空间进行组合，并使其方差最小。
+在这里，假设围绕$\mathcal{D}_{yi}$空间的积分被看做使用不同核函数进行模糊，则随机变量$Y_{i,j}$对应于光子或者光束，因此上式可以看做是$I$的一个有偏估计，其中$I$为$\mathcal{D}_x$空间的积分。为此我们的目标便是将一些在扩展空间具有不同的形式估计$I^{E}_i$，在常规空间进行组合，并使其方差最小。
 
-假设我们有$u>0$种常规空间的采样技术$p_1(x,\cdots,p_u(x)$，以及$n-u>0$中扩展空间的采样技术$p_{u+1}(x,y_{u+1}),\cdots,p_n(x,y_n)$，其中每种扩展空间的采样技术都可能具有不同的维度，我们定义一个扩展组合估计（extended combined estimator）\myindex{扩展组合估计}{extended combined estimator}$F^{C}$为：
+假设我们有$u>0$种常规空间的采样技术$p_1(x,\cdots,p_u(x)$，以及$n-u>0$种扩展空间的采样技术$p_{u+1}(x,y_{u+1}),\cdots,p_n(x,y_n)$，其中每种扩展空间的采样技术都可能具有不同的维度，我们定义一个扩展组合估计（extended combined estimator）\myindex{扩展组合估计}{extended combined estimator}$F^{C}$为：
 
 \begin{equation}\label{e:pm-extended-combined-estimator}
 	F^{C}=\sum^{n}_{i=1} \cfrac{1}{n_i}\sum^{n_i}_{j=1}F^{C}_{i,j}
@@ -2281,7 +2279,7 @@ float RatioTrackingEstimator(o, $\omega$, d) {
 	\end{cases}
 \end{equation}
 
-\noindent $F_{i,j}$和$F^{E}_{i,j}$分表表示常规空间和扩展空间的贡献函数，定义为：
+\noindent $F_{i,j}$和$F^{E}_{i,j}$分别表示常规空间和扩展空间的贡献函数，定义为：
 
 \begin{equation}
 	\begin{aligned}
@@ -2296,7 +2294,7 @@ float RatioTrackingEstimator(o, $\omega$, d) {
 
 
 \subsubsection{扩展平衡启发式}
-在蒙特卡洛估计中，每种采样技术可以拥有不同空间贡献值计算$ \cfrac{f(x)}{p(x)}$，但是要对不同的采样技术进行复合，则需要在一个共同的空间下去分配各自的权重系数。与\cite{a:RobustMonteCarloMethodsforLightTransportSimulation}的原理类似，\cite{a:UnifyingPointsBeamsandPathsinVolumetricLightTransportSimulation}提出了一个扩展平衡启发式（extended balance heuristic）\myindex{扩展平衡启发式}{extended balance heuristic}：
+在蒙特卡洛估计中，每种采样技术可以拥有不同空间的贡献值计算$ \cfrac{f(x)}{p(x)}$，但是要对不同的采样技术进行复合，则需要在一个共同的空间下去分配各自的权重系数。与\cite{a:RobustMonteCarloMethodsforLightTransportSimulation}的原理类似，\cite{a:UnifyingPointsBeamsandPathsinVolumetricLightTransportSimulation}提出了一个扩展平衡启发式（extended balance heuristic）\myindex{扩展平衡启发式}{extended balance heuristic}：
 
 \begin{equation}
 	w_i(x)= \cfrac{n_i/k_i(x)}{\sum^{n}_{k=1}n_k/k_k(x)}
@@ -2325,15 +2323,15 @@ float RatioTrackingEstimator(o, $\omega$, d) {
 我们定义常规空间变量$x$为一条全路径$\bar{x}$，由于传统无偏的路径采样技术（例如单，双向路径采样）已经被定义于此空间（其贡献值为$f(x)/p_i(x)$）,因此这里仅需要对体积内的估计进行适当的表述。这里仅以三种（即P-P3D，P-B2D以及B-B1D）常见比较简单的估计进行分析，其他的估计可以按此进行分析。
 
 
-遵循图\ref{f:pm-estimators}(a)中的几何配置，顶点$\mathbf{a}$和$\mathbf{c}$分别位于光源子路径和摄像机子路径的末端，因此全路径$x$可以表述为$\bar{x}=\mathbf{x}_0\cdots\mathbf{a}\mathbf{b}\mathbf{c}\cdots\mathbf{x}_k$。为了使分析更简洁，这里略去所有估计中共同的路径部分，所以定义$x\equiv \mathbf{b}$，$y_i$则分别对应于各个估计的核函数部分，如图\ref{f:pm-y}所示。
+遵循图\ref{f:pm-estimators}(a)中的几何配置，顶点$\mathbf{a}$和$\mathbf{c}$分别位于光源子路径和摄像机子路径的末端，因此全路径$x$可以表述为$\bar{x}=x_0\cdots\mathbf{a}\mathbf{b}\mathbf{c}\cdots x_k$。为了使分析更简洁，这里略去所有估计中共同的路径部分，所以定义$x\equiv \mathbf{b}$，$y_i$则分别对应于各个估计的核函数部分，如图\ref{f:pm-y}所示。
 
-使用图\ref{f:pm-estimators}(a)所示的几何配置：给定两个顶点$\mathbf{a}$和$\mathbf{c}$分别位于光源和摄像机子路径的末端，所以全路径为$\mathbf{x}_0\cdots\mathbf{a}\mathbf{b}\mathbf{c}\cdots\mathbf{x}_k$
+使用图\ref{f:pm-estimators}(a)所示的几何配置：给定两个顶点$\mathbf{a}$和$\mathbf{c}$分别位于光源和摄像机子路径的末端，所以全路径为$x_0\cdots\mathbf{a}\mathbf{b}\mathbf{c}\cdots x_k$
 
 
 
 
 \paragraph{概率密度函数}
-正如前面的内容所述，实际上在不同维度空间进行复合并不影响其概率密度和估计的形式，也就是单个采样技术是不受影响的，只有权重系数的计算是最重要的。但是这里还是稍微分析一下概率密度函数和贡献值函数，可以帮助理解在这些估计中的那些维度是常规空间，那些维度是核函数空间。
+正如前面的内容所述，实际上在不同维度空间进行复合并不影响其概率密度和估计的形式，也就是单个采样技术是不受影响的，只有权重系数的计算是最重要的。但是这里还是稍微分析一下概率密度函数和贡献值函数，可以帮助理解在这些估计中的哪些维度是常规空间，哪些维度是核函数空间。
 
 \begin{figure}
 	\includegraphics[width=1.\textwidth]{figures/pm/y}
@@ -2349,7 +2347,7 @@ float RatioTrackingEstimator(o, $\omega$, d) {
 
 因为$\mathbf{b}$和$\tilde{\mathbf{b}}$是相互独立的，同样需要注意的是，由于估计式\ref{e:pm-pp3d}已经转换为针对单个光子的形式\footnote{前面已经说明这是为了保证相同的路径长度，因为不同的路径长度组合被视为不同的采样技术。}，这里在$y$空间上其实只有一个样本值。
 
-对于P-B2D估计，如式\ref{e:pm-pb2d}所示，首先我们需要对查询光束进行采样，即$p(\omega_c)$，然后需要对$\tilde{\mathbf{b}}$采样使其位于$\mathbf{b}$所在的核估计范围内，这里可以将$\tilde{\mathbf{b}}$的位置表述为与查询光束对齐的坐标系$\vec{t},\vec{u},\vec{v}$中，由于$\vec{t}=\omega_c$已知，因此光子位置仅剩下两个维度，所以这里定义核估计空间为$y_{P-B2D}\equiv (\tilde{u},\tilde{v})$，如图\ref{f:pm-y}(b)所示。其联合概率密度函数为：
+对于P-B2D估计，如式\ref{e:pm-pb2d}所示，首先我们需要对查询光束进行采样，即$p(\omega_c)$，然后需要对$\tilde{\mathbf{b}}$采样使其位于$\mathbf{b}$所在的核估计范围内，这里可以将$\tilde{\mathbf{b}}$的位置表述为与查询光束对齐的坐标系$(\vec{t},\vec{u},\vec{v})$中，由于$\vec{t}=\omega_c$已知，因此光子位置仅剩下两个维度，所以这里定义核估计空间为$y_{P-B2D}\equiv (\tilde{u},\tilde{v})$，如图\ref{f:pm-y}(b)所示。其联合概率密度函数为：
 
 \begin{equation}
 	p_{P-B2D}=p(\tilde{\mathbf{b}})G(\mathbf{b},\mathbf{c})p(\omega_c)
@@ -2543,7 +2541,7 @@ Since we use a sphere to locate the photons it would be natural to assume that t
 	where $k\geq 1$ is a filter constant characterizing the filter and $r$ is the maximum distance. The normalization of the filter based on a 2d-distribution of the photons is $1- \cfrac{2}{3k}$ and the filtered radiance estimate becomes:
 	
 	\begin{equation}
-		L_r(x,\vec{\omega})\approx  \cfrac{\sum^{n}_{p=1}f_r(x,\vec{\omega}_p,\vec{\omega})\triangle\Phi_p(x,\vec{\omega}_p)\omega_{pc}}{(1- \cfrac{2}{3k})\pi r^{2}}
+		L_r(x,{\omega})\approx  \cfrac{\sum^{n}_{p=1}f_r(x,{\omega}_p,{\omega})\triangle\Phi_p(x,{\omega}_p)\omega_{pc}}{(1- \cfrac{2}{3k})\pi r^{2}}
 	\end{equation}
 	
 	\item \textbf{The Gaussian filter} is a filter whose impulse response is a Gaussian function (or an approximation of it), see figure \ref{f:gaussian-filter}. A normalized Gaussian filter proposed by \cite{a:APracticalGuidetoGlobalIlluminationusingPhotonMaps} is:
@@ -2562,7 +2560,7 @@ Since we use a sphere to locate the photons it would be natural to assume that t
 	where $d_p$ is the distance between the photon $p$ and $x$ and $\alpha = 0.918$ and $\beta = 1.953$. This filter is normalized and the only change to the radiance estimate is that each photon contribution is multiplied by $\omega_{pg}$:
 	
 	\begin{equation}\label{e:approximated-radiance-area}
-		L_r(x,\vec{\omega})\approx  \cfrac{1}{\pi r^{2}}\sum^{n}_{p=1}f_r(x,\vec{\omega}_p,\vec{\omega})\triangle\Phi_p(x,\vec{\omega}_p)\omega_{pg}
+		L_r(x,{\omega})\approx  \cfrac{1}{\pi r^{2}}\sum^{n}_{p=1}f_r(x,{\omega}_p,{\omega})\triangle\Phi_p(x,{\omega}_p)\omega_{pg}
 	\end{equation}
 	
 	\item \textbf{Differential checking} will be detailed in  section \ref{sec:photon-differentials}.
@@ -2659,7 +2657,7 @@ Photons are emitted from light source, there is no camera, so we need different 
 	\item $\theta$ and $\phi$ parameterise the smission solid angle.
 \end{itemize}{\rm d}\mathbf{
 
-then $\mathbf{r}(s^{'})\mapsto\mathbf{r}(u,v;\theta,\phi)=\mathbf{x}(u,v)+s^{'}(u,v;\theta,\phi)\vec{\omega}(\theta,\phi)$, and the \textit{photon differential} is:
+then $\mathbf{r}(s^{'})\mapsto\mathbf{r}(u,v;\theta,\phi)=x(u,v)+s^{'}(u,v;\theta,\phi){\omega}(\theta,\phi)$, and the \textit{photon differential} is:
 
 \begin{equation}
 	{\rm d}\mathbf{r}=(D_{uv}+D_{\theta\phi})\mathbf{r}
@@ -2668,18 +2666,18 @@ then $\mathbf{r}(s^{'})\mapsto\mathbf{r}(u,v;\theta,\phi)=\mathbf{x}(u,v)+s^{'}(
 where the photon differential vectors are (see figure \ref{f:first-order-photon-differentials}):
 
 \begin{itemize}
-	\item Positional differential vectors: $D_{uv}\mathbf{x}=[D_u\mathbf{x} \text{ }D_v\mathbf{x}]$
-	\item Directional differential vectors: $D_{\theta\phi}\vec{\omega}=[D_{\theta}\vec{\omega}\text{ }D_{\phi}\vec{\omega}]$
+	\item Positional differential vectors: $D_{uv}x=[D_ux \text{ }D_vx]$
+	\item Directional differential vectors: $D_{\theta\phi}{\omega}=[D_{\theta}{\omega}\text{ }D_{\phi}{\omega}]$
 \end{itemize}
 
 \begin{figure}\label{f:first-order-photon-differentials}
 \begin{center}
 	\includegraphics[width=0.8\textwidth]{figures/pm/pm-13-3}
 \end{center}
-	\caption{Transfer of a photon ray and its differential vectors from $\mathbf{x}$ to $\mathbf{x}^{'}$ and $\vec{\omega}$ to $\vec{\omega}^{'}$.}
+	\caption{Transfer of a photon ray and its differential vectors from $x$ to $x^{'}$ and ${\omega}$ to ${\omega}^{'}$.}
 \end{figure}
 
-The parallelogram spanned by the positional differential vectors is the ray footprint, see figure \ref{f:ray-and-photon-footprint}(a); And the max area ellipse inscribed in the parallelogram with centre in the photon position $\mathbf{x}_p$ is the \textit{photon footprint}, see figure \ref{f:ray-and-photon-footprint}(b).
+The parallelogram spanned by the positional differential vectors is the ray footprint, see figure \ref{f:ray-and-photon-footprint}(a); And the max area ellipse inscribed in the parallelogram with centre in the photon position $x_p$ is the \textit{photon footprint}, see figure \ref{f:ray-and-photon-footprint}(b).
 
 \begin{figure}
 \begin{center}
@@ -2700,7 +2698,7 @@ A photon differential is stored along with information about the positional diff
 The area pf the photon footprint is then:
 
 \begin{equation}
-	A_p= \cfrac{\pi}{4}A_{\mathbf{r}}= \cfrac{\pi}{4}|D_u\mathbf{x}_p\times D_v\mathbf{x}_p|
+	A_p= \cfrac{\pi}{4}A_{\mathbf{r}}= \cfrac{\pi}{4}|D_ux_p\times D_vx_p|
 \end{equation}
 
 \begin{figure}
@@ -2712,7 +2710,7 @@ The area pf the photon footprint is then:
 and, by analogy, the photon solid angle is (see figure \ref{f:photon-solid-angle}):
 
 \begin{equation}
-	\omega_p= \cfrac{\pi}{4}|D_{\theta}\vec{\omega}_p\times D_{\phi}\vec{\omega}_p|
+	\omega_p= \cfrac{\pi}{4}|D_{\theta}{\omega}_p\times D_{\phi}{\omega}_p|
 \end{equation}
 
 
@@ -2730,19 +2728,19 @@ The irradiance (instead of flux) of the photon differential is stored and used t
 
 
 \subsubsection{Lighting Reconstruction}
-Irradiance is radiant power incident per unit area at a point $\mathbf{x}$ on a surface. Then the reflected radiance at $x$ in direction $\omega$ is:
+Irradiance is radiant power incident per unit area at a point $x$ on a surface. Then the reflected radiance at $x$ in direction $\omega$ is:
 
 \begin{equation}
-	L_r(\mathbf{x},\vec{\omega})={\rm \int}_{\Omega_x} f_r(\mathbf{x},\vec{\omega}^{'},\vec{\omega}){\rm d}E(\mathbf{x},\vec{\omega})
+	L_r(x,{\omega})={\rm \int}_{\Omega_x} f_r(x,{\omega}^{'},{\omega}){\rm d}E(x,{\omega})
 \end{equation}
 
 Using this equation, it is possible to approximate the reflected radiance term of the rendering equation using irradiance due to the radiant power incident from a particular solid angle. This irradiance is exactly what we obtain from the photon differentials, see equation \ref{e:photon-radiance}.
 
 \begin{equation}\label{e:photon-radiance-equation}
-	L_r(\mathbf{x},\vec{\omega})\approx\sum^{n}_{p=1} f_f(\mathbf{x},\vec{\omega}_p,\vec{\omega})\triangle E_p(\mathbf{x},\vec{\omega}_p)
+	L_r(x,{\omega})\approx\sum^{n}_{p=1} f_f(x,{\omega}_p,{\omega})\triangle E_p(x,{\omega}_p)
 \end{equation}
 
-where $n$ is the number of photon differentials whose footprints overlap $\mathbf{x}$. When finding the overlap, the footprint of each photon differential is centered around the intersection point.
+where $n$ is the number of photon differentials whose footprints overlap $x$. When finding the overlap, the footprint of each photon differential is centered around the intersection point.
 
 
 
@@ -2750,7 +2748,7 @@ where $n$ is the number of photon differentials whose footprints overlap $\mathb
 To provide kernel smoothing we reformulate the equation \ref{e:photon-radiance-equation} such that:
 
 \begin{equation}\label{e:photon-radiance-equation}
-	\hat{L}_r(\mathbf{x},\vec{\omega})\approx\sum^{n}_{p=1} f_f(\mathbf{x},\vec{\omega}_p,\vec{\omega})K(\mathbf{M}_p(\mathbf{x}_p-\mathbf{x}))\triangle E_p(\mathbf{x},\vec{\omega}_p)
+	\hat{L}_r(x,{\omega})\approx\sum^{n}_{p=1} f_f(x,{\omega}_p,{\omega})K(\mathbf{M}_p(x_p-x))\triangle E_p(x,{\omega}_p)
 \end{equation}
 
 where $K$ is the kernel function and $\mathbf{M}_p$ is the matrix which transforms from world coordinates into a coordinate system with the surface normal and the positional differential vectors $D_u$ and $D_v$ as basis vectors. This transformation is illustrated in Figure \ref{f:photon-matrix}. We use half the length of the differential vectors, as we center the footprint around the photon differentials
@@ -2922,7 +2920,7 @@ Whenever a photon $p$ is found to lie within the feature gradient (figure \ref{f
 
 \begin{equation}
 \begin{aligned}
-	&\vec{g}_p=\vec{g}_p+l^{'}(\vec{\sigma}\times\vec{n}_o)\\
+	&\vec{g}_p=\vec{g}_p+l^{'}(\vec{\sigma}\times\mathbf{n}_o)\\
 	&w_p=\max(w_p,l^{'})
 \end{aligned}
 \end{equation}
@@ -2936,7 +2934,7 @@ Where $n_o$ is the surface normal at the origin $x_o$. Given the normalised cons
 
 \begin{equation}
 	\begin{aligned}
-		&\vec{v}_p=\vec{g}_p\times\vec{n}_p\\
+		&\vec{v}_p=\vec{g}_p\times\mathbf{n}_p\\
 		&\vec{f}^{'}=\vec{v}_p(\vec{v}_p(1-w_p)\cdot\vec{f}_p)+\vec{g}_p(\vec{g}_p\cdot\vec{f}_p)
 	\end{aligned}
 \end{equation}
