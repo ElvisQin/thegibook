@@ -1,6 +1,6 @@
 从本章开始，本书的焦点将完全转向实时渲染，这意味着渲染算法需要在1/30秒甚至更少的时间内生成当前场景在当前视角下的一张2D图像。尽管这看起来只是在时效性上的要求不同，实时渲染和离线渲染采用的确是两种完全不同的渲染方法和架构。
 
-传统的离线渲染（例如本书前面的章节介绍的那些）算法基本上都依赖于光线追踪（ray tracing），狭义的光线追踪是指根据一条光线的传播方向寻找该光线与场景中的表面上最近的一个交点，这个过程的计算成本非常昂贵，所以目前的实时渲染算法通常并不能像前面介绍的离线渲染算法那样计算更完全的光线传播路径，而是仅仅只计算所谓的直接光照，然后间接光照通过其它的一些非直接渲染的方法来实现。由于直接光照往往具有比较好的连贯性，因此人们设计出一种高度并行的图形处理器，用于实现对直接光照的高速实时渲染。这些内容可以参见本书前面第\ref{chp:pipeline}和\ref{chp:shading}章的内容。
+传统的离线渲染算法基本上都依赖于光线追踪（ray tracing），狭义的光线追踪是指根据一条光线的传播方向寻找该光线与场景中表面最近的一个交点，这个过程的计算成本非常昂贵，所以目前的实时渲染算法通常并不能像离线渲染算法那样计算更完全的光线传播路径，而是仅仅只计算所谓的直接光照，然后间接光照通过其它的一些非直接渲染的方法来实现。由于直接光照往往具有比较好的连贯性，因此人们设计出一种高度并行的图形处理器，用于实现对直接光照的高速实时渲染。这些内容可以参见本书前面第\ref{chp:pipeline}和\ref{chp:shading}章的内容。
 
 在实时渲染中，直接光照又称为局部光照（local illumination），它的计算相对比较简单（限于篇幅，本书并不会特别对其进行介绍，而是假设读者能够理解基本的实时渲染中直接光照的计算）；相应地，间接光照又称为全局光照（global illumination，GI），所以通常在实时渲染中我们所说的全局光照其实是指间接光照，实时渲染中的间接光照的计算是相对比较困难的，它们通常会使用一些预计算或者其它一些特殊的近似方法，本章及其后面的章节就是要介绍几种目前工业中比较主流的全局光照算法。
 
@@ -8,7 +8,7 @@
 
 根据其对渲染方程预计算的位置不同，实时渲染中有多种不同的预计算光照技术，它们也分别拥有自己不同的名称，例如预计算辐射传输，辐射照度缓存，辐射照度/亮度体积等等，传统的教材也大都会对它们进行区分并给予单独介绍，在一些实时渲染引擎（如Unreal Engine和Unity等）中它们也表现为看似完全无关的流程和功能。然而从技术层面，它们却存在着很多联系，例如它们大部分都需要基于球谐函数的乘积属性来分离出预计算部分，它们也大都需要借助基于图像的光照技术来实现预计算，并且通过比较对不同渲染方程不同部分的预计算处理，我们可以更深刻地理解这些预计算全局光照技术的思路。所以，我们这里尝试将所有这些基于预计算的全局光照技术放到一个章节，除了介绍它们的基本算法，我们可以更深刻的洞悉它们之间的联系，进而更深刻地理解这些全局光照技术。
 
-在本章，我们首先在第\ref{sec:pl-sh}节和第\ref{sec:pl-sh}节介绍这些预计算光照技术的两个核心基础，即球谐函数和基于图像的光照技术，接着在后面三节介绍预计算光照技术中的三个主要算法，它们分别是预计算辐射传输（第\ref{sec:pl-prt}节），辐射照度/亮度缓存（第\ref{sec:pl-irradiance-caching}节），以及辐射照度/亮度体积算法（第\ref{sec:pl-irradiance-volume}节）。
+在本章，我们首先在第\ref{sec:pl-sh}节和第\ref{sec:pl-ibl}节介绍这些预计算光照技术的两个核心基础，即球谐函数和基于图像的光照技术，接着在后面三节介绍预计算光照技术中的三个主要算法，它们分别是预计算辐射传输（第\ref{sec:pl-prt}节），辐射照度/亮度缓存（第\ref{sec:pl-irradiance-caching}节），以及辐射照度/亮度体积算法（第\ref{sec:pl-irradiance-volume}节）。
 
 
 
@@ -36,7 +36,7 @@
 	c_i=\int f(t)B_i(t)dt=:\langle f(t),B_i(t)\rangle
 \end{equation}
 
-然后，原始函数可以通过这些基函数与其对应系数乘积（如图\ref{f:pl-projection-and-reconstruction}(b)所示）的加和形式被重建（reconstruction）\mathindex{重建}{reconstruction}，即：
+然后，原始函数可以通过这些基函数与其对应系数乘积（如图\ref{f:pl-projection-and-reconstruction}(b)所示）的加和形式（即线性组合）被重建（reconstruction）\mathindex{重建}{reconstruction}，即：
 
 \begin{equation}\label{e:pl-reconstruction}
 	f(t)\approx\tilde{f}(t) =\sum_{i}^{N}c_iB_i(t)=\raisebox{-.5\height}{\includegraphics[width=0.25\textwidth]{figures/prt/prt-3}}
@@ -148,7 +148,7 @@
 	s=(x,y,z)=(\sin\theta \cos\varphi,\sin\theta \sin\varphi,\cos\theta)
 \end{equation}
 
-来描述球谐函数，这里$s$就是单位球面上的一个位置。球谐函数一般使用符号$y$表述，其定义为：
+\noindent 来描述球谐函数，这里$s$就是单位球面上的一个位置。球谐函数一般使用符号$y$表述，其定义为：
 
 \begin{equation}
 	y^{m}_{l}(\theta,\varphi)=\begin{cases}
@@ -158,7 +158,7 @@
 	\end{cases}
 \end{equation}
 
-这里$P$正是前面介绍的伴随勒让德多项式，而$K$仅仅是一个用以实现规则化的缩放系数，其值为：
+\noindent 这里$P$正是前面介绍的伴随勒让德多项式，而$K$仅仅是一个用以实现规则化的缩放系数，其值为：
 
 \begin{equation}
 	K^{m}_{l}=\sqrt{\frac{(2l+1)}{4\pi}\frac{(l-|m|)!}{(l+|m|)!}}
@@ -170,7 +170,7 @@
 	y^{m}_{l}(\theta,\varphi)=y_i(\theta,\varphi), \text{\quad\quad  其中\quad} i=l(l+1)+m
 \end{equation}
 
-在这个序列上，参数$l$将球谐函数分成不同的带（band），每个带内都是次数相同的多项式，给定参数$l$，其对应的带内包含$2l+1$个次数相同的球谐函数，如图\ref{f:pl-sperical-harmonic}所示。
+\noindent 参数$l$将球谐函数分成不同的带（band），每个带内都是次数相同的多项式，给定参数$l$，其对应的带包含$2l+1$个次数相同的球谐函数，如图\ref{f:pl-sperical-harmonic}所示。
 
 \begin{figure}
 \sidecaption
@@ -179,7 +179,7 @@
 	\label{f:pl-sperical-harmonic}
 \end{figure}
 
-为了更直观的了解球谐函数的特征，我们希望像欧几里得空间的函数一样对其进行可视化（例如图\ref{f:pl-associated-legendre-functions}所示）。球谐函数可以被使用多种方法进行可视化，其中一种比较标准的方法是对单位球面执行扭曲变形操作，该操作对球面上每个点$y^{m}_l(\theta,\varphi)$沿其所在的方向$(\theta,\varphi)$进行缩放，使缩放后的表面上的每个点到原点的距离能够反映该球谐函数在该方向上的值$y^{m}_l(\theta,\varphi)$，同时用不同的颜色来区分球谐函数值的正负（蓝色为正，黄色为负），如图\ref{f:pl-sperical-harmonic}所示。从该图中也能够看出球谐函数的方向分布特征，每个带内的函数具有相似的频率变化，但是不同阶数的球谐函数具有不同的方向分布，以满足近似相似频率下函数的方向特征。
+为了更直观的了解球谐函数的特征，我们希望像欧几里得空间的函数一样对其进行可视化。球谐函数可以被使用多种方法进行可视化，其中一种比较标准的方法是对单位球面执行扭曲变形操作，该操作对球面上每个点$y^{m}_l(\theta,\varphi)$沿其所在的方向$(\theta,\varphi)$进行缩放，使缩放后的表面上的每个点到原点的距离能够反映该球谐函数在该方向上的值$y^{m}_l(\theta,\varphi)$，同时用不同的颜色来区分球谐函数值的正负（蓝色为正，黄色为负），如图\ref{f:pl-sperical-harmonic}所示。从该图中也能够看出球谐函数的方向分布特征，每个带内的函数具有相似的频率变化，但是不同阶数的球谐函数具有不同的方向分布，以满足近似相似频率下函数的方向特征。
 
 
 
@@ -188,7 +188,7 @@
 将一个球面函数投影为球谐函数系数的过程和一般的基函数投影是相同的，为了计算该投影系数，只需要将对原函数$f$与球谐函数$Y$的乘积进行积分即可：
 
 \begin{equation}
-	c_{l}^{m}=\int_{S}f(s)y^{m}_{l}(s)ds
+	c_{l}^{m}=\int_{S}f(s)y^{m}_{l}(s){\rm d}s
 \end{equation}
 
 反之，为了重建对原函数的近似，对球谐函数按对应系数执行线性组合：
@@ -221,10 +221,10 @@
 球谐函数的标准正交性提供了一种有用的属性，即对于给定的两个球面$S$上的函数$a$$b$，它们乘积的积分满足：
 
 \begin{equation}\label{e:pl-dot-product}
-	\int \tilde{a}(s)\tilde{b}(s)ds=\sum^{n^{2}}_{i=1}a_ib_i
+	\int \tilde{a}(s)\tilde{b}(s){\rm d}s=\sum^{n^{2}}_{i=1}a_ib_i
 \end{equation}
 
-即经过旋转后的球谐函数的函数值保持不变。换句话说，两个带限函数乘积的积分被转化为它们各自投影系数的点积（dot product），这个属性在渲染方程中非常有用，我们可以将入射光照和传输函数均投影为球谐函数系数，而球谐函数的标准正交性保证了这些函数乘积的积分可以简单地计算为它们投影系数的内积。
+即经过旋转后的球谐函数的函数值保持不变。换句话说，两个带限函数乘积的积分被转化为它们各自投影系数的点积（dot product），这个属性非常有用，可以将入射光照和传输函数均投影为球谐函数系数，而球谐函数的标准正交性保证了这些函数乘积的积分可以简单地计算为它们投影系数的内积。
 
 其次，球谐函数还具有旋转不变性（rotational invariance）\mathindex{旋转不变性}{rotational invariance}，即如果$Q$表示在球面$S$上的一个任意旋转，则对于函数$g(s)=f(Q(s))$，其投影为：
 
@@ -236,7 +236,7 @@
 
 \begin{figure}
 	\sidecaption
-	\includegraphics[width=0.42\textwidth]{figures/prt/sh-rotational-invariance}
+	\includegraphics[width=0.38\textwidth]{figures/prt/sh-rotational-invariance}
 	\caption{球谐函数具有旋转不变性，即对一个原始函数执行旋转再投影的操作（右上路径），可以直接通过对原始函数的投影系数执行一个线性变换操作（左下路径）来实现（图片来自\cite{a:StupidSphericalHarmonicsSHTricks}）。}
 	\label{f:pl-sh-rotational-invariance}
 \end{figure}
@@ -257,8 +257,8 @@
 
 \begin{equation}
 \begin{aligned}
-	c_k=&\int y_k(s)c(s)ds\\
-	   =&\int y_k(s)\Biggl(\sum^{n^{2}}_{i=0}a_iy_i(s)\Biggl)\Biggl(\sum^{n^{2}}_{j=0}b_jy_j(s)\Biggl)ds\\
+	c_k=&\int y_k(s)c(s){\rm d}s\\
+	   =&\int y_k(s)\Biggl(\sum^{n^{2}}_{i=0}a_iy_i(s)\Biggl)\Biggl(\sum^{n^{2}}_{j=0}b_jy_j(s)\Biggl){\rm d}s\\
 	   =&\sum_{ij}\Gamma_{ijk}a_ib_j
 \end{aligned}
 \end{equation}
@@ -266,7 +266,7 @@
 在上式的第二行中，$a(s)$和$b(s)$分别被其投影系数近似，$\Gamma$是一个三重积张量（triple product tensor）\mathindex{三重积张量}{triple product tensor}：
 
 \begin{equation}
-	\Gamma_{ijk}=\int y_i(s)y_j(s)y_k(s)ds
+	\Gamma_{ijk}=\int y_i(s)y_j(s)y_k(s){\rm d}s
 \end{equation}
 
 $\Gamma_{ijk}$是一个3阶对称张量，这意味着如果在每个表面位置处存储完全的光照传输，这需要每个顶点存储一个三维矩阵，这显然会占用大量的存储资源。但这里我们可以把光源部分抽取出来，即假设光照传输（即$a(s)$）是已知（固定）的，而光源（即$b(s)$）是未知（可变）的，那么表面上每个位置处的光照传输就仅需要存储一个二维矩阵，该矩阵可以通过下式计算而出：
@@ -297,12 +297,12 @@ $\Gamma_{ijk}$是一个3阶对称张量，这意味着如果在每个表面位�
 	(h*f)^{m}_{l}=\sqrt{\frac{4\pi}{2l+1}}h^{0}_{l}f^{m}_{l}
 \end{equation} 
 
-也就是说，函数$f$的卷积就是该函数每个带$l$内的所有球谐函数系数$f^{m}_l$被核函数的$m=0$项$h^{0}_l$执行一个缩放操作，注意因为核函数是圆对称的，所以每个带$l$内仅仅只有$m=0$项（在后面将看到该项球谐函数称为带谐函数）具有非零值。该卷积属性提供了一种快速的方法用于计算环境贴图与余弦核函数$h(z) = \max(z,0)$的卷积计算，该操作可以得到一个辐射照度图（irradiance map）\myindex{辐射照度图}{irradiance map}。此外，卷积计算还可以用于对环境贴图执行预过滤操作以得到一个更平滑的环境贴图。
+\noindent 即函数$f$的卷积就是该函数每个带$l$内的所有球谐函数系数$f^{m}_l$被核函数的$m=0$项$h^{0}_l$执行一个缩放操作，因为核函数是圆对称的，所以每个带$l$内仅仅只有$m=0$项（该项球谐函数又称为带谐函数）具有非零值。该卷积属性提供了一种快速的方法用于计算环境贴图与余弦核函数$h(z) = \max(z,0)$的卷积计算，该操作可以得到一个辐射照度图（irradiance map）\myindex{辐射照度图}{irradiance map}。此外，卷积计算还可以用于对环境贴图执行预过滤操作以得到一个更平滑的环境贴图。
 	
 	
 
 \subsection{球谐函数的旋转}\label{sec:pl-rotation}
-在上面我们已经说明了球谐函数具有旋转不变性，但是并没有讨论怎样对球谐函数执行旋转操作。球谐函数的旋转操作对于光照渲染计算非常重要，例如每个物体表面的传输矢量（或矩阵）通常都是基于每个物体的局部坐标系的，而光源的球谐函数表述通常都是基于全局坐标系的，因此当它们在进行点积计算时，必须要将光源球谐函数旋转至每个物体的局部坐标系中，这个旋转操作发生于每个顶点甚至每个像素；并且，正如接下来的内容可知，球谐函数的旋转计算相对比较复杂，所以这里单独使用一个小节进行介绍。
+那怎样对球谐函数执行旋转操作呢？球谐函数的旋转操作对于光照计算非常重要，例如每个物体表面的传输矢量（或矩阵）通常都是基于每个物体的局部坐标系的，而光源的球谐函数表述通常都是基于全局坐标系的，当它们在进行点积计算时，必须要将光源球谐函数旋转至局部坐标系中，这个旋转操作发生于每个顶点甚至每个像素；并且球谐函数的旋转计算相对比较复杂。
 
 对一个（系数）矢量执行一个线性变换的过程是什么呢，根据线性变换的定义，该操作实际上可以表述为一个旋转矩阵，使得旋转过后矢量的每个系数是原始系数的一个线性组合，即：
 
@@ -374,15 +374,15 @@ $\Gamma_{ijk}$是一个3阶对称张量，这意味着如果在每个表面位�
 该方法首先使用符号积分（symbolic integration）\mathindex{符号积分}{symbolic integration}表述出球谐函数旋转矩阵中每个元素的函数，即：
 
 \begin{equation}\label{e:pl-sh-rotation-symbolic-form}
-	\mathbf{M}_{ij}=\int_S y_i(\mathbf{R}s)y_i(s)ds
+	\mathbf{M}_{ij}=\int_S y_i(\mathbf{R}s)y_i(s){\rm d}s
 \end{equation}
 
-上式具有什么意义呢？首先，我们需要解释一下什么是符号积分，符号积分跟传统的数值积分具有类似的含义，唯一的区别是数值积分计算的结果是一个确定的值，而符号积分的结果是一个函数，也就是说被积函数中包含除积分变量以外的自变量，可以理解为符号积分就是寻找不定积分的公式形式，因此上式\ref{e:pl-sh-rotation-symbolic-form}是一个函数，它给出球谐函数旋转矩阵$R_{SH}$中每个元素的形式；其次，那么旋转矩阵是关于谁的函数呢，在式\ref{e:pl-sh-rotation-symbolic-form}中，$R$是一个使用欧拉角表述的3维旋转矩阵，因此上述旋转矩阵元素就是关于欧拉角的函数；最后，为什么式\ref{e:pl-sh-rotation-symbolic-form}可以用来求球谐函数的旋转矩阵呢，这是因为$y_(Rs)$可以看做旋转后的球谐函数基，回想一个函数与某个基函数乘积的积分可以表述为该函数在该基函数上的投影，而坐标变换正是关于每个原始坐标轴（函数）在新坐标系下各个基函数上的投影，所以式\ref{e:pl-sh-rotation-symbolic-form}的积分可以用来表述球谐函数的旋转矩阵。
+上式具有什么意义呢？首先，我们需要解释一下什么是符号积分，符号积分跟传统的数值积分具有类似的含义，唯一的区别是数值积分计算的结果是一个确定的值，而符号积分的结果是一个函数，也就是说被积函数中包含除积分变量以外的自变量，可以理解为符号积分就是寻找不定积分的公式形式，因此上式\ref{e:pl-sh-rotation-symbolic-form}是一个函数，它给出球谐函数旋转矩阵$R_{SH}$中每个元素的形式；其次，那么旋转矩阵是关于谁的函数呢，在式\ref{e:pl-sh-rotation-symbolic-form}中，$R$是一个使用欧拉角表述的3维旋转矩阵，因此上述旋转矩阵元素就是关于欧拉角的函数；最后，为什么式\ref{e:pl-sh-rotation-symbolic-form}可以用来求球谐函数的旋转矩阵呢，这是因为$y_i(\mathbf{R}s)$可以看做旋转后的球谐函数基，回想一个函数与某个基函数乘积的积分可以表述为该函数在该基函数上的投影，而坐标变换正是关于每个原始坐标轴（函数）在新坐标系下各个基函数上的投影，所以式\ref{e:pl-sh-rotation-symbolic-form}的积分可以用来表述球谐函数的旋转矩阵。
 
 因此，如果能够直接求出式\ref{e:pl-sh-rotation-symbolic-form}的形式，则可以直接将其用于球谐函数系数矢量的旋转操作。例如，对于围绕$z$轴的旋转，其可以表述为以下的形式：
 
 \begin{equation}
-	\mathbf{M}_{ij}=\int^{2\pi}_0\int^{\pi}_0y_i(\theta,\varphi+\alpha)y_i(\theta,\varphi)\sin(\theta)d\theta d\varphi
+	\mathbf{M}_{ij}=\int^{2\pi}_0\int^{\pi}_0y_i(\theta,\varphi+\alpha)y_i(\theta,\varphi)\sin(\theta){\rm d}\theta {\rm d}\varphi
 \end{equation}
 
 根据上式，我们可以得出围绕$z$轴的开头三个带的$9\times 9$旋转矩阵为：
@@ -468,12 +468,12 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 为了计算$R_y(\beta)$，我们首先使用二阶泰勒公式将其展开，即：
 
 \begin{equation}\label{e:pl-sh-rotation-2-taylor}
-	\mathbf{R}_y(\beta)\approx\mathbf{I}+\beta\frac{d\mathbf{R}_y}{d\beta}(0)+\frac{\beta^{2}}{2}\frac{d^{2}\mathbf{R}_y}{d\beta}(0)
+	\mathbf{R}_y(\beta)\approx\mathbf{I}+\beta\frac{{\rm d}\mathbf{R}_y}{{\rm d}\beta}(0)+\frac{\beta^{2}}{2}\frac{{\rm d}^{2}\mathbf{R}_y}{{\rm d}\beta}(0)
 \end{equation}
 
 这里$\mathbf{I}$为单位矩阵，上述$\mathbf{R}_y$的一阶和二阶导数如式\ref{e:pl-sh-rotation-taylor}所示，它们是根据前面介绍的递推方法推导而来，\cite{a:FastApproximationtoSphericalHarmonicRotation}的附录A包含了其推导过程。注意这里旋转矩阵$\mathbf{R}$的右上标表示的是球谐函数的次数（或带数）$l$，所以$\mathbf{R}^{l}_y$及其导数均是一个$2l+1\times 2l+1$的矩阵。
 
-观察式\ref{e:pl-sh-rotation-taylor}可以看出，$\mathbf{R}_y$的一阶导数矩阵$\frac{d\mathbf{R}_y}{d\beta}(0)$（式\ref{e:pl-sh-rotation-taylor}的左边一列）仅仅在上下两个副对角线上具有非零值（如图\ref{f:pl-15-taylor}(b)所示），而$\mathbf{R}_y$的二阶导数矩阵$\frac{d^{2}\mathbf{R}_y}{d\beta^{2}}(0)$（式\ref{e:pl-sh-rotation-taylor}的右边一列）仅仅在主对角线，以及高于上副对角线和低于下副对角线的两个对角线上具有非零值（如图\ref{f:pl-15-taylor}(c)所示），因此$\mathbf{R}_y$的二阶泰勒展开是一个非常稀疏的矩阵（如图\ref{f:pl-15-taylor}(d)所示），并且我们知道哪些元素具有非零值，所以仅仅需要构建这部分矩阵元素即可。
+观察式\ref{e:pl-sh-rotation-taylor}可以看出，$\mathbf{R}_y$的一阶导数矩阵$\cfrac{{\rm d}\mathbf{R}_y}{{\rm d}\beta}(0)$（式\ref{e:pl-sh-rotation-taylor}的左边一列）仅仅在上下两个副对角线上具有非零值（如图\ref{f:pl-15-taylor}(b)所示），而$\mathbf{R}_y$的二阶导数矩阵$\cfrac{{\rm d}^{2}\mathbf{R}_y}{{\rm d}\beta^{2}}(0)$（式\ref{e:pl-sh-rotation-taylor}的右边一列）仅仅在主对角线，以及高于上副对角线和低于下副对角线的两个对角线上具有非零值（如图\ref{f:pl-15-taylor}(c)所示），因此$\mathbf{R}_y$的二阶泰勒展开是一个非常稀疏的矩阵（如图\ref{f:pl-15-taylor}(d)所示），并且我们知道哪些元素具有非零值，所以仅仅需要构建这部分矩阵元素即可。
 
 \begin{figure}
 \begin{fullwidth}
@@ -483,51 +483,52 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 \end{fullwidth}
 \end{figure}
 
-在实践中，\cite{a:FastApproximationtoSphericalHarmonicRotation}发现$\mathbf{R}_y$的二阶泰勒展开项中的非主对角线（即高于上副对角线和低于下副对角线的两个对角线）上的元素对整个近似的影响很小，因此这些对象性上的元素被忽略，剩下的整个二阶泰勒近似矩阵仅包含主对角线和上下两个副对角线上的元素，这称之为一个1.5阶泰勒近似，如图\ref{f:pl-15-taylor}(e)所示，相比式\ref{e:pl-sh-rotation-2-taylor}，它的精确度只有一点点损失，但是减少了更多的计算量。
+在实践中，\cite{a:FastApproximationtoSphericalHarmonicRotation}发现$\mathbf{R}_y$的二阶泰勒展开项中的非主对角线（即高于上副对角线和低于下副对角线的两个对角线）上的元素对整个近似的影响很小，因此这些对角线上的元素被忽略，剩下的整个二阶泰勒近似矩阵仅包含主对角线和上下两个副对角线上的元素，这称之为一个1.5阶泰勒近似，如图\ref{f:pl-15-taylor}(e)所示，相比式\ref{e:pl-sh-rotation-2-taylor}，它的精确度只有一点点损失，但是减少了更多的计算量。
 
 该近似方法的计算复杂度为$\mathbf{O}(n^{2})$，据\cite{a:FastApproximationtoSphericalHarmonicRotation}说明，该方法比$ZXZXZ$方法的性能快约$4\sim 5$倍，这使得该方法甚至可以用于实时的每像素计算中。然而由于使用了泰勒近似，因此该方法仅适用于比较小的旋转角度，但是这种限制在实时渲染中影响较小，我们会在后面的例子中给予说明，并且即使某些少量的旋转角度大于一定的误差范围，我们可以对这少部分的旋转计算转换为使用前面介绍的$ZXZXZ$方法。
 
 \begin{figure}
+\begin{fullwidth}
 \begin{equation}\label{e:pl-sh-rotation-taylor}
 \rotatebox{90}{$
 \begin{aligned}
-	\frac{dR_Y}{d\beta}(0)&=\begin{pmatrix}
+	\frac{{\rm d}R_Y}{{\rm d}\beta}(0)&=\begin{pmatrix}
 		0          & \mathbf{0}                 & \mathbf{0}                 & \mathbf{0}                 & \cdots \\
-		\mathbf{0} & \frac{dR^{1}_Y}{d\beta}(0) & \mathbf{0}                 & \mathbf{0}                 & \cdots \\
-		\mathbf{0} & \mathbf{0}                 & \frac{dR^{2}_Y}{d\beta}(0) & \mathbf{0}                 & \cdots \\
-		\mathbf{0} & \mathbf{0}                 & \mathbf{0}                 & \frac{dR^{3}_Y}{d\beta}(0) & \cdots \\
+		\mathbf{0} & \frac{{\rm d}R^{1}_Y}{{\rm d}\beta}(0) & \mathbf{0}                 & \mathbf{0}                 & \cdots \\
+		\mathbf{0} & \mathbf{0}                 & \frac{{\rm d}R^{2}_Y}{{\rm d}\beta}(0) & \mathbf{0}                 & \cdots \\
+		\mathbf{0} & \mathbf{0}                 & \mathbf{0}                 & \frac{{\rm d}R^{3}_Y}{{\rm d}\beta}(0) & \cdots \\
 		\vdots     & \vdots                     & \vdots                     & \vdots                     & \ddots
-	\end{pmatrix} & \frac{d^{2}R_Y}{d\beta^{2}}(0)&=\begin{pmatrix}
+	\end{pmatrix} & \frac{{\rm d}^{2}R_Y}{{\rm d}\beta^{2}}(0)&=\begin{pmatrix}
 		0          & \mathbf{0}                         & \mathbf{0}                         & \mathbf{0}                         & \cdots \\
-		\mathbf{0} & \frac{d^{2}R^{1}_Y}{d\beta^{2}}(0) & \mathbf{0}                         & \mathbf{0}                         & \cdots \\
-		\mathbf{0} & \mathbf{0}                         & \frac{d^{2}R^{2}_Y}{d\beta^{2}}(0) & \mathbf{0}                         & \cdots \\
-		\mathbf{0} & \mathbf{0}                         & \mathbf{0}                         & \frac{d^{2}R^{3}_Y}{d\beta^{2}}(0) & \cdots \\
+		\mathbf{0} & \frac{{\rm d}^{2}R^{1}_Y}{{\rm d}\beta^{2}}(0) & \mathbf{0}                         & \mathbf{0}                         & \cdots \\
+		\mathbf{0} & \mathbf{0}                         & \frac{{\rm d}^{2}R^{2}_Y}{{\rm d}\beta^{2}}(0) & \mathbf{0}                         & \cdots \\
+		\mathbf{0} & \mathbf{0}                         & \mathbf{0}                         & \frac{{\rm d}^{2}R^{3}_Y}{{\rm d}\beta^{2}}(0) & \cdots \\
 		\vdots     & \vdots                             & \vdots                             & \vdots                             & \ddots
 	\end{pmatrix}\\
 	\text{其中：} && \text{其中：}\\
-	\frac{dR^{1}_Y}{d\beta}(0)&=\begin{pmatrix}
+	\frac{{\rm d}R^{1}_Y}{{\rm d}\beta}(0)&=\begin{pmatrix}
 		0 & 0 & 0\\
 		0 & 0 & -1\\
 		0 & 1 & 0
-	\end{pmatrix} & \frac{d^{2}R^{1}_Y}{d\beta^{2}}(0)&=\begin{pmatrix}
+	\end{pmatrix} & \frac{{\rm d}^{2}R^{1}_Y}{{\rm d}\beta^{2}}(0)&=\begin{pmatrix}
 		0 & 0  & 0\\
 		0 & -1 & 0\\
 		0 & 1  & -1
 	\end{pmatrix}\\
-	\frac{dR^{2}_Y}{d\beta}(0)&=\begin{pmatrix}
+	\frac{{\rm d}R^{2}_Y}{{\rm d}\beta}(0)&=\begin{pmatrix}
 		0  & 1 & 0    & 0     & 0\\
 		-1 & 0 & 0    & 0     & 0\\
 		0  & 0 & 0    & -1.73 & 0\\
 		0  & 0 & 1.73 & 0     & -1\\ q
 		0  & 0 & 0    & 1     & 0
-	\end{pmatrix} & \frac{d^{2}R^{2}_Y}{d\beta^{2}}(0)&=\begin{pmatrix}
+	\end{pmatrix} & \frac{{\rm d}^{2}R^{2}_Y}{{\rm d}\beta^{2}}(0)&=\begin{pmatrix}
 		-1 & 0  & 0    & 0  & 0\\
 		0  & -1 & 0    & 0  & 0\\
 		0  & 0  & -3   & 0  & 1.73\\
 		0  & 0  & 0    & -4 & 0\\
 		0  & 0  & 1.73 & 0  & -1
 	\end{pmatrix}\\
-	\frac{dR^{3}_Y}{d\beta}(0)&=\begin{pmatrix}
+	\frac{{\rm d}R^{3}_Y}{{\rm d}\beta}(0)&=\begin{pmatrix}
 		0     & 1.22  & 0    & 0    & 0     & 0     & 0\\
 		-1.22 & 0     & 1.58 & 0    & 0     & 0     & 0\\
 		0     & -1.58 & 0    & 0    & 0     & 0     & 0\\
@@ -536,7 +537,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 		0     & 0     & 0    & 0    & 1.58  & 0     &-1.22\\
 		0     & 0     & 0    & 0    & 0     & 1.22  & 0
  	\end{pmatrix} & 
- 	\frac{d^{2}R^{3}_Y}{d\beta^{2}}(0)&=\begin{pmatrix}
+ 	\frac{{\rm d}^{2}R^{3}_Y}{{\rm d}\beta^{2}}(0)&=\begin{pmatrix}
 		-1.5 & 0  & 1.94 & 0    & 0    & 0    & 0\\
 		0    & -4 & 0    & 0    & 0    & 0    & 0\\
 		1.94 & 0  & -2.5 & 0    & 0    & 0    & 0\\
@@ -547,6 +548,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
  	\end{pmatrix} 
 \end{aligned}$}
 \end{equation}
+\end{fullwidth}
 \end{figure}
 
 
@@ -583,7 +585,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 首先根据投影的定义可计算出位置$(0,0,1)$处的脉冲函数的投影系数为：
 
 \begin{equation}\label{e:pl-delta-sh-coefficients}
-	\delta_l=\int\delta(s)y^{0}_{l}(s)ds=y^{0}_{l}(z)=\sqrt{\frac{2l+1}{4\pi}}
+	\delta_l=\int\delta(s)y^{0}_{l}(s){\rm d}s=y^{0}_{l}(z)=\sqrt{\frac{2l+1}{4\pi}}
 \end{equation}
 
 在上式中，由于带谐函数的投影仅包含$m=0$项，所以这里系数$\delta_l$仅与带$l$有关；其次，由于脉冲函数仅在$(0,0,1)$处取值且为1，所以上述的投影积分值即为球谐函数$y^{0}_l(s)$在$s=z=(0,0,1)$处的值，该脉冲函数的带谐函数近似如图\ref{f:pl-zonal-rotation}(a)所示。
@@ -591,7 +593,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 现在我们对脉冲函数$\delta(s)$执行一个旋转操作，使其旋转到任意指定方向$z^{'}$，得到$\hat{\delta}(s)$，如图\ref{f:pl-zonal-rotation}(b)所示，根据和式\ref{e:pl-delta-sh-coefficients}类似的方法可以得出$\hat{\delta}(s)$的投影系数为：
 
 \begin{equation}
-	\hat{\delta}^{m}_l=\int\hat{\delta}(s)y^{m}_{l}(s)ds=y^{m}_{l}(z^{'})
+	\hat{\delta}^{m}_l=\int\hat{\delta}(s)y^{m}_{l}(s){\rm d}s=y^{m}_{l}(z^{'})
 \end{equation}
 
 注意这里$z^{'}$表示一个已知的确定值。由于旋转后的函数不再是关于$z$轴圆对称的（如图\ref{f:pl-zonal-rotation}(b)所示），所以它会投影到每个带内的各个$m$值对应的球谐函数上，因此其系数同时与$m$和$l$相关。
@@ -633,7 +635,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 
 \begin{figure}
 	\sidecaption
-	\includegraphics[width=0.55\textwidth]{figures/pl/environment-mapping}
+	\includegraphics[width=0.5\textwidth]{figures/pl/environment-mapping}
 	\caption{反射映射的基本概念图，图中物体$S$为镜面曲面，$\mathbf{n},\mathbf{v}$和$\mathbf{r}$分别为着色点处的法线，观察方向和入射方向，它们的关系可由反射定律得出，右上角的曲面表示一个环境贴图，其中入射方向$r$首先被映射为一个纹理坐标$(u,v)$，然后用于直接从环境贴图中读取入射光照。}
 	\label{f:pl-environment-mappling}
 \end{figure}
@@ -661,7 +663,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 \begin{equation}
 	\begin{aligned}
 		\theta &= \arccos(-r_z) \\
-		\phi &=atan2(r_y,r_x)
+		\phi &={\rm atan2}(r_y,r_x)
 	\end{aligned}
 \end{equation}
 
@@ -710,11 +712,11 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 	\end{aligned}
 \end{equation}
 
-其中$m$取式\ref{e:pl-sm-m}中的值。
+\noindent 其中$m$取式\ref{e:pl-sm-m}中的值。
 
-尽管球面映射的整个计算过程相对比较简单，并且整个方向映射没有缝隙，但它依然面临一些缺点。首先球面映射的采样分布是非常不均匀的，例如在靠近$z$轴附近，方向被映射得比较密集，而在靠近球面边缘附近，大量的方向被映射到纹理中圆形区域边缘较窄的面积，这种非线性的特征使得顶点之间的线性插值结果是可能错误的。这非线性可以从图\ref{f:pl-sphere-mapping}(a)中看出，随着入射光线向球面边缘靠近，球面贴图被扭曲越来越严重。
+尽管球面映射的整个计算过程相对比较简单，并且整个方向映射没有缝隙，但它依然面临一些缺点。首先球面映射的采样分布是非常不均匀的，例如在靠近$z$轴附近，方向被映射得比较密集，而在靠近球面边缘附近，大量的方向被映射到纹理中圆形区域边缘较窄的面积，这种非线性的特征使得顶点之间的线性插值结果可能是错误的。这非线性可以从图\ref{f:pl-sphere-mapping}(a)中看出，随着入射光线向球面边缘靠近，球面贴图被扭曲越来越严重。
 
-此外，在球面的边缘，由于入射光线$\mathbf{r}$几乎平行于球面的正切面，因此整个球面边缘其实代表一个相同的方向，因此它们具有相同的光照值，又称为一个奇点。在这种情况下，两个顶点之间的插值很有可能是穿过球面背部的部分，但是却可能错误地在球面贴图中的圆形图像内部进行插值\cite{a:Reflectionvectorshadinghardware}；此外，在边缘部分，由于较小的表面（像素）面积被映射到更多的方向，因此可能形成比较大的采样方差，是这部分的着色形成一些比较刺眼的斑点或暗点。
+此外，在球面的边缘，由于入射光线$\mathbf{r}$几乎平行于球面的正切面，因此整个球面边缘其实代表一个相同的方向，它们具有相同的光照值，又称为一个奇点。在这种情况下，两个顶点之间的插值很有可能是穿过球面背部的部分，但是却可能错误地在球面贴图中的圆形图像内部进行插值\cite{a:Reflectionvectorshadinghardware}；此外，在边缘部分，由于较小的表面面积被映射到更多的方向，因此可能形成比较大的采样方差，使这部分的着色形成一些比较刺眼的斑点或暗点。
 
 最后，由于球面映射只能生成特定观察方向下半个球面的入射光照，另外半个球面的光照则被忽略，因此它是与视角有关的。\cite{a:View-independentenvironmentmaps}在此基础上提出抛物面球面映射，它分别对$z$和$-z$轴分别执行一次球面映射以生产两个覆盖全空间方向的球面贴图，然后这两张纹理被用于环境映射的计算，这里不再详述。
 
@@ -731,7 +733,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 
 在立方体映射中，由世界空间的方向向纹理空间的变换非常简单，这只需要将表示方向的范围矢量投影到立方体对应的面即可，该面上对应投影使用的坐标值即可作为立方体贴图中的纹理坐标，例如对于$+y$面上的方向（即图\ref{f:pl-cube-mapping}(a)中立方体的上平面），其对应的纹理坐标为方向矢量在$-zx$平面上的投影（如图\ref{f:pl-cube-mapping}(b)中最上面的FACE2正方形平面）。
 
-立方体映射的主要优点是整个映射是分段线性映射，即在立方体的每个面内的映射是线性的；立方体映射的主要缺点是它的光照值需要分别存储的6个纹理中，例如在读取的时候需要额外区分每个方向对应于立方体的哪一个面，这会导致在着色器中形成分支选择；此外，位于每个面中心位置处的纹素相对于正方形边缘附近的纹理对应于更小的立体角，这使得立方体映射表述的方向密度是不均匀的；最后，所有方向被存储在不同的纹理中，这使得跨越多个面的顶点之间的插值计算变得比较困难。
+立方体映射的主要优点是整个映射是分段线性映射，即在立方体的每个面内的映射是线性的；立方体映射的主要缺点是它的光照值需要分别存储到6个纹理中，例如在读取的时候需要额外区分每个方向对应于立方体的哪一个面，这会导致在着色器中形成分支选择；此外，位于每个面中心位置处的纹素相对于正方形边缘附近的纹理对应于更小的立体角，这使得立方体映射表述的方向密度是不均匀的；最后，所有方向被存储在不同的纹理中，这使得跨越多个面的顶点之间的插值计算变得比较困难。
 
 
 
@@ -748,7 +750,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 
 然而纹理图集的缺点是各个图集之间有不连续的缝隙，如图\ref{f:pl-surface-parametrization}(b)所示，这种缝隙不仅会反应在着色的表面上，而且会使得对纹理的过滤操作产生错误的结果。为了弥补这种缺陷，\cite{a:Geometryimages}提出一种称为几何图像（geometry images）\myindex{几何图像}{geometry images}的概念，该方法将整个几何表面映射为一个完整的2D图像，该几何图像因此不包含任何缝隙，如图\ref{f:pl-surface-parametrization}(c)所示。
 
-基于几何图像的思路，\cite{a:SphericalParametrizationandRemeshing}进一步提出了球面参数化（spherical parametrization）\myindex{球面参数化}{spherical parametrization}的方法，该方法认为，对于一个零亏格\footnote{在数学上，亏格（genus）是指一个自闭的表面包含的“洞”的数量，参见\url{https://en.wikipedia.org/wiki/Genus_(mathematics)}}（genus-zero）\mathindex{零亏格}{genus-zero}的几何表面，假如它们的表面细节变化不是特别复杂（例如那些由球面简单变形而来的表面），则这些表面完全可以使用一个球面域（spherical domain）\myindex{球面域}{spherical domain}来进行参数化，即我们可以将整个表面区域“展开”到一个球面作用域上，使表面上的每个区域对应于该球面域上的某个部分，即表面与球面域之间形成1对1的映射。例如在图\ref{f:pl-spherical-parametrization}中，一个零亏格的闭合曲面被首先映射到一个球面域，然后这个球面域被映射到一个正方面体上，最后这个正八面体被展开为一个参数化的2D纹理。
+基于几何图像的思路，\cite{a:SphericalParametrizationandRemeshing}进一步提出了球面参数化（spherical parametrization）\myindex{球面参数化}{spherical parametrization}的方法，该方法认为，对于一个零亏格\footnote{在数学上，亏格（genus）是指一个自闭的表面包含的“洞”的数量，参见\url{https://en.wikipedia.org/wiki/Genus_(mathematics)}}（genus-zero）\mathindex{零亏格}{genus-zero}的几何表面，假如它们的表面细节变化不是特别复杂（例如那些由球面简单变形而来的表面），则这些表面完全可以使用一个球面域（spherical domain）\myindex{球面域}{spherical domain}来进行参数化，即我们可以将整个表面区域“展开”到一个球面作用域上，使表面上的每个区域对应于该球面域上的某个部分，即表面与球面域之间形成1对1的映射。例如在图\ref{f:pl-spherical-parametrization}中，一个零亏格的闭合曲面被首先映射到一个球面域，然后这个球面域被映射到一个正八面体上，最后这个正八面体被展开为一个参数化的2D纹理。
 	
 \begin{figure}
 	\includegraphics[width=\textwidth]{figures/pl/spherical-parametrization}
@@ -774,9 +776,9 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 	\label{f:pl-manhattan-distance}
 \end{figure}
 
-一般的映射算法都涉及到一些高次的乘/除法或者三角函数计算，例如式\ref{e:pl-sm-m}中的归一化系数就涉及乘法和开方的计算，然而正八面体却具有一种特殊的属性使得其仅使用最简单的加法运算就可以实现由球面域到正八面体的映射。在出租车几何学（taxicab geometry）\mathindex{出租车几何学}{taxicab geometry}中，我们使用另一个不同于笛卡尔坐标系下的距离度量（如$|d|=\sqrt{x^{2}+y^{2}+z^{2}}$），那就是两点之间的距离等于每个对应分量的绝对差值的和，例如$ds=dx+dy+dz$，这个距离度量又称为直角距离（rectilinear distance）\mathindex{直角距离}{rectilinear distance}，$L^{1}$范数（$L^{1}$ norm）或者曼哈顿距离（Manhattan distance）\mathindex{曼哈顿距离}{Manhattan distance}等，它指示了一辆出租车在两个位置之间行驶的最短距离，如图\ref{f:pl-manhattan-distance}所示。
+一般的映射算法都涉及到一些高次的乘/除法或者三角函数计算，例如式\ref{e:pl-sm-m}中的归一化系数就涉及乘法和开方的计算，然而正八面体却具有一种特殊的属性使得其仅使用最简单的加法运算就可以实现由球面域到正八面体的映射。在出租车几何学（taxicab geometry）\mathindex{出租车几何学}{taxicab geometry}中，我们使用另一个不同于笛卡尔坐标系下的距离度量（如$|d|=\sqrt{x^{2}+y^{2}+z^{2}}$），那就是两点之间的距离等于每个对应分量的绝对差值的和，例如${\rm d}s={\rm d}x+{\rm d}y+{\rm d}z$，这个距离度量又称为直角距离（rectilinear distance）\mathindex{直角距离}{rectilinear distance}，$L^{1}$范数（$L^{1}$ norm）或者曼哈顿距离（Manhattan distance）\mathindex{曼哈顿距离}{Manhattan distance}等，它指示了一辆出租车在两个位置之间行驶的最短距离，如图\ref{f:pl-manhattan-distance}所示。
 
-对于一个正八面体，假设其两个顶点的坐标分为为$(\pm r,0,0),(0,\pm r,0)$和$(0,0,\pm r)$，其中$r$为正八面体的中心距离任意一个顶点的距离，由正八面体的几何特征可得，任意一个点$p=(p_x,p_y,p_z)$位于正八面体的面上的条件是$p$到正八面体中心点的曼哈顿距离为$r$，即$|p_x|+|p_y|+|p_z|=r$。根据上述性质，对于一个位于由正八面体的顶点构成的球面上的点$p$，我们可以通过下述方式得到它在八面体上的投影$p^{'}$：
+对于一个正八面体，假设其两个顶点的坐标分为$(\pm r,0,0),(0,\pm r,0)$和$(0,0,\pm r)$，其中$r$为正八面体的中心距离任意一个顶点的距离，由正八面体的几何特征可得，任意一个点$p=(p_x,p_y,p_z)$位于正八面体的面上的条件是$p$到正八面体中心点的曼哈顿距离为$r$，即$|p_x|+|p_y|+|p_z|=r$。根据上述性质，对于一个位于由正八面体的顶点构成的球面上的点$p$，我们可以通过下述方式得到它在八面体上的投影$p^{'}$：
 
 \begin{equation}\label{e:pl-octahedron-projection}
 	p^{'}=\frac{p}{|p_x|+|p_y|+|p_z|}
@@ -795,7 +797,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 
 
 \paragraph{八面体面的展开}
-为了将正八面体展开为一个正方形，对于所有位于正半球面上的点，即$p_y>0$，我们将它直接正交投影到XZ平面（即是仅取X和Z轴上的分量），这形成四个全等的等腰直角三角形，其要长均为$r$，如图\ref{f:pl-octahedron-mapping}左二图中的1,2,3和4面，并且这四个等腰直角三角形构成一个正方形；对于负半球面上的点，我们首先仍然按类似的方式投影到ZX平面形成四个等腰直角三角形，然后将这些等腰三角形沿其与上面的三角形的交线向外展开，形成图\ref{f:pl-octahedron-mapping}左二图中的5,6,7和8面。上述的过程可以按下式进行计算：
+为了将正八面体展开为一个正方形，对于所有位于正半球面上的点，即$p_y>0$，我们将它直接正交投影到XZ平面（即是仅取X和Z轴上的分量），这形成四个全等的等腰直角三角形，其腰长均为$r$，如图\ref{f:pl-octahedron-mapping}左二图中的1,2,3和4面，并且这四个等腰直角三角形构成一个正方形；对于负半球面上的点，我们首先仍然按类似的方式投影到ZX平面形成四个等腰直角三角形，然后将这些等腰三角形沿其与上面的三角形的交线向外展开，形成图\ref{f:pl-octahedron-mapping}左二图中的5,6,7和8面。上述的过程可以按下式进行计算：
 
 \begin{equation}
 	p^{''}_q=\begin{cases}
@@ -804,7 +806,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 	\end{cases}
 \end{equation}
 
-这里$\sigma(x)$是一个符号函数。
+\noindent 这里$\sigma(x)$是一个符号函数。
 
 除了上述的方法，我们还可以将正八面体投影到一个比率为$2:1$的矩形纹理上，首先同样是将所有面正交投影到ZX平面上形成8个等腰直角三角形，然后我们将其中一对上下相邻面沿其公交线展开，最后在分别将上下半球的面沿八面体的上下顶点展开，如图\ref{f:pl-octahedron-mapping}右二图所示，该过程可以按下式进行计算：
 
@@ -815,10 +817,10 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 	\end{cases}
 \end{equation}
 
-根据图\ref{f:pl-octahedron-mapping}的布局可知，$p^{''}_r\in[-2,2]\times [-1,1]$，而$p^{''}_q\in [-1,-1]^{2}$。
+\noindent 根据图\ref{f:pl-octahedron-mapping}的布局可知，$p^{''}_r\in[-2,2]\times [-1,1]$，而$p^{''}_q\in [-1,-1]^{2}$。
 
 八面体环境映射是一种计算效率非常高的映射方法，这得益于它将$L^{2}$范数转换为$L^{1}$范数，它的映射仅仅涉及到加法的运算，同时每个面内方向的映射也是线性的，它的方向分布也非常均匀，\cite{a:ASurveyofEfficientRepresentationsforIndependentUnitVectors}对通过几种环境映射算法进行比较，八面体映射也是误差非常低的一种映射方法。
-
+	
 
 
 
@@ -854,15 +856,15 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 	\int_H \cfrac{L(l)(n\cdot l)}{\pi}{\rm d}l
 \end{equation}
 
-上式表述的是一个特定的法线方向对应的辐射照度，由于它只与方向有关，因此同样可以使用前面的环境贴图的表述形式进行存储，例如立方体贴图，不同的是，这里每个值存储的是一个辐射照度（irradiance）值，因此这种预过滤的环境贴图又称为辐射照度环境贴图（irradiance environment maps）\myindex{辐射照度环境贴图}{irradiance environment maps}\cite{a:IlluminationandReflectionMaps:SimulatedObjectsinSimulatedandRealEnvironments}，该贴图通过一个法线方向进行索引（或者说辐射照度是关于法线的函数），如图\ref{f:pl-f:pl-pl-pre-filtering-2}(a)所示。
+上式表述的是一个特定的法线方向对应的辐射照度，由于它只与方向有关，因此同样可以使用前面的环境贴图的表述形式进行存储，例如立方体贴图，不同的是，这里每个值存储的是一个辐射照度（irradiance）值，因此这种预过滤的环境贴图又称为辐射照度环境贴图（irradiance environment maps）\myindex{辐射照度环境贴图}{irradiance environment maps}\cite{a:IlluminationandReflectionMaps:SimulatedObjectsinSimulatedandRealEnvironments}，该贴图通过一个法线方向进行索引（或者说辐射照度是关于法线的函数），如图\ref{f:pl-pre-filtering-2}(a)所示。
 
 \begin{figure}
 	\includegraphics[width=\textwidth]{figures/pl/pl-prefiltering-2}
 	\caption{漫反射表面的预过滤计算，其过滤函数为法线方向面对的半空间$H$内法线和入射方向夹角的余弦函数，其预过滤计算的值又称为辐射照度，它被存储在一个辐射照度贴图中(c)，通过法线方向索引查询（图片来自于\cite{a:Anefficientrepresentationforirradianceenvironmentmaps}）}
-	\label{f:pl-f:pl-pl-pre-filtering-2}
+	\label{f:pl-pre-filtering-2}
 \end{figure}
 
-由于漫反射光照可以看做是对原始高频的环境贴图作用了一个低通过滤器（low pass filter）\myindex{低通过滤器}{low pass filter}，如图\cite{f:pl-f:pl-pl-pre-filtering-2}(b)和(c)所示，因此辐射照度的频率变化非常低，它可以使用非常低分辨率的贴图进行存储，也可以使用前面介绍的球谐函数进行表述 \cite{a:Anefficientrepresentationforirradianceenvironmentmaps}。
+由于漫反射光照可以看做是对原始高频的环境贴图作用了一个低通过滤器（low pass filter）\myindex{低通过滤器}{low pass filter}，如图\cite{f:pl-pre-filtering-2}(b)和(c)所示，因此辐射照度的频率变化非常低，它可以使用非常低分辨率的贴图进行存储，也可以使用前面介绍的球谐函数进行表述 \cite{a:Anefficientrepresentationforirradianceenvironmentmaps}。
 
 
 
@@ -890,18 +892,16 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 
 由上式可以看出，对于同一粗糙度$N$，冯氏BRDF作为预过滤的核函数$(r\cdot l)^{N}$是相同的（注意这里表面的反射系数$k_s$被提到积分外面，并不参与预过滤计算），这和上一节中介绍的漫反射的情形是类似的；此外，由于冯氏模型只与反射方向有关，因此这里使用反射方向来索引预过滤的环境贴图，这里预过滤的环境贴图中存储的是辐射照度值，即前面介绍的反射贴图，在着色的时 候这个值从贴图中查询并与反射系数$k_s$相乘后作为表面像素的出射辐射亮度， 这种方法最早在\cite{a:Realistichardware-acceleratedshadingandlighting,a:IlluminationandReflectionMaps:SimulatedObjectsinSimulatedandRealEnvironments}被提出。
 
-除此之外，我们还需要考虑对不同粗糙度表面的预过滤，这需要分别对每个粗糙度系数$N$ 做一个单独的预过滤以生成一个不同的反射贴图，这样将会面临比较大的存储压力。实践中，这些指数形式的粗糙度往往被转换为多级纹理的形式\cite{a:Efficientreflectanceandvisibilityapproximationsforenvironmentmaprendering,a:Efficientrenderingofspatialbidirectionalreflectancedistributionfunctions}，即以渐进的方式生成一系列 反射贴图（预过滤的环境贴图），它们一起被存储进一个多级纹理（mip map） 当中（例如多级立方体贴图），其中多级纹理的每一级使用相对前一级具有2倍 标准差的高斯函数，例如$\sigma_{j+1} = 2\sigma_j$ 。最后，在实时着色计算的时候，首先根据表面的粗糙度计算出多级纹理的层级，然后使用双线性插值计算出实际的纹理值。
+除此之外，还需要考虑对不同粗糙度表面的预过滤，这需要分别对每个粗糙度系数$N$ 做一个单独的预过滤以生成一个不同的反射贴图，这样将会面临比较大的存储压力。实践中，这些指数形式的粗糙度往往被转换为多级纹理的形式\cite{a:Efficientreflectanceandvisibilityapproximationsforenvironmentmaprendering,a:Efficientrenderingofspatialbidirectionalreflectancedistributionfunctions}，即以渐进的方式生成一系列 反射贴图（预过滤的环境贴图），它们一起被存储进一个多级纹理（mip map） 当中（如多级立方体贴图），其中多级纹理的每一级使用相对前一级具有2倍 标准差的高斯函数，如$\sigma_{j+1} = 2\sigma_j$ 。最后，在实时着色计算的时候，首先根据表面的粗糙度计算出多级纹理的层级，然后使用双线性插值计算出实际的纹理值。
 
-冯氏模型是最简单的光泽BRDF模型，因为它的微表面法线分布就是一个高斯函数，其中粗糙度由高斯函数的标准差控制，其反射函数的形状与观察方向和法线的夹角无关。另一些更一般的各向同性BRDF模型是与观察方向
-
-和法线的夹角有关的，所谓BRDF函数是各向同性的（isotropic），通常是指BRDF函数的形状围绕法线是成圆对称的，这意味着还需要一个额外的维度用以存储观察方向与法线的夹角，\cite{a:Approximationofglossyreflectionwithprefilteredenvironmentmaps,a:Reflectionspaceimagebasedrendering}对一般的各向同性BRDF做了一些近似处理，在这些近似假设下，原始的高维辐射照度函数被降维，使得仍然可以像冯氏模型那样仅用一个反射方向就可以查询反射贴图的值，这里不再详述，我们会在后面介绍一个快速计算一般各向同性BRDF模型的预过滤方法。
+冯氏模型是最简单的光泽BRDF模型，因为它的微表面法线分布就是一个高斯函数，其中粗糙度由高斯函数的标准差控制，其反射函数的形状与观察方向和法线的夹角无关。另一些更一般的各向同性BRDF模型是与观察方向和法线的夹角有关的，所谓BRDF函数是各向同性的（isotropic），通常是指BRDF函数的形状围绕法线是成圆对称的，这意味着还需要一个额外的维度用以存储观察方向与法线的夹角，\cite{a:Approximationofglossyreflectionwithprefilteredenvironmentmaps,a:Reflectionspaceimagebasedrendering}对一般的各向同性BRDF做了一些近似处理，在这些近似假设下，原始的高维辐射照度函数被降维，使得仍然可以像冯氏模型那样仅用一个反射方向就可以查询反射贴图的值，这里不再详述，我们会在后面介绍一个快速计算一般各向同性BRDF模型的预过滤方法。
 
 
 
 \subsubsection{阶层式预过滤}
 前面的两节介绍了环境贴图预过滤使用的两种不同的过滤器，它们分别对应两种不同的BRDF模型，即漫反射BRDF和冯氏BRDF模型。本节我们将聚焦于，给定一个过滤器，怎样高效地执行预过滤计算本身，因此本节的内容与具体过滤器的形式无关。传统的预过滤计算使用的是一种暴力（brute force）方法，即对于每个像素的过滤，它使用周围的每个像素与过滤器中对应的每个离散值进行加权计算，这种计算方法虽然精确，但是计算成本也非常高，特别是如果我们希望这个预过滤计算实时发生，本节我们将介绍一种高效且通用的阶层式预过滤计算框架。
 
-首先回顾一下预过滤的过程，如图\ref{f:pl-pl-pre-filtering-3}所示，为了要计算反射贴图中的一个像素值，如图\ref{f:pl-pl-pre-filtering-3}(a) 中的小黑点所示，我们将一个给定的过滤器作用与原始环境贴图上相同的位置，然后用该核函数与该核函数覆盖的原始环境贴图区域执行卷积计算，该卷积计算的结果及时预过滤的结果。
+首先回顾一下预过滤的过程，如图\ref{f:pl-pl-pre-filtering-3}所示，为了要计算反射贴图中的一个像素值，如图\ref{f:pl-pl-pre-filtering-3}(a) 中的小黑点所示，我们将一个给定的过滤器作用于原始环境贴图上相同的位置，然后用该核函数与该核函数覆盖的原始环境贴图区域执行卷积计算，该卷积计算的结果即是预过滤的结果。
 
 \begin{figure}
 	\sidecaption
@@ -931,7 +931,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 
 
 \subsubsection{重要性采样方法}
-阶层式预过滤是一种非常高效的预过滤方法，它主要通过减少对低频区域内环境贴图的像素读取次数来提高预过滤的效率，这是通过生成一个多级的环境贴图来实现的。然而，为了取得每个BRDF样本对应多级环境贴图的层级，阶层式方法依赖于一个从小向上的递归比较方法，这种递归的算法结构对GPU是非常不友好的，因为相邻的样本递归的次数可能完全不一样，这使得算法的并行性很差，因此原始的阶层式预过滤算法\cite{a:FastArbitraryBRDFShadingforLowFrequencyLightingUsingSphericalHarmonics}是实现于CPU中的。
+阶层式预过滤是一种非常高效的预过滤方法，它主要通过减少对低频区域内环境贴图的像素读取次数来提高预过滤的效率，这是通过生成一个多级的环境贴图来实现的。然而，为了取得每个BRDF样本对应多级环境贴图的层级，阶层式方法依赖于一个从下向上的递归比较方法，这种递归的算法结构对GPU是非常不友好的，因为相邻的样本递归的次数可能完全不一样，这使得算法的并行性很差，因此原始的阶层式预过滤算法\cite{a:FastArbitraryBRDFShadingforLowFrequencyLightingUsingSphericalHarmonics}是实现于CPU中的。
 
 很显然，在实时渲染中，我们需要能够对GPU友好的算法，这样的算法要求程序具有较高的并行性，本节介绍的重要性采样方法\cite{a:Real-timeShadingwithFilteredImportanceSampling}就是这样一种方法，这种方法保留了阶层式预过滤方法的优点（即使用一个多级环境贴图来减少低频区域内像素的读取次数），同时又具有很好的并行性，能够高效地实现在GPU中。
 
@@ -952,13 +952,13 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 \end{aligned}
 \end{equation}
 
-上式的第二个积分项可以被预计算起来，因为它们与光照场是无关的。所以剩下的，我们仅需要对微面元的法线分布函数$D(h)$进行采样，这形成下面的预过滤积分形式：
+\noindent 上式的第二个积分项可以被预计算起来，因为它们与光照场是无关的。所以仅需要对微面元的法线分布函数$D(h)$进行采样，其预过滤积分形式为：
 
 \begin{equation}\label{e:pl-intergal-directional}
 	\int_H L(l)D(h){\rm d}l
 \end{equation}
 
-注意，上式中$h$仍然是与法线方向和入射方向的夹角相关的，这会增加一个额外的维度，在实时渲染中一般都是对过滤核函数只取一个方向，例如在Unreal Engine 4中使用光场方向，法线以及半矢量重合时的法线分布函数为统一的过滤核函数。
+注意，上式中$h$仍然是与法线方向和入射方向的夹角相关的，这会增加一个额外的维度，在实时渲染中一般都是对过滤核函数只取一个方向，例如在Unreal Engine 4中使用光场方向，法线以及半矢量重合时的法线分布函数为统一的过滤核函数\cite{a:RealShadinginUnrealEngine4}。
 
 对于一个给定的法线分布函数，我们在CPU端生成其使用的方向样本，并将其传输到GPU的常量寄存器中，然后所有使用该法线分布函数的表面都使用这些相同的样本。这些球面空间中相对于表面法线的方向样本，可以通过使用逆变换算法从一对均匀样本$\xi_0,\xi_1\in[0,1]$中生成，即：
 
@@ -973,7 +973,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 
 通过上面的方法，我们已经得到了一个方向样本，那么接下来的问题就是怎样选择该样本使用的多级环境贴图的层级。通过观察图\ref{f:pl-importance-sampling}(a)，我们可以使用每个样本所“占据”的方向范围来决定该样本所过滤的范围，这个范围进而被用来选择多级纹理的层级，于是我们可以通过每个样本在方向空间所占据的立体角，与环境贴图中每个像素所占据的立体角的比率来计算多级纹理的层级。
 
-样本在方向空间的立体角$SA_{\rm sample}$等于均匀分布样本的尺寸除以每个样本的重要性函数，这是因为每个样本所占据的“范围”与其重要性函数成反比，如图\ref{f:pl-importance-sampling}(a)所示；而每个像素的表面尺寸可以通过如下的方式计算：即立方体每个面的面积4\footnote{每个边的坐标值范围为$[-1,1]$，所以面积为4。}，被由方向空间向立方体投影变换的雅可比矩阵$J(x,y,z)$加权，然后再除以每个面内像素的数量$Resolution^{2}$，其中有立方体面$[-1,1]^{3}$向单位球面投影的雅可比矩阵为$J(x,y,z)=\cfrac{1}{(x^{2}+y^{2}+z^{2})^{3/2}}$。综上，样本对应多级纹理的层级可由下式计算得出，即：
+样本在方向空间的立体角$SA_{\rm sample}$等于均匀分布样本的尺寸除以每个样本的重要性函数，这是因为每个样本所占据的“范围”与其重要性函数成反比，如图\ref{f:pl-importance-sampling}(a)所示；而每个像素的表面尺寸可以通过如下的方式计算：即立方体每个面的面积4\footnote{每个边的坐标值范围为$[-1,1]$，所以面积为4。}，被由方向空间向立方体投影变换的雅可比矩阵$J(x,y,z)$加权，然后再除以每个面内像素的数量$Resolution^{2}$，其中由立方体面$[-1,1]^{3}$向单位球面投影的雅可比矩阵为$J(x,y,z)=\cfrac{1}{(x^{2}+y^{2}+z^{2})^{3/2}}$。综上，样本对应多级纹理的层级可由下式计算得出，即：
 
 \begin{equation}\label{e:pl-lod}
 \begin{aligned}
@@ -988,9 +988,9 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 \begin{myshaded}
 	尽管阶层式预过滤和重要性采样方法都能够实现对多级环境贴图的像素读取，但是两者的精确度是不一样的。
 	
-	阶层式预过滤方法由于使用过滤器与环境贴图中像素乘积的值来作为差异比较的依据，这相当于是对整个被积函数进行重要性采样，因此每个样本的贡献值能够最大化。方然这里我们不能说它就一定具有更快的收敛速度，因为它本质上不是一种完全的重要性采样方法，它的每个样本需要通过多次迭代才能最终确定，因此存在一定数量的浪费。
+	阶层式预过滤方法由于使用过滤器与环境贴图中像素乘积的值来作为差异比较的依据，这相当于是对整个被积函数进行重要性采样，因此每个样本的贡献值能够最大化。当然这里我们不能说它就一定具有更快的收敛速度，因为它本质上不是一种完全的重要性采样方法，它的每个样本需要通过多次迭代才能最终确定，因此存在一定数量的浪费。
 	
-	但是反观重要性采样方法，它仅仅是对法线分布函数$D$进行重要性采样，因此当法线分布函数与整个被积函数的形状差异比较大时，其方差就会比较大。
+	而重要性采样方法仅仅是对法线分布函数$D$进行重要性采样，因此当法线分布函数与整个被积函数的形状差异比较大时，其方差就会比较大。
 \end{myshaded}
 
 
@@ -1001,7 +1001,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 
 重要性采样预过滤方法的误差来源于其使用方向样本的随机性，本节要介绍的也是一种基于重要性采样的方法，但是它通过精心控制这些样本的位置，其影响环境贴图的尺寸，以及样本的权重来最小化这种随机性，从而使得最终的预过滤结果的误差最小。通过减少样本的随机性，整个预过滤估计具有更小的误差，因此在相同的误差条件下，这种方法需要的样本数量相对于重要性采样要少得多，从而使其能够比较好的适用于实时地对环境贴图执行预过滤。
 
-除此之外，前面这些关于预过滤的内容，仅讨论了一般预过滤的原理及方法，并没有针对特定的环境贴图表述形式，这些方法能够很好地作用于球面空间，但是当前工业中大多使用的是立方体贴图，当这些过滤方法作用于立方体环境贴图时，其会遇到一些困难。一方面，这需要考虑立方体贴图各个面之间的缝隙，特别是那些边角的位置，这些地方的过滤需要考虑来自三个面的像素的加权，这种对于三个表面的参数化非常困难；另一方面，即是过滤器核函数在球面上是圆对称的，但是当期投影到立方体表面时，过滤器会变成各向异性的，尽管许多方法能够处理各向异性的过滤器，但是它们均不能满足实时计算的需求。本节介绍的方法将会描述对这些困难的处理。
+除此之外，前面这些关于预过滤的内容，仅讨论了一般预过滤的原理及方法，并没有针对特定的环境贴图表述形式，这些方法能够很好地作用于球面空间，但是当前工业中大多使用的是立方体贴图，当这些过滤方法作用于立方体环境贴图时，其会遇到一些困难。一方面，这需要考虑立方体贴图各个面之间的缝隙，特别是那些边角的位置，这些地方的过滤需要考虑来自三个面的像素的加权，这种对于三个表面的参数化非常困难；另一方面，即是过滤器核函数在球面上是圆对称的，但是当其投影到立方体表面时，过滤器会变成各向异性的，尽管许多方法能够处理各向异性的过滤器，但是它们均不能满足实时计算的需求。本节介绍的方法将会描述对这些困难的处理。
 
 
 
@@ -1017,10 +1017,10 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 \end{aligned}
 \end{equation}
 
-在上式中，$B(x)$表示法线分布函数$D(x)$在立方体贴图上的投影，$i$表示多级立方体贴图上的每一个纹素，该纹素对整个积分的贡献为$b_i(x)$。式\ref{e:pl-intergal-area}中，实际上$\sum_i c_ib_i(x)$是对$B(x)$的一个近似，即将将$b_i(x)$看做一个基函数，那么$c_i$就是$B(x)$投影到这些基函数的系数。
+在上式中，$B(x)$表示法线分布函数$D(x)$在立方体贴图上的投影，$i$表示多级立方体贴图上的每一个纹素，该纹素对整个积分的贡献为$b_i(x)$。式\ref{e:pl-intergal-area}中，实际上$\sum_i c_ib_i(x)$是对$B(x)$的一个近似，即将$b_i(x)$看做一个基函数，那么$c_i$就是$B(x)$投影到这些基函数的系数。
 
 
-通过观察式\ref{e:pl-intergal-area}可以发现，光照场$L(x)$是一个公共因子，因此上式可重组为：
+通过观察式\ref{e:pl-intergal-area}可知，光照场$L(x)$是一个公共因子，因此上式可重组为：
 
 \begin{equation}
 	\int L(x)\Biggl| B(x)- \sum_i c_i b_i(x)\Biggl| {\rm d}x \approx 0
@@ -1036,9 +1036,9 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 
 式\ref{e:pl-intergal-area}并没有定义$b_i(x)$的具体形式，$b_i(x)$是环境贴图所在纹理空间上的基函数\footnote{因为$D(x)$已经被投影到立方体贴图所在的纹理空间。}，它表示的是第$i$个像素位置处的贡献值。不管$b_i$如何选择，只要能够找到一组系数$c_i$使得式\ref{e:pl-min-error}的值最小化，即可以使得整个预过滤估计的误差最小化。
 
-特别地，如果选择基函数$b_i(x)$为一个$2\times 2$的盒式过滤器（box filter）\myindex{盒式过滤器}{box filter}，则在式\ref{e:pl-intergal-area}第二行公式中，被积函数$L(x)b_i(x)$刚好可以表述为将一个盒式过滤器作用与原始的环境贴图，这刚好是我们形成多级环境贴图的过程，因此式式\ref{e:pl-intergal-area}就转化为各个像素位置处投影系数$c_i$与多级环境贴图中纹素值的乘积的和，这仅仅涉及对多级环境贴图的一次三线性查询操作，而系数$c_i$独立于环境贴图，因此它可以被预计算至一个查询表中，最后整个预过滤的实时计算就会的非常简单：两次纹理的查询操作以及相应两项的乘积计算。
+特别地，如果选择基函数$b_i(x)$为一个$2\times 2$的盒式过滤器（box filter）\myindex{盒式过滤器}{box filter}，则在式\ref{e:pl-intergal-area}第二行公式中，被积函数$L(x)b_i(x)$刚好可以表述为将一个盒式过滤器作用于原始的环境贴图，这刚好是我们形成多级环境贴图的过程，因此式式\ref{e:pl-intergal-area}就转化为各个像素位置处投影系数$c_i$与多级环境贴图中纹素值的乘积的和，这仅仅涉及对多级环境贴图的一次三线性查询操作，而系数$c_i$独立于环境贴图，因此它可以被预计算至一个查询表中，最后整个预过滤的实时计算就会的非常简单：两次纹理的查询操作以及相应两项的乘积计算。
 
-有了上述的理论基础，本节介绍的快速预过滤方法\cite{a:FastFilteringofReflectionProbes}的思路就变得很清晰了，为了实现对立方体环境贴图的实时预过滤，这要求算法的结构非常简单，并且对于每个带预过滤像素仅使用很少的样本，算法中对纹理的查询应该尽可能地使用GPU的三线性插值特性。快速预过滤方法将整个过滤卷积计算分成两个通道，以及一个与环境贴图无关的查询表格的预计算：
+有了上述的理论基础，快速预过滤方法\cite{a:FastFilteringofReflectionProbes}的思路就变得很清晰了，为了实现对立方体环境贴图的实时预过滤，这要求算法的结构非常简单，并且对于每个带预过滤像素仅使用很少的样本，算法中对纹理的查询应该尽可能地使用GPU的三线性插值特性。快速预过滤方法将整个过滤卷积计算分成两个通道，以及一个与环境贴图无关的查询表格的预计算：
 
 \begin{itemize}
 	\item 在第一个通道，算法首先对原始环境贴图执行过滤以生成一个多级纹理的结构，这个过程和前面的阶层式预过滤和重要性采样方法的思路是一致的，即减少对低频区域像素的读取次数，因为这些样本覆盖这更大的方向范围，原本它们需要从原始环境贴图读取更多数量的纹素。
@@ -1046,7 +1046,6 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 	\item 最后，上述快速预过滤方法的实时计算部分非常简单，基本上仅仅涉及纹素的读取，该过滤过程的大部分操作都被转移到查询表的生成当中，由于查询表示与环境贴图无关的，因此它在一个预处理阶段被执行，并且可以使用非常复杂的方法来减少估计的误差以及提高最终结果的质量。查询表格中存储着每一个方向样本的位置，其对应多级环境贴图中的细分层级，以及该样本的过滤权重值
 \end{itemize}
 
-以下，我们分别详细介绍这三个过程及其涉及的一些相关问题。
 
 
 
@@ -1073,7 +1072,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 
 \begin{figure}
 	\sidecaption
-	\includegraphics[width=0.3\textwidth]{figures/pl/downsampling}
+	\includegraphics[width=0.4\textwidth]{figures/pl/downsampling}
 	\caption{16个样本的二次方B样条加权可以使用4个双线性的样本插值来得到相同的结果}
 	\label{f:pl-downsampling}
 \end{figure}
@@ -1111,7 +1110,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 \paragraph{第二通道：法线分布函数的近似}
 第二个通道的主要目的，是将从多级环境贴图中查询的多个三线性样本，与后面预计算的查询表中的系数进行组合，以对最终的预过滤结果进行近似。
 
-前面已经计算出了多级环境贴图中的颜色值，但是还不知道系数表格中的对每个样本到底存储了哪些参数值，以及每个参数的用途是什么，这就是接下来的内容。
+前面已经计算出了多级环境贴图中的颜色值，但是还不知道系数表格中对每个样本到底存储了哪些参数值，以及每个参数的用途是什么，这就是接下来的内容。
 
 对于每一个GGX核函数，其预计算出并存储的系数表格为：
 
@@ -1133,7 +1132,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 
 \begin{figure}
 	\sidecaption
-	\includegraphics[width=0.45\textwidth]{figures/pl/polar-frame}
+	\includegraphics[width=0.4\textwidth]{figures/pl/polar-frame}
 	\caption{使用极坐标系来定义样本的偏移位置，在快速预过滤方法中每个样本位置包含三个极坐标系，其极坐标分别对应三个主轴（图片来自\cite{a:FastFilteringofReflectionProbes}）}
 	\label{f:pl-polar-frame}
 \end{figure}
@@ -1156,7 +1155,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 
 \begin{figure}
 	\sidecaption
-	\includegraphics[width=0.47\textwidth]{figures/pl/polynomials}
+	\includegraphics[width=0.42\textwidth]{figures/pl/polynomials}
 	\caption{立方体的参数化，其坐标值在每个坐标轴线段上的变化是线性的，其中$\theta$在于垂直边线的交点处会存在不连续，但是$\phi$在底边从-到-1的变化是连续且变化为1，然后从下到上由-1到1的过程中连续变化至0（图片来自\cite{a:FastFilteringofReflectionProbes}）}
 	\label{f:pl-polynomials}
 \end{figure}
@@ -1167,12 +1166,12 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 	P(\theta,\phi)=a+b\theta^{2}+c\phi^{2}
 \end{equation}
 
-当然处于计算效率的考虑，这只是一个经验上的近似，但是其能够一定程度上减少预过滤结果的误差。
+当然出于计算效率的考虑，这只是一个经验上的近似，但是其能够一定程度上减少预过滤结果的误差。
 
 
 
 \paragraph{预计算：系数表的优化}
-系数查询表格中的参数是在预计算阶段计算的，前面已经介绍了这些参数怎样被用于实时阶段的预过滤计算，现在我们就要来介绍这些参数是怎样生成的。其中前面的内容已经介绍了细分层级$l_i$和多项式系数的计算方法，我们还剩下两个参数值的计算方法没有介绍：即投影系数$c_i$以及每个样本位置的确定。
+系数查询表格中的参数是在预计算阶段计算的，前面已经介绍了这些参数怎样被用于实时阶段的预过滤计算，现在就要来介绍这些参数是怎样生成的。其中前面的内容已经介绍了细分层级$l_i$和多项式系数的计算方法，我们还剩下两个参数值的计算方法没有介绍：即投影系数$c_i$以及每个样本位置的确定。
 
 首先介绍的是投影系数的计算，由于它必须依赖于确定的样本位置，所以首先假设样本的位置已经确定，那么我们需要确保在这些已知的$N$个样本下使得最终预过滤的结果误差最小，本节前面的内容已经介绍过，这即是使得式\ref{e:pl-min-error}所示的积分值最小化，为了便于描述，这里将其公式重写如下：
 
@@ -1184,7 +1183,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 
 当进行回归计算时，我们首先需要选择相应的损失函数（loss function）\mathindex{损失函数}{loss function}，这有两种选择，即L1范数（L1-norm）\mathindex{L1范数}{L1-norm}或L2范数（L2-norm）\mathindex{L2范数}{L2-norm}。
 
-L1范数有称为最小绝对值导数（least absolute deviations，LAD）\mathindex{最小绝对值导数}{least absolute deviations}或者最小绝对值误差（least absolute errors，LAE）\mathindex{最小绝对值误差}{least absolute errors}，设目标函数值$y_i$与估计值$f(x_i)$的绝对值为$|y_i-f(x_i)|$，则最小绝对值导数发的目标是要使下述的$S$值最小化：
+L1范数又称为最小绝对值导数（least absolute deviations，LAD）\mathindex{最小绝对值导数}{least absolute deviations}或者最小绝对值误差（least absolute errors，LAE）\mathindex{最小绝对值误差}{least absolute errors}，设目标函数值$y_i$与估计值$f(x_i)$的绝对值为$|y_i-f(x_i)|$，则最小绝对值导数的目标是要使下述的$S$值最小化：
 
 \begin{equation}
 	S=\sum^{n}_{i=0}|y_i-f(x_i)|
@@ -1225,6 +1224,7 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 
 
 
+
 \section{预计算辐射传输}\label{sec:pl-prt}
 在场景渲染的每一帧中，渲染方程都要计算光照传输，它是光子从光源发出然后通过场景中的表面最后到达摄像机的过程，如果场景是完全静止的，那么这样的计算过程对于每一帧是相同的，因此我们可以将这个“传输过程”提前计算并缓存起来，这样可以达到较高的实时性能。
 
@@ -1233,7 +1233,7 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 
 另一方面，因为必须使用很少的系数来表述光源和预计算的数据（矢量或矩阵），所以预计算辐射传输方法的另一个假设是方向函数（光源和传输函数）是低频的，这可以减少内存的占用以及运行时的点积计算，但这也意味着预计算辐射传输仅能处理很柔和的阴影。不过，在该方法的演化中，其它一些方法（例如基于小波的方法）被引入使之能够处理全频率的方向函数。
 
-尽管预计算辐射传输方法比较高效，但是其仅限于静态场景，这大大限制了其运用与发展，所以本章仅对其做简要介绍（不过这并不意味着我们可以完全忽视它，作为一种重要的解决全局光照的思路，还是很有必要对其进行简单地了解，并且它所涉及的关于球谐函数的知识对于后面的辐射照度缓存也是想通的）。首先我们会简要复习一下相应的数学基础知识，然后介绍漫反射表面下的预计算辐射传输，最后将其扩展到一般（如光泽）表面情形，以及对高频函数的处理。
+尽管预计算辐射传输方法比较高效，但是其仅限于静态场景，这大大限制了其运用与发展，所以本章仅对其做简要介绍（不过这并不意味着我们可以完全忽视它，作为一种重要的解决全局光照的思路，还是很有必要对其进行简单地了解，并且它所涉及的关于球谐函数的知识对于后面的辐射照度缓存也是相通的）。首先我们会简要复习一下相应的数学基础知识，然后介绍漫反射表面下的预计算辐射传输，最后将其扩展到一般（如光泽）表面情形，以及对高频函数的处理。
 
 
 
@@ -1245,14 +1245,14 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 \begin{equation}
 \begin{aligned}
 	L(p\to\vec{d})=&L_0(p\to\vec{d})+L_1(p\to\vec{d})+\cdots \\
-	L_0(p\to\vec{d})=&\int_\Omega f_r(p,\vec{s}\to\vec{d})L_{env}(\vec{s})V(p\to\vec{s})H_{N_p}(-\vec{s})d\vec{s}
+	L_0(p\to\vec{d})=&\int_\Omega f_r(p,\vec{s}\to\vec{d})L_{env}(\vec{s})V(p\to\vec{s})H_{N_p}(-\vec{s}){\rm d}\vec{s}
 \end{aligned}
 \end{equation}
 
 对于漫反射物体，向各个方向反射的光照是相同的，所以出射辐射亮度是与观察方向无关的，这也意味着BRDF函数是与方向无关的，因此它可以从积分中提取出来，上式中的直接光照项可以重写为：
 
 \begin{equation}\label{e:pl-diffuse}
-	L_0(p)=\frac{\rho_d}{\pi}\int L_{env}(\vec{s})V(p\to\vec{s})H_{N_p}(-\vec{s})d\vec{s}
+	L_0(p)=\frac{\rho_d}{\pi}\int L_{env}(\vec{s})V(p\to\vec{s})H_{N_p}(-\vec{s}){\rm d}\vec{s}
 \end{equation} 
 
 \noindent 其中，$\rho_d$表示表面的漫反射系数，它的值介于$0$到$1$之间，分母$\pi$用于保证能量守恒。上式同时假设光源位于无限远处，因此入射辐射亮度与位置无关，而仅与方向$s$有关。
@@ -1266,7 +1266,7 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 	\label{f:pl-diffuse}
 \end{figure}
 
-在实时渲染阶段，光源$L_{env}$可以被看做一个未知函数，而余弦加权的可见性或者说传输函数则是已知的，首先我们将入射光照场$L_{env}$投影到球面上，即：
+在实时渲染阶段，光源$L_{env}$可以被看做一个未知函数，而余弦加权的可见性或者说传输函数则是已知的，首先将入射光照场$L_{env}$投影到球面上，即：
 
 \begin{equation}
 	L_{env}(\vec{s})\approx\sum_{i}l_iy_i(\vec{s})
@@ -1277,7 +1277,7 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 将上式直接代入到式\ref{e:pl-diffuse}中，由于被积函数是线性的，因此我们可以将加和与积分符号进行交互，这形成如下的形式：
 
 \begin{equation}
-	L_0(p)=\frac{\rho_d}{\pi}\sum_i l_i\int_{\Omega}y_i(\vec{s})V(p\to\vec{s})H_{N_p}(-\vec{s})d\vec{s}
+	L_0(p)=\frac{\rho_d}{\pi}\sum_i l_i\int_{\Omega}y_i(\vec{s})V(p\to\vec{s})H_{N_p}(-\vec{s}){\rm d}\vec{s}
 \end{equation}
 
 在上式中，由于积分中的项均是独立于光源的，因此它们可以被预计算起来。其中的积分表示的是一个传输系数，它表述的是入射光照$l_i$怎样被映射为位置$p$处的一个出射辐射亮度值，因此所有传输系数就形成一个传输矢量，该矢量将入射光照映射为出射辐射亮度，即：
@@ -1301,13 +1301,13 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 	\end{aligned}
 \end{equation}
 
-在运行时，我们需要能够查询到表面上每一个像素位置处的传输矢量，然后在顶点/像素着色器执行点积计算，最终的结果就是该像素位置处的入射辐射亮度。
+在运行时需要能够查询到表面上每一个像素位置处的传输矢量，然后在顶点/像素着色器执行点积计算，最终的结果就是该像素位置处的入射辐射亮度。
 
 
 
 
 \subsection{一般表面的PRT}
-由于漫反射表面的出射光照是一个标量，因此传输函数可以被近似为一个矢量。然而光泽表面的出射光照却是与视觉相关的，即它的出射光照是另一个方向分布函数，这看起来就是两个不同坐标系之间的线性变换，因此我们可以寻找一个变换矩阵，它可以将某个点处的入射光照线性变换为出射光照。
+由于漫反射表面的出射光照是一个标量，因此传输函数可以被近似为一个矢量。然而光泽表面的出射光照却是与视角相关的，即它的出射光照是另一个方向分布函数，这看起来就是两个不同坐标系之间的线性变换，因此我们可以寻找一个变换矩阵，它可以将某个点处的入射光照线性变换为出射光照。
 
 
 
@@ -1347,7 +1347,7 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 
 除了计算表面位置处的转移入射辐射照度，PRT方法还同时存储离表面很近的空白空间位置处的转移入射辐射照度，如图\ref{f:pl-transfer-incident-radiance}(b)所示，这些来自空间中的入射光照分布可以用于对动态物体执行全局光照技术。
 
-环境光照与转移入射辐射照度之间的关系是线性的，当然前面已经说明这种线性关系是指在相同结束的球谐函数空间下的，即环境光照和点$p$的转移入射辐射照度都被投影到相同阶数的球谐函数空间。因此，环境光照与转移入射辐射照度之间的关系就可以被表述为一个矩阵，这个矩阵一般随着$p$点位置的变化而变化，即：
+环境光照与转移入射辐射照度之间的关系是线性的，当然前面已经说明这种线性关系是指在相同阶数的球谐函数空间下的，即环境光照和点$p$的转移入射辐射照度都被投影到相同阶数的球谐函数空间。因此，环境光照与转移入射辐射照度之间的关系就可以被表述为一个矩阵，这个矩阵一般随着$p$点位置的变化而变化，即：
 
 \begin{equation}
 	L_{env}(\omega)\to L_{xfer}(p\leftarrow\omega)
@@ -1370,7 +1370,7 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 
 \begin{figure}
 \sidecaption
-	\includegraphics[width=0.5\textwidth]{figures/prt/prt-10}
+	\includegraphics[width=0.45\textwidth]{figures/prt/prt-10}
 	\caption{将$p$点的转移入射辐射照度投影到球谐函数空间，这形成一个离散的函数系数表述，注意这里并不是空间位置上的离散化，图示的空间分割仅是为了演示方便，这里每个离散化的片段表述的是一个特定阶数的球谐函数的近似（图片来自\cite{a:PrecomputedRadianceTransfer:TheoryandPractice}）}
 	\label{f:pl-tir-projection}
 \end{figure}
@@ -1389,14 +1389,14 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 	\mathbf{l}^{p}=\mathbf{T}^{p}\mathbf{l}
 \end{equation}
 
-在具体推导这个传输矩阵之前，让我们来分析一下它的意义：假设环境光照只投影到其中一个球谐基函数$y_i$上，并且其系数$l_i=0$，这即是说在矢量$\mathbf{l}$中只有第$i$个元素的值为1，其它元素的值均为0，如图\ref{f:pl-matrix}右边灰色条中白色的小方块所示，考虑矩阵和矢量相乘的定义，它最终的结果就是将矩阵$\mathbf{T}^{p}$中的第$i$列复制出来，这形成图\ref{f:pl-matrix}左边的矢量$\mathbf{l}^{p}$。
-
 \begin{figure}
 \sidecaption
-	\includegraphics[width=0.5\textwidth]{figures/prt/prt-11}
+	\includegraphics[width=0.45\textwidth]{figures/prt/prt-11}
 	\caption{考虑入射光照仅来自单个基函数的分量，并且其光照密度为1，则经过矩阵传输的结果就是，从传输矩阵中将这个分量的序号所在的列复制出来（图片来自\cite{a:PrecomputedRadianceTransfer:TheoryandPractice}）}
 	\label{f:pl-matrix}
 \end{figure}
+
+在具体推导这个传输矩阵之前，让我们来分析一下它的意义：假设环境光照只投影到其中一个球谐基函数$y_i$上，并且其系数$l_i=0$，这即是说在矢量$\mathbf{l}$中只有第$i$个元素的值为1，其它元素的值均为0，如图\ref{f:pl-matrix}右边灰色条中白色的小方块所示，考虑矩阵和矢量相乘的定义，它最终的结果就是将矩阵$\mathbf{T}^{p}$中的第$i$列复制出来，这形成图\ref{f:pl-matrix}左边的矢量$\mathbf{l}^{p}$。
 
 由此可以得出，如果将传输入射辐射亮度看做$p$点看到的一副图像，则传输矩阵$\mathbf{T}^{p}$的第$i$列可以看做是一个基函数视觉（basis appearance），它描述的是从$p$点看到的来自环境光照的第$i$个基函数的光照。因为整个场景的环境光照是关于其各个基函数的线性组合，因此$p$点的入射光照的计算也仅仅是涉及对这些基函数视觉的线性组合，这即是矩阵和矢量相乘的原则。
 
@@ -1429,7 +1429,7 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 
 \begin{figure}
 	\sidecaption
-	\includegraphics[width=0.45\textwidth]{figures/pl/direct-light}
+	\includegraphics[width=0.4\textwidth]{figures/pl/direct-light}
 	\caption{在光泽表面的PRT算法中，传输函数仅考虑可见性函数，而不是像漫反射表面一样包含BRDF分布函数。}
 	\label{f:pl-direct-light}
 \end{figure}
@@ -1443,13 +1443,11 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 \noindent 因此得出：
 
 \begin{equation}
-\begin{aligned}
-	T^{p}_{0,ji}=&\langle L^{i}_0(p\leftarrow\omega),\hat{z}_j\rangle \\
-	=&\int_\Omega y_i(\omega)\hat{z}_j(\omega)V(p,\omega)d\omega
-\end{aligned}
+	T^{p}_{0,ji}=\langle L^{i}_0(p\leftarrow\omega),\hat{z}_j\rangle 
+	=\int_\Omega y_i(\omega)\hat{z}_j(\omega)V(p,\omega){\rm d}\omega
 \end{equation}
 
-我们称仅包含直接光照的传输矩阵为$\mathbf{T}^{p}_0$，如果将上式代入转移入射辐射照度的近似表达式中，即式\ref{e:pl-transfer-incident-radiance}，则得到下述关于$p$点的来自直接光照的全部光照分布：
+仅包含直接光照的传输矩阵记为$\mathbf{T}^{p}_0$，将上式代入转移入射辐射照度的近似表达式中，即式\ref{e:pl-transfer-incident-radiance}，则得到关于$p$点的来自直接光照的全部光照分布：
 
 \begin{equation}
 \begin{aligned}
@@ -1466,7 +1464,7 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 \paragraph{考虑间接光照}
 接下来我们会推导出一个考虑间接光照的传输矩阵形式，它使用一种渐进式的方法，形成一个递归的公式，即给定光照的第$k$次反弹的传输矩阵，我们可以推导出第$k+1$次反弹的传输矩阵。因为已经计算出了直接光照的传输矩阵$\mathbf{T}^{p}_0$，因此我们就能够计算出任意反弹次数的传输矩阵。由于光照是线性的，因此能够考虑所有反弹的传输矩阵$\mathbf{T}^{p}$就只不过是这些单次反弹的传输矩阵$\mathbf{T}^{p}_0,\mathbf{T}^{p}_1,\cdots$的和。
 
-为了推导出包含间接光照的传输矩阵，这里首先使用迭代形式的渲染方程，即方程两边同时包含未知的变量$L_{xfer}$，需要注意的是，与传统的渲染方程坐左边表示的是出射辐射亮度不同，这里方程的左边表示的是$p$点的入射辐射亮度：
+为了推导出包含间接光照的传输矩阵，这里首先使用迭代形式的渲染方程，即方程两边同时包含未知的变量$L_{xfer}$，注意，与传统的渲染方程坐左边表示的是出射辐射亮度不同，这里方程的左边表示的是$p$点的入射辐射亮度：
 
 \begin{equation}\label{e:pl-recursion}
 \begin{aligned}
@@ -1507,7 +1505,7 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 \end{equation}
 
 
-\noindent 因此我们可以得出$p$点处总的投影系数可以由各个反弹下的投影系数相加而得，即：
+因此我们可以得出$p$点处总的投影系数可以由各个反弹下的投影系数相加而得，即：
 
 \begin{equation}\label{e:pl-all-l}
 	l^{p}_j=\langle L_0(p),\tilde{z}_j\rangle+\langle L_1(p),\tilde{z}_j\rangle+\langle L_2(p),\tilde{z}_j\rangle+\cdots
@@ -1557,15 +1555,13 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 \end{fullwidth}
 \end{figure}
 
-在像素着色器中，每个像素都需要读取光照贴图中的一个辐射照度值，我们已经说明它是一个常数颜色值；而另一方面，漫反射表面的每个像素还存储了一个漫反射系数值，它也是一个常数值。直观上思考，我们希望将这两个值预乘起来，形成一个直接的出射辐射亮度值，这样便可以使用一个单独的纹理来同时存储漫反射颜色和光照贴图中的数据，然而有几个原因使得我们通常不会这么做。
+在像素着色器中，每个像素都需要读取光照贴图中的一个辐射照度值；而另一方面，漫反射表面的每个像素还存储了一个漫反射系数值，它也是一个常数值。直观上思考，我们希望将这两个值预乘起来，形成一个直接的出射辐射亮度值，这样便可以使用一个单独的纹理来同时存储漫反射颜色和光照贴图中的数据，然而有几个原因使得我们通常不会这么做。
 
 首先，漫反射颜色除了用于静态的光照计算，这里即是光照贴图中的这部分光照，它还可能会被用于动态光源的光照计算，例如下一节介绍的环境探针，所以表面的漫反射颜色是必须单独存储的，除非场景完全由静态光源组成。
 
 其次，对所有表面存储每像素的辐射照度值会占据很大的存储空间，所以在实践中光照贴图的分辨率会远远小于漫反射颜色的分辨率，因此它们必须单独存储。由于这种较低的分辨率特征，它不能很好地近似高频的直接光照分布，光照贴图通常只存储间接光照，因为表面间接光照分布会更加平滑，而直接光照仍然交由光栅化处理。也正是因为光照贴图的分辨率很低，所以我们通常不需要对每个物体表面单独存储一个纹理，而是对整个或部分场景存储一个光照贴图，如图\ref{f:pl-lightmap}所示。
 
-
-
-光照贴图本身只是存储辐射照度值的一个数据结构，它并不包含产生辐射照度值的方法。由于光照贴图仅针对漫反射表面，所以本书前面介绍的两种辐射度设置方法（即辐射度方法和即时辐射度方法）都可以用于生产光照贴图的辐射照度颜色值，当然原始的光线追踪方法也可以用于生成光照贴图，只是这种方法的收敛速度回非常慢。除此之外，另一种常用于生成光照贴图的技术是辐射照度缓存，由于其并不涉及太多复杂算法，这里并不对其进行详细介绍，感兴趣的读者可以参考\cite{b:pbrt2}第15.5节的内容。
+光照贴图本身只是存储辐射照度值的一个数据结构，它并不包含产生辐射照度值的方法。由于光照贴图仅针对漫反射表面，所以本书前面介绍的两种辐射度设置方法（即辐射度方法和即时辐射度方法）都可以用于生成光照贴图的辐射照度颜色值，当然原始的光线追踪方法也可以用于生成光照贴图，只是这种方法的收敛速度回非常慢。除此之外，另一种常用于生成光照贴图的技术是辐射照度缓存，由于其并不涉及太多复杂算法，这里并不对其进行详细介绍，感兴趣的读者可以参考\cite{b:pbrt2}第15.5节的内容。
 
 \begin{myshaded}
 	这里对辐射照度缓存做一个简要介绍，辐射照度缓存（irradiance caching）\myindex{辐射照度缓存}{irradiance caching}是一种有偏估计（biased estimator）\myindex{有偏估计}{biased estimator}，由于无偏方法需要依赖于大量的相互之间独立的随机样本，才能生成噪点比较低的图像，因此为了提高计算效率，有偏的方法通常通过重用一些中间或部分结果，来避免使用距离的随机样本，这种重用通常涉及对已有某种中间或部分结果的线性插值，所以这就依赖于某个量具有比较平滑的分布。在渲染算法中，只有漫反射表面的分布具备这种特征，因为漫反射与观察方向无关，漫反射表面的出射辐射亮度相当于混合了所有方向的入射光照，因此它才能够具备这种平滑分布的特征。
@@ -1580,9 +1576,9 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 \subsection{辐射照度体积}\label{sec:pl-irradiance-volume}
 上面介绍的光照贴图只能计算静态物体的间接漫反射光照，但是，场景中的一些动态物体（如角色）同样也需要一种方法来计算间接光照；另一方面，由于光照贴图直接将辐射照度值存储于表面上，因此它使用非常低的分辨率以节省存储开支，这使得它无法应对一些具有非常精细局部结构的表面，例如那些法线分布频率非常高的表面。
 
-为了解决上述关于光照贴图的问题，\cite{a:TheIrradianceVolume}首先提出了称为辐射照度体积的概念，该技术随机被运用在离线的电影工业当中，例如\cite{a:RenderinginCars2}，随后\cite{a:IrradianceVolumesforGames}将其引入到实时渲染当中，如今，主流的游戏引擎基本上都在使用该种技术，例如\cite{a:VolumetricGlobalIlluminationAtTreyarch,m:VolumetricLightmaps,m:LightProbes}等。
+为了解决上述关于光照贴图的问题，\cite{a:TheIrradianceVolume}首先提出了称为辐射照度体积的概念，该技术随即被运用在离线的电影工业当中，例如\cite{a:RenderinginCars2}，随后\cite{a:IrradianceVolumesforGames}将其引入到实时渲染当中，如今，主流的游戏引擎基本上都在使用该种技术，例如\cite{a:VolumetricGlobalIlluminationAtTreyarch,m:VolumetricLightmaps,m:LightProbes}等。
 
-与光照贴图不一样，辐射照度体积（irradiance volume）\myindex{辐射照度体积}{irradiance volume}将辐射照度值稀疏地存储在场景中的空白位置处，例如图\ref{f:pl-irradiance-volume}(a)所示，然后场景中位于辐射照度体积内任意一点的辐射照度值，可以通过对附近的样本执行某种插值计算而来，我们将在后面介绍两种常用的插值方法。辐射照度体积在\cite{m:VolumetricLightmaps}中又被称为体积光照贴图（volumetric lightmaps）\myindex{体积光照贴图}{volumetric lightmaps}，在\cite{m:LightProbes}中则被称为光照探针（light probes）\myindex{光照探针}{light probes}，为了便于更好地对比概念，本书后面将称使用体积光照贴图这个称谓，并称空间中的每个样本为体积光照样本。
+与光照贴图不一样，辐射照度体积（irradiance volume）\myindex{辐射照度体积}{irradiance volume}将辐射照度值稀疏地存储在场景中的空白位置处，例如图\ref{f:pl-irradiance-volume}(a)所示，然后场景中位于辐射照度体积内任意一点的辐射照度值，可以通过对附近的样本执行某种插值计算而来，我们将在后面介绍两种常用的插值方法。辐射照度体积在\cite{m:VolumetricLightmaps}中又被称为体积光照贴图（volumetric lightmaps）\myindex{体积光照贴图}{volumetric lightmaps}，在\cite{m:LightProbes}中则被称为光照探针（light probes）\myindex{光照探针}{light probes}，为了便于更好地对比概念，本书后面将使用体积光照贴图这个称谓，并称空间中的每个样本为体积光照样本。
 
 \begin{figure}
 	\begin{subfigure}[b]{0.5265\textwidth}
@@ -1613,7 +1609,7 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 \begin{myshaded}
 	这里可能会产生一点疑问：着色像素一定会位于某几个体积光照样本包围的体积之内吗？这样的说法通常是正确的，尽管体积光照样本通常是位于空白空间，如图\ref{f:pl-irradiance-volume}(a)所示，但是使用体积光照贴图进行间接光照计算的通常是动态物体，相对于静态场景，这些动态物体其实也是位于空白空间当中，而且体积光照样本的放置通常会覆盖到动态物体可能会占据的范围，所以这里可以假设着色像素始终是位于体积光照样本构成的某个体积之内。
 	
-	退一步讲，即使着色像素不是位于体积光照样本体积之内，而是位于某三个或更少体积光照样本的附近，这个时候仍然是可以进行插值计算的，因为插值方法的核心是怎样分配给各个样本一个权重值，只要最后参与插值计算的各个样本的权重值能够被归一化即可。例如由于光照贴图的分别率极低，其间接光照不容易很好的处理比较精细的表面，所以除了针对动态物体，在\cite{a:PrecomputedLightinginCallofDuty}中同时也会使用体积光照贴图来对具有精细结构或者光照质量要求比较高的表面进行间接光照的计算，因为体积光照贴图可以逐像素计算，它能够使用表面的精细结构，例如表面具有高频的法线分布函数。
+	退一步讲，即使着色像素不是位于体积光照样本体积之内，而是位于某三个或更少体积光照样本的附近，这个时候仍然是可以进行插值计算的，因为插值方法的核心是怎样分配给各个样本一个权重值，只要最后参与插值计算的各个样本的权重值能够被归一化即可。例如由于光照贴图的分辨率极低，其间接光照不容易很好的处理比较精细的表面，所以除了针对动态物体，在\cite{a:PrecomputedLightinginCallofDuty}中同时也会使用体积光照贴图来对具有精细结构或者光照质量要求比较高的表面进行间接光照的计算，因为体积光照贴图可以逐像素计算，它能够使用表面的精细结构，例如表面具有高频的法线分布函数。
 \end{myshaded}
 
 最简单也是最常用的体积光照样本数据结构是规则网格（regular grid）结构，在这种结构中，样本在各个坐标轴方向上以相同的间距均匀分布，在这种结构中，任意一个待着色计算的像素位置始终位于由相邻的8个体积光照样本构成的正立方体中，因此可以使用三线性插值（trilinear interpolation）\myindex{三线性插值}{trilinear interpolation}来计算该像素的辐射照度值，如图\ref{f:pl-trilinear-interpolation}所示。
@@ -1649,7 +1645,7 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 \paragraph{四面体插值}
 为了避免体积光照样本出现于非法区域，我们希望样本能够位于任意位置，这种情况下就需要能够对任意分布的体积光照样本执行插值计算的能力，同时可以在任意位置摆放的体积光照样本也使得我们可以使用更好的适应性细分方法，这将在下一节讨论。
 
-针对此目标，\cite{a:Lightprobeinterpolationusingtetrahedraltessellations}提出了一种四面体插值方法，在该方法中，体积光照样本被按照三角化的方式构建，其中每个样本可能出现在任意位置，然后一个给定的着色像素则会位于某个由4个相邻样本构成的四面体中，最后像素的颜色值由这四个样本插值计算而来，其中样本位置的三角化细分，以及搜索着色像素所在四面体的顶点样本位置将在下一节介绍。
+针对此目标，\cite{a:Lightprobeinterpolationusingtetrahedraltessellations}提出了一种四面体插值方法，在该方法中，体积光照样本被按照四面体化的方式构建，其中每个样本可能出现在任意位置，然后一个给定的着色像素则会位于某个由4个相邻样本构成的四面体中，最后像素的颜色值由这四个样本插值计算而来，其中样本位置的四面体化细分，以及搜索着色像素所在四面体的顶点样本位置将在下一节介绍。
 
 给定一个四面体，我们可以使用重心坐标系（barycentric coordinate system）\mathindex{使用重心坐标系}{barycentric coordinate system}来将四面体内的任意顶点的位置表述成四面体四个顶点位置的线性组合，如图\ref{f:pl-barycentric-coordinates}所示，而这个线性组合的各个系数，就可以作为每个顶点样本的权重值，这跟二维的三角形插值是类似的方法，我们称之为四面体插值。
 
@@ -1710,17 +1706,17 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 	\label{f:pl-delaunay-tetrahedralisation}
 \end{figure}
 
-尽管上述的过程看起来非常复杂，但是由于这些体积光照样本位置的构建是发生于预计算阶段，因此体积光照贴图的构建并不会给实时渲染带来压力。然而与样本结构的细分不同的是，查询一个像素位置位于哪个四面体的操作则是实时发生的，对四面体网格执行搜索相对于规则网格结构要复杂得多（例如规则网格可以通过简单的偏移来遍历所有的网格空间），在四面体网格中，四面体之间并不存在直接简单的空间关系，所以我们只有通过遍历所有四面体来搜索包含着色像素的四面体，但是为了减少重复的计算量，\cite{a:Leastsquaresconformalmapsforautomatictextureatlasgeneration}会保存动态物体上一帧所处的四面体索引，并通过存储四面体之间的相邻关系来减少对全局四面体网格的遍历，这里本书不在深入讨论，感兴趣的读者请前往原始论文。
+尽管上述的过程看起来非常复杂，但是由于这些体积光照样本位置的构建是发生于预计算阶段，因此体积光照贴图的构建并不会给实时渲染带来压力。然而与样本结构的细分不同的是，查询一个像素位置位于哪个四面体的操作则是实时发生的，对四面体网格执行搜索相对于规则网格结构要复杂得多（例如规则网格可以通过简单的偏移来遍历所有的网格空间），在四面体网格中，四面体之间并不存在直接简单的空间关系，所以我们只有通过遍历所有四面体来搜索包含着色像素的四面体，但是为了减少重复的计算量，\cite{a:Lightprobeinterpolationusingtetrahedraltessellations}会保存动态物体上一帧所处的四面体索引，并通过存储四面体之间的相邻关系来减少对全局四面体网格的遍历，这里本书不在深入讨论，感兴趣的读者请前往原始论文。
 
 
 
 
 \subsubsection{可见性}
-尽管上面介绍的四面体插值方法避免了对非法体积光照样本的插值计算，但是它的代价也是非常高的，例如每个像素都要搜索整个四面体网格来寻找像素所在的四面体，尽管\cite{a:Lightprobeinterpolationusingtetrahedraltessellations}使用了一些缓存来避免了部分重复计算，但是相对于简单的规则网格，其每像素的计算还是相对比较复杂，本节我们将会讨论在传统的规则网格结构下对着色像素和体积光照样本之间的可见性进行判断，一次来间接避免规则网格结构中非法体积光照样本的情况。
+尽管上面介绍的四面体插值方法避免了对非法体积光照样本的插值计算，但是它的代价也是非常高的，例如每个像素都要搜索整个四面体网格来寻找像素所在的四面体，尽管\cite{a:Lightprobeinterpolationusingtetrahedraltessellations}使用了一些缓存来避免了部分重复计算，但是相对于简单的规则网格，其每像素的计算还是相对比较复杂，本节我们将会讨论在传统的规则网格结构下对着色像素和体积光照样本之间的可见性进行判断，以此来间接避免规则网格结构中非法体积光照样本的情况。
 
 在基于图像的光照技术中，我们假设入射环境光照与表面的位置无关，因此环境光照变成一个全局的数据，它只需要存储一份即可。然而在反射方程中，物体的遮挡关系确是一个局部的数据，它随着物体的变化而变化，因此如果我们要存储这样的信息，它将会占据非常可观的存储空间，所以在基于图像的光照技术中，我们通常直接忽略反射方程中的可见性分布，这样着色的时候环境贴图只需要与表面的BRDF分布函数进行相乘即可。这带来的后果就是由于缺乏对遮挡的考虑，物体表面的光照会显得平坦而没有立体感，因此环境遮挡通常被用于辅助基于图像的光照技术，环境遮挡通常只在屏幕空间（而不是物体空间）被考虑，我们将在后面的章节中介绍更多关于环境遮挡的内容。
 
-当这种环境光照由全局转换到局部区域时，可见性的判断就变得更加重要，因为局部区域的环境光照变化会非常大，例如在图\ref{f:pl-reconstruction-comparation}中，隔着墙面的两个相邻体积光照样本之间的光照差异非常大，如果不进行可见性判断就会导致光照泄露，其中一个室内的光照泄露到另一个完全不同光照条件的室内环境去。除此之外，有前面的内容可知，如果采样的是规则的网格结构，则某些体积光照样本很可能位于物体内部或者场景之外，这形成包含非法颜色的体积光照样本，例如当角色靠近墙面时会变得非常暗，因为它混合了一个来自物体内部不含任何光照信息的体积光照样本。
+当这种环境光照由全局转换到局部区域时，可见性的判断就变得更加重要，因为局部区域的环境光照变化会非常大，例如在图\ref{f:pl-reconstruction-comparation}中，隔着墙面的两个相邻体积光照样本之间的光照差异非常大，如果不进行可见性判断就会导致光照泄露，其中一个室内的光照泄露到另一个完全不同光照条件的室内环境去。除此之外，由前面的内容可知，如果采样的是规则的网格结构，则某些体积光照样本很可能位于物体内部或者场景之外，这形成包含非法颜色的体积光照样本，例如当角色靠近墙面时会变得非常暗，因为它混合了一个来自物体内部不含任何光照信息的体积光照样本。
 
 \begin{figure}
 \begin{fullwidth}
@@ -1746,7 +1742,7 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 在实时渲染的时候，对每个体积光照样本除了考虑来自三线性插值得到的几何权重，还需要组合另外两个额外的权重值，其中第一个权重值是着色像素法线与着色像素至每个体积光照样本方向的点积，其结果会被限定为正。这个权重值的结果是产生一个平滑的背面剔除权重，例如如果着色像素的法线方向与该像素到体积光照样本的方向完全重合，这种情况就具有最大的权重系数1，随着这两个方向夹角的增加至$90^{\circ}$，其权重系数逐渐减小到0，当夹角大于$90^{\circ}$时，即表示光源位于物体背部，则其贡献值为0。
 
 \begin{myshaded}
-	使用一个平滑的余弦函数，而不仅仅是一个普通的背面剔除方法（例如0或者1）能够更好地近似辐射照度贴图对着色像素的光照贡献。思考传统漫反射表面的辐射亮度，它的光照是随着光线与法线夹角的变化而变化的，然而在对体积光照样本近似采样时，我只获取样本中一个确定方向的值，它并没有考虑这种着色像素的法线与两者之间光线的几何关系，所以这里的余弦函数正好是一个弥补。
+	使用一个平滑的余弦函数，而不仅仅是一个普通的背面剔除方法（例如0或者1）能够更好地近似辐射照度贴图对着色像素的光照贡献。思考传统漫反射表面的辐射亮度，它的光照是随着光线与法线夹角的变化而变化的，然而在对体积光照样本近似采样时，我们只获取样本中一个确定方向的值，它并没有考虑这种着色像素的法线与两者之间光线的几何关系，所以这里的余弦函数正好是一个弥补。
 \end{myshaded}
 
 另一个额外的权重系数来源于着色像素与体积光照样本之间的可见性，这里仍然不是一个离散的可见性值，而是使用\cite{a:VarianceShadowMaps}提出的一个切比雪夫可见性测试结果，由于阴影贴图的频率变化非常大，传统的纹理过滤技术并不适合于对阴影贴图执行过滤，所以方差阴影贴图通过记录阴影贴图中每个像素局部区域的方差变化，来近似可见性测试，这里不再对其进行详述，感兴趣的读者请参考原文。
@@ -1767,7 +1763,7 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 
 从上面的分析可以看出，光照场探针具有两个不足，首先它的光照分布与位置无关，这种假设对于全局的环境光照是比较精确的，因为着色像素通常离周围的环境很远，然而将这种概念放到局部时，着色像素离周围环境通常很近，因此这种假设带来的误差很大；其次环境光照通常是不考虑可见性的，然后使用一个全局的环境遮挡（ambient occlusion）来近似这种遮挡关系，然而在局部的区间内，我们需要更精确的可见性方法，我们将在本节后面讨论光照场探针的可见性测试。
 
-针对第一个问题，它在光滑且平坦的表面上表现得特别明显，因为这些表面更能较清晰的呈现反射物体原有的形状，而这种形状由于与位置无关的假设而发生了形变，如图\ref{f:pl-reflection-issues}(c)所示；而这个问题在弯曲或者粗糙的表面上表现就会好得多，我们能够观察到来自环境的粗略反射光照，又不会受困于具体的反射光照的精度，如图\ref{f:pl-reflection-issues}(a)和(b)所示。所以在使用光照场探针的时候，为了得到更好的效果，待着色物体应该是比较粗糙，弯曲或者法线细节比较丰富的表面。
+第一个问题在光滑且平坦的表面上表现得特别明显，因为这些表面更能较清晰的呈现反射物体原有的形状，而这种形状由于与位置无关的假设而发生了形变，如图\ref{f:pl-reflection-issues}(c)所示；而这个问题在弯曲或者粗糙的表面上表现就会好得多，我们能够观察到来自环境的粗略反射光照，又不会受困于具体的反射光照的精度，如图\ref{f:pl-reflection-issues}(a)和(b)所示。所以在使用光照场探针的时候，为了得到更好的效果，待着色物体应该是比较粗糙，弯曲或者法线细节比较丰富的表面。
 
 \begin{figure}
 \begin{fullwidth}
@@ -1788,11 +1784,11 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 \end{fullwidth}
 \end{figure}
 
-另一点关于光照场探针（或者局部环境贴图）需要注意的是，正是由于这种与位置有关的误差，光照场探针接收的仅仅是来自漫反射表面的反射光照，这一点是非常关键的，它也是后面我们讨论基于光线追踪的可见性方法的重要基础。由于光泽反射是严格与位置相关且光照分布的频率是非常高的，因此这会导致那些没有处于光照场探针中心位置的反射光照呈现比较严重的视觉误差。所以例如在Unreal Engine 4当中，光照场探针的生成需要位于光照贴图的预处理之后，因为这时场景才包含了间接漫反射光照，所以这也要求场景的表面主要是漫反射表面，光泽表面的场景其效果就要差得多，更多的信息可以参考\cite{m:ReflectionEnvironment}。
+另一点关于光照场探针需要注意的是，正是由于这种与位置有关的误差，光照场探针接收的仅仅是来自漫反射表面的反射光照，这一点是非常关键的，它也是后面讨论基于光线追踪的可见性方法的重要基础。由于光泽反射是严格与位置相关且光照分布的频率是非常高的，因此会导致那些没有处于光照场探针中心位置的反射光照呈现比较严重的视觉误差。例如在Unreal Engine 4中，光照场探针的生成需要位于光照贴图的预处理之后，因为这时场景才包含了间接漫反射光照，这也要求场景的表面主要是漫反射表面，光泽表面的场景其效果就要差得多，更多的信息可以参考\cite{m:ReflectionEnvironment}。
 
-由于光照场探针记录的是入射辐射亮度，因此在着色的时候，我们需要将其与表面上余弦加权的BRDF函数相乘然后在半球空间上做积分计算，这对于实时渲染其成本是比较昂贵的。而由于辐射亮度相对于辐射照度分布更高的频率变化，它通常也不能使用低阶的球谐函数来近似，所以实时渲染中常见的做法仍然是对光照场探针执行预过滤操作，不同粗糙度的BRDF分布函数通常将其预过滤成不同分辨率的多级纹理，这样着色时的积分计算就被转化为一个纹理查询操作，这些内容和本章前面第\ref{sec:pl-pre-filtering}是一致的。这种基于预过滤的光照场探针技术在现代实时渲染中被大量使用，例如\cite{m:ReflectionEnvironment,m:LightProbes}。
+由于光照场探针记录的是入射辐射亮度，因此在着色的时候，需要将其与表面上余弦加权的BRDF函数相乘然后在半球空间上做积分计算，这对于实时渲染其成本是比较昂贵的。而由于辐射亮度相对于辐射照度分布更高的频率变化，它通常也不能使用低阶的球谐函数来近似，所以实时渲染中常见的做法仍然是对光照场探针执行预过滤操作，不同粗糙度的BRDF分布函数通常将其预过滤成不同分辨率的多级纹理，这样着色时的积分计算就被转化为一个纹理查询操作。这种基于预过滤的光照场探针技术在现代实时渲染中被大量使用，例如\cite{m:ReflectionEnvironment,m:LightProbes}。
 
-最后我们再来总计一下光照场探针与体积光照样本两种技术在使用上的区别，如图\ref{f:pl-light-field}(b)所示，在空间中辐射亮度分布函数的频率变化通常是非常大的，它甚至存在非连续的边界导致其无限的频率分布，尽管预过滤的光照场探针其分布会平滑一些，但是它的频率变化仍然很高。因此在使用的时候，我们通常不会对多个光照场探针按空间进行插值计算（就像体积光照样本那样），而是每次使用单个光照场探针，并且将着色位置放置于探针中心来获取入射光照。由此可以看出，如果同一个环境存在多个光照场探针，这些探针通常不应该记录相同的环境\footnote{当然也可以对同一个环境放置多个探针，但是某些区域的光照场探针具有更高的分辨率来表现更精细的结构，当然它影响的范围可能更小，当物体移动到这个区域的时候，我们总是使用高分辨率的光照场探针。}，因为我们只能选择使用一个，而只有当两个记录不同环境的光照场探针重合时，我们才能将两者的结果混合，否则可能相同的环境被反射两次，例如当角色从门口走向门外时，来自局部的光照场探针就应该和全局的环境贴图进行混合，因为它们两者记录的是完全不同的环境。
+最后我们再来总结一下光照场探针与体积光照样本两种技术在使用上的区别，如图\ref{f:pl-light-field}(b)所示，在空间中辐射亮度分布函数的频率变化通常是非常大的，它甚至存在非连续的边界导致其无限的频率分布，尽管预过滤的光照场探针其分布会平滑一些，但是它的频率变化仍然很高。因此在使用的时候，我们通常不会对多个光照场探针按空间进行插值计算（就像体积光照样本那样），而是每次使用单个光照场探针，并且将着色位置放置于探针中心来获取入射光照。由此可以看出，如果同一个环境存在多个光照场探针，这些探针通常不应该记录相同的环境\footnote{当然也可以对同一个环境放置多个探针，但是某些区域的光照场探针具有更高的分辨率来表现更精细的结构，当然它影响的范围可能更小，当物体移动到这个区域的时候，我们总是使用高分辨率的光照场探针。}，因为我们只能选择使用一个，而只有当两个记录不同环境的光照场探针重合时，我们才能将两者的结果混合，否则可能相同的环境被反射两次，例如当角色从门口走向门外时，来自局部的光照场探针就应该和全局的环境贴图进行混合，因为它们两者记录的是完全不同的环境。
 
 \begin{figure}
 \begin{fullwidth}
@@ -1813,7 +1809,7 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 \end{fullwidth}
 \end{figure}
 
-而另一方面，辐射照度值在空间的变化要平滑得多，如图\ref{f:pl-light-field}(c)所示，因此我们可以通过插值计算来推断空间中每一个位置处的辐射照度值。所以可以看到，辐射亮度和辐射照度值的两种使用方式是非常不一样的，其着我们只在离散的位置计算，因此忽略了光照场探针内的位置，而后者则尝试通过插值重建整个空间的辐射照度分布。读者需要特别理解整个概念，对于光照场探针，我们并没有尝试重建整个空间的辐射亮度分布。
+而另一方面，辐射照度值在空间的变化要平滑得多，如图\ref{f:pl-light-field}(c)所示，因此我们可以通过插值计算来推断空间中每一个位置处的辐射照度值。所以可以看到，辐射亮度和辐射照度值的两种使用方式是非常不一样的，前者我们只在离散的位置计算，因此忽略了光照场探针内的位置，而后者则尝试通过插值重建整个空间的辐射照度分布。读者需要特别理解整个概念，对于光照场探针，我们并没有尝试重建整个空间的辐射亮度分布。
 
 
 
@@ -1856,7 +1852,9 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 那么应该怎样执行光线与一个光照场探针的光线追踪呢？\cite{a:ALightFieldRepresentationforRealTimeGlobalIllumination}发现，由于八面体映射具有比较好的线性关系，所以当一个世界空间的光线投影到八面体贴图上时，其结果是一个分段的线性直线线段，因此这种世界空间的光线追踪就被转化为八面体贴图上的像素遍历操作，并且这些分段直线在八面体贴图上是相连的，如图\ref{f:pl-single-probe-ray-tracing}所示。
 
 \begin{figure}
-	\includegraphics[width=\textwidth]{figures/pl/single-probe-ray-tracing}
+\begin{center}
+	\includegraphics[width=0.8\textwidth]{figures/pl/single-probe-ray-tracing}
+	\end{center}
 	\caption{单个光照场探针的光线追踪，其中一条空间的光线被映射为八面体贴图空间上几个分段的直线，这些直线段之间在八面体的边缘是相连的，\cite{a:Real-TimeGlobalIlluminationusingPrecomputedLightFieldProbes}对每个光照场探针使用了两个分辨率的贴图，其中低分辨率的贴图用来加速那些空白空间的光线步进，如图中的黄色箭头所示，而绿色箭头表示在高分辨率的八面体贴图中步进（图片来自\cite{a:Real-TimeGlobalIlluminationusingPrecomputedLightFieldProbes}）}
 	\label{f:pl-single-probe-ray-tracing}
 \end{figure}
@@ -1867,17 +1865,15 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 
 \begin{figure}
 	\sidecaption
-	\includegraphics[width=0.5\textwidth]{figures/pl/light-field-ray-marching}
+	\includegraphics[width=0.4\textwidth]{figures/pl/light-field-ray-marching}
 	\caption{光照场接受的是来自漫反射表面的光照，所以只要找到光线与光照场深度图上的一个交点，则光照场探针在该交点对应的辐射亮度就可以用作为光线的入射辐射亮度}
 	\label{f:pl-light-field-ray-marching}
 \end{figure}
 
-当然\cite{a:Real-TimeGlobalIlluminationusingPrecomputedLightFieldProbes}的观察主要是基于光照场探针对应的几何环境是一个凸面体形状，如果环境保护太多细节，那么光线与光照场探针的相交测试就可能会失败，其解决的方法就是使用多个光照场探针，这些相邻的光照场探针会重复记录周围的场景，并且不同位置的光照场探针分布能够很好地使用场景的几何分布，因此只要光照场探针的密度足够高，这种相交测试的精确度就会更高。
+当然\cite{a:Real-TimeGlobalIlluminationusingPrecomputedLightFieldProbes}的观察主要是基于光照场探针对应的几何环境是一个凸面体形状，如果环境包含太多细节，则光线与光照场探针的相交测试可能会失败，解决的方法是使用多个光照场探针，这些相邻的光照场探针会重复记录周围的场景，不同位置的光照场探针分别能够很好地使用场景的几何分布，因此只要光照场探针的密度足够高，这种相交测试的精确度就会更高。
 
-所以，光线对整个光照场的光线追踪就涉及到两个步骤，首先是选择一个光照场探针，然后是对每个选择的光照场探针执行上述的光线追踪计算，如果当前的光照场探针没有找到相交点，则继续选择下一个光照场探针继续执行上述的操作，如果光线在某个光照场探针内找到相交点，则直接从该光照场读取相应的辐射亮度值。其中\cite{a:LightProbeSelectionAlgorithmsforReal-TimeRenderingofLightFields}提出了种光照场探针的选择算法，是可以加速找到光线与光照场探针的相交点，这里不再详述。
+所以，光线对整个光照场的光线追踪就涉及到两个步骤，首先是选择一个光照场探针，然后是对每个选择的光照场探针执行上述的光线追踪计算，如果当前的光照场探针没有找到相交点，则继续选择下一个光照场探针继续执行上述的操作，如果光线在某个光照场探针内找到相交点，则直接从该光照场读取相应的辐射亮度值。其中\cite{a:LightProbeSelectionAlgorithmsforReal-TimeRenderingofLightFields}提出了种光照场探针的选择算法，使可以加速找到光线与光照场探针的相交点，这里不再详述。
 
 最后，有了上述的光线追踪方法，我们能够得到屏幕上每个像素任意方向上的入射光照，那么应该怎样计算最终像素的间接漫反射和光照反射光照呢？\cite{a:Real-TimeGlobalIlluminationusingPrecomputedLightFieldProbes}的方法是对每个像素的漫反射和BRDF分布函数分别进行一次采样，然后对所有像素得到的图像分布进行降噪处理，最终就可以得到每个可见像素的间接漫反射和间接光泽反射光照。
-
-当然，由于漫反射BRDF涉及的采样范围很大，因此每个像素仅使用单个样本会导致比较大的方差，所以对于漫反射我们仍然可以选择使用前面介绍的预过滤方法。
 
 我们可以看到，这种方法将漫反射和光照反射统一对待，它也不会对原始光照场探针执行任何的预过滤操作，并且它移除了基于图像的光照中与位置无关的假设，每个光线都是接受的来自真实位置的入射光照，而其中的光照场探针（或环境贴图）变成一个用于辅助光线追踪的数据结构。
