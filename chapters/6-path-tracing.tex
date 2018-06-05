@@ -2384,7 +2384,7 @@ SBVH的基本构建算法可以分为三步：
 \paragraph{多分支BVH}
 如本章后面的内容所见，在光线遍历中，我们有两种方法对BVH进行遍历：深度优先（depth-first）\myindex{深度优先}{depth-first}和广度优先（breadth-first）\myindex{广度优先}{breadth-first}，其中深度优先遍历对应于使用多条光线同时对BVH的一个节点进行相交计算，这里的光线数量对应于SIMD指令的宽度；而广度优先则对应于使用一条单独的光线同时对多个节点进行遍历，这里的节点数量对应SIMD指令的宽度，这就需要构建多分支的BVH结构。多分支BVH不仅能够充分提升SIMD指令的执行效率，它还通过减少了BVH的深度从而减少了内存传输带宽的占用。
 
-由于BVH2结构构建的高效性，所以实践中通常首先生成BVH2结构，然后再将其转化为多分支BVH，例如BVH4或BVH16。直观上看，有两种方法可以用于这种转化操作：分离法（splitting）\myindex{分离法}{splitting}和收缩法（collapsing）\myindex{收缩法}{collapsing}。其中收缩法通常比较简单，例如对于BVH4结构\cite{a:EfficientRayTracingKernelsforModernCPUArchitectures}，只需要将一个父节点被其两个子节点替换即可，但是根据原始BVH2结构叶节点的数量，其BVH4叶节点的数量可能在2~4之间。
+由于BVH2结构构建的高效性，所以实践中通常首先生成BVH2结构，然后再将其转化为多分支BVH，例如BVH4或BVH16。直观上看，有两种方法可以用于这种转化操作：分离法（splitting）\myindex{分离法}{splitting}和收缩法（collapsing）\myindex{收缩法}{collapsing}。其中收缩法通常比较简单，例如对于BVH4结构\cite{a:EfficientRayTracingKernelsforModernCPUArchitectures}，只需要将一个父节点被其两个子节点替换即可，但是根据原始BVH2结构叶节点的数量，其BVH4叶节点的数量可能在$2\sim 4$之间。
 
 但对于分支大于4的BVH结构（例如BVH16），收缩的操作稍微复杂一点，为了尽可能使中间的节点达到最大分支数量，\cite{a:GettingRidofPackets}首先执行一个单节点合并操作：对于某个父节点$n$及其子节点$c_i$，如果：
 

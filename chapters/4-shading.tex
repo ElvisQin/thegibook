@@ -629,7 +629,7 @@ bool constantTileValue = IsTileConstantValue( … );
 short shaderIndex = constantTileValue? branchlessShaderTable[orReducedMaskBits]: shaderTable[orReducedMaskBits];
 \end{lstlisting}
 
-相对于传统的大型着色器，神秘海域4中使用的着色器管理技术可以带来$20\%~30\%$的性能提升，如图\ref{f:shade-material-ID}所示，场景中大部分块内每个像素都拥有相同的材质类型组合，即它们不包含分支处理，将这些分支去掉，以及以材质类型为单位减少大型着色器的分支处理，延迟着色的性能得到大大提升。
+相对于传统的大型着色器，神秘海域4中使用的着色器管理技术可以带来$20\%\sim 30\%$的性能提升，如图\ref{f:shade-material-ID}所示，场景中大部分块内每个像素都拥有相同的材质类型组合，即它们不包含分支处理，将这些分支去掉，以及以材质类型为单位减少大型着色器的分支处理，延迟着色的性能得到大大提升。
 
 \begin{figure}
 	\includegraphics[width=1.0\textwidth]{figures/shade/material-ID}
