@@ -41,16 +41,16 @@
 
 
 \paragraph{阴~~影}
-阴影（shadows）\myindex{阴影}{shadows}对于人眼对3D场景的立体感觉非常重要，在实时渲染领域，直接光照（如点光源，聚光灯以及直线光源等）的渲染通常不考虑物体间的遮挡关系，这主要是为了利用GPU快速的光栅化特性，所以需要另一个单独的通道来处理阴影。这个通道也可以通过使用GPU的光栅化特性，在运行时动态生成光照贴图（shadow maps），或者利用GPU的模板测试生成阴影体积（shadow volume）等比较简单的方法实现。
+阴影（shadows）\myindex{阴影}{shadows}对于人眼对3D场景的立体感觉非常重要，在实时渲染领域，直接光照（如点光源，聚光灯以及直线光源等）的渲染通常不考虑物体间的遮挡关系，这主要是为了利用GPU快速的光栅化特性，所以需要另一个单独的通道来处理阴影。这个通道也可以通过使用GPU的光栅化特性，在运行时动态生成阴影贴图（shadow maps），或者利用GPU的模板测试生成阴影体积（shadow volume）等比较简单的方法实现。
 
-光照贴图是以光源中的单个点为观察点，利用GPU光栅化渲染的一张图，通常它只包含深度值，所以它记录的只是物体边缘的几何信息，因此产生的阴影为硬阴影（hard shadow）。对于硬阴影，通常还需要使用适当的反走样措施，关于反走样技术将在本章第\ref{sec:intro-sampling}节讲述。
+阴影贴图是以光源中的单个点为观察点，利用GPU光栅化渲染的一张图，通常它只包含深度值，所以它记录的只是物体边缘的几何信息，因此产生的阴影为硬阴影（hard shadow）。对于硬阴影，通常还需要使用适当的反走样措施，关于反走样技术将在本章第\ref{sec:intro-sampling}节讲述。
 
-非点光源则具有一定的面积，其生成的阴影为软阴影（soft shadow），一个软阴影的定义包含3个部分：即完全遮挡的本影区（Fully Dark），部分光照被遮挡的半影（Penumbra）区，以及完全没有被遮挡的光照（Fully lit）区，如图\ref{f:intro-shadow}所示。其中半影过渡区可以通过表面到遮挡物体和光源的距离，以及光源的面积大小三个参数来近似技术，本书将会详细介绍相关的阴影计算，《Real-Time Shadows》\cite{b:rts}包含了大量关于阴影技术的介绍。
+非点光源则具有一定的面积，其生成的阴影为软阴影（soft shadow），一个软阴影的定义包含3个部分：即完全遮挡的本影区（Fully Dark），部分光照被遮挡的半影（Penumbra）区，以及完全没有被遮挡的光照（Fully lit）区，如图\ref{f:intro-shadow}所示。其中半影过渡区可以通过表面到遮挡物体和光源的距离，以及光源的面积大小三个参数来近似计算，本书将会详细介绍相关的阴影计算，《Real-Time Shadows》\cite{b:rts}包含了大量关于阴影技术的介绍。
 
 \begin{figure}
 \sidecaption
 	\includegraphics[width=0.65\textwidth]{figures/intro/shadow}
-	\caption{软阴影形成的机制，由于光源具有一定的面积，使其包含完全遮挡，部分遮挡及完全光照三个区域（图片来自PowderVR）}
+	\caption{软阴影形成的机制，由于光源具有一定的面积，使其包含完全遮挡，部分遮挡及完全光照三个区域（图片来自PowerVR）}
 	\label{f:intro-shadow}
 \end{figure}
 
@@ -227,7 +227,7 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 	\Omega= {\rm \iint}_A \sin\theta {\rm d}\theta {\rm d}\varphi
 \end{equation}
 
-\noindent 其中，$\theta$表示经度，$\varphi$表示纬度，所以整个球面的立体角为$4\pi$，对于一个正方体的一个面，从该正方体的中心点测量的立体角为$ \cfrac{2}{3}\pi$。
+\noindent 其中，$\theta$表示纬度，$\varphi$表示经度，所以整个球面的立体角为$4\pi$，对于一个正方体的一个面，从该正方体的中心点测量的立体角为$ \cfrac{2}{3}\pi$。
 
 
 
@@ -349,7 +349,7 @@ $I$称为面积$A$在方向$(\alpha,\beta)$上的辐射强度（radiance intensi
 	E(\xi,\eta)={\rm \int} L\overline{\cos}\theta {\rm d}\omega
 \end{equation}
 
-$E$称为点$(\xi,\eta)$的辐射照度（irradiance）\myindex{辐射照度}{irradiance}，其单位为$W/m^2$，它是点$(\xi,\eta)$沿各个方向对辐射亮度$L$的积分，如图\ref{f:intro-irradiance}所示。值得注意的是，前面提到过，在辐射度量学中，基本上考虑的是从面的一部分射出或者接收能量，所以辐射照度虽然表述的是面上一个点的度量，但它实际上是通过该点所在的单位面积来测量的，因为辐射量度$L$也是通过单位面积来测量的。
+$E$称为点$(\xi,\eta)$的辐射照度（irradiance）\myindex{辐射照度}{irradiance}，其单位为$W/m^2$，它是点$(\xi,\eta)$沿各个方向对辐射亮度$L$的积分，如图\ref{f:intro-irradiance}所示。值得注意的是，前面提到过，在辐射度量学中，基本上考虑的是从面的一部分射出或者接收能量，所以辐射照度虽然表述的是面上一个点的度量，但它实际上是通过该点所在的单位面积来测量的，因为辐射亮度$L$也是通过单位面积来测量的。
 
 \begin{figure}
 \sidecaption
@@ -546,7 +546,7 @@ $E$称为点$(\xi,\eta)$的辐射照度（irradiance）\myindex{辐射照度}{ir
 
 首先，在计算机图形学中，一个物体的“形”与“色”是完全分开的，物体的形状由一组顶点（vertex）构成的网格（mesh）来定义，如图\ref{f:intro-mesh}所示，而物体的表面着色则由称为材质（material）\myindex{材质}{material}的东西决定。所以材质通常包含纹理（textures），着色器（shaders）以及其他一些着色方程需要的参数，所有这些数据构成一个对象并被附加到一个物体上，在渲染时这些数据被传输至GPU内存，GPU执行其中的着色器对该物体表面着色，这个过程包括贴图，光照以及其他相关的计算。关于材质的一些重要参数将在下一节讨论。
 
-理解材质的另一方面在于，我们需要了解更多关于物体表面或内部结构的问题。在前面的描述中，都是假设表面是绝对光滑的，在这种情况下，光经过表面时按照反射定律和折射定律进行反射或折射。然而在微观尺度上\footnote{计算机图形学中一般不考虑小于波长的原子尺寸，这又称为纳米几何（nanogeometry）\myindex{纳米几何}{nanogeometry}，在此尺寸下可以观察到光的衍射现象，即光可以绕过障碍物沿非直线方向传播。}，这里指微观几何（microgeometry）\myindex{微观几何}{microgeometry}结构，即小于一个像素但是大于光波长的尺寸，物体表面并不是绝对光滑的，这时虽然在单个光束与表面交互上可以看作该面是光滑的，但是在一个像素尺度上，它确是不光滑的，如图\ref{f:intro-microgeometry-1}所示。那么我们如何处理这种复杂的情况？
+理解材质的另一方面在于，我们需要了解更多关于物体表面或内部结构的问题。在前面的描述中，都是假设表面是绝对光滑的，在这种情况下，光经过表面时按照反射定律和折射定律进行反射或折射。然而在微观尺度上\footnote{计算机图形学中一般不考虑小于波长的原子尺寸，这又称为纳米几何（nanogeometry）\myindex{纳米几何}{nanogeometry}，在此尺寸下可以观察到光的衍射现象，即光可以绕过障碍物沿非直线方向传播。}，这里指微观几何（microgeometry）\myindex{微观几何}{microgeometry}结构，即小于一个像素但是大于光波长的尺寸，物体表面并不是绝对光滑的，这时虽然在单个光束与表面交互上可以看作该面是光滑的，但是在一个像素尺度上，它却是不光滑的，如图\ref{f:intro-microgeometry-1}所示。那么我们如何处理这种复杂的情况？
 
 \begin{figure}
 \sidecaption
@@ -670,7 +670,7 @@ $E$称为点$(\xi,\eta)$的辐射照度（irradiance）\myindex{辐射照度}{ir
 相反，给定$F(\mu)$，通过傅里叶反变换可以获得$f(t)$：
 
 \begin{equation}
-	f(t)={\rm \int}^{\infty}_{-\infty}F(\mu){\rm e}^{-j2\pi\mu t}{\rm d}\mu
+	f(t)={\rm \int}^{\infty}_{-\infty}F(\mu){\rm e}^{j2\pi\mu t}{\rm d}\mu
 \end{equation}
 
 \noindent 利用欧拉公式\footnote{${\rm e}^{j\theta}=\cos\theta +j\sin\theta$}，可以把式\ref{eq:intro-fourier}表示为：
@@ -928,7 +928,7 @@ $E$称为点$(\xi,\eta)$的辐射照度（irradiance）\myindex{辐射照度}{ir
 \subsubsection{平~~滑}
 根据卷积公式的特性，我们可以很容易想到它可以用来平滑函数$f$，然而不仅如此，根据卷积计算是作用在时间/空间域或者频率域，以及$f$和$g$是离散还是连续函数，它表现出来的功能特征和结果是不一样的，以下我们就分别来描述卷积的这些应用场景。
 
-卷积计算最本质也是最直观的特征是平滑，它通过对$f$的每个点考虑该点周围一定范围内的值对该点的影响，来消除该点与周围环境的频率的快速变化。这在计算机图形学中运用时分广泛，大部分可能出现走样的地方，例如前面第\ref{sec:intro-sampling}节讨论的那些走样现象，都可以在采样之前对原始函数进行平滑，以减轻走样现象。这种滤波器称为反走样滤波器（anti-aliasing filter）\myindex{反走样滤波器}{anti-aliasing filter}。
+卷积计算最本质也是最直观的特征是平滑，它通过对$f$的每个点考虑该点周围一定范围内的值对该点的影响，来消除该点与周围环境的频率的快速变化。这在计算机图形学中运用十分广泛，大部分可能出现走样的地方，例如前面第\ref{sec:intro-sampling}节讨论的那些走样现象，都可以在采样之前对原始函数进行平滑，以减轻走样现象。这种滤波器称为反走样滤波器（anti-aliasing filter）\myindex{反走样滤波器}{anti-aliasing filter}。
 
 这里举一个图像处理的例子，在图像处理中，常常考虑$f(x,y)$为一个具有一定分辨率的图像，$g(x,y)$为一个$m\times n$的矩形，其分辨率通常小于或等于$f(x,y)$的分辨率，假设$m=2a+1$且$n=2b+1$，其中$a,b$为正整数，则式\ref{eq:intro-conv}变为：
 
@@ -1145,7 +1145,7 @@ MSAA相对于超采样大大减少了计算量（每个像素着色器只执行�
 \begin{figure}
 \sidecaption
 	\includegraphics[width=0.5\textwidth]{figures/intro/surface-roughness}
-	\caption{在数字图像的世界，每一个像素点其实对应着具有不同粗糙度的表面，这个表面位于微观尺寸，它小于一个像素的尺寸但是，但是大于光的波长，但这个尺寸我们很难通过几何模型来模拟（图片来自Wikipedia）}
+	\caption{在数字图像的世界，每一个像素点其实对应着具有不同粗糙度的表面，这个表面位于微观尺寸，它小于一个像素的尺寸，但是大于光的波长，但这个尺寸我们很难通过几何模型来模拟（图片来自Wikipedia）}
 	\label{f:intro-surface-roughness}
 \end{figure}
 
@@ -1295,7 +1295,7 @@ Disney提供有一个开源的BRDF工具BRDF Explorer\cite{m:BRDFExplorer}，这
 	n^{2}_1{\rm d}s\cos\theta_1 \sin\theta_1 {\rm d}\theta_1 {\rm d}\varphi_1=n^{2}_2 {\rm d}s \cos\theta_2 \sin\theta_2 {\rm d}\theta_2 {\rm d}\varphi_2
 \end{equation}
 
-\noindent 用${\rm d}G_1$和${\rm d}G_2$分别表示入射铅笔盒折射铅笔的几何范围，则上式可以简化为：
+\noindent 用${\rm d}G_1$和${\rm d}G_2$分别表示入射铅笔和折射铅笔的几何范围，则上式可以简化为：
 
 \begin{equation}\label{eq:eq-intro-eq:intro-snell-Law-1}
 	n^{2}_1 {\rm d}G_1=n^{2}_2 {\rm d}G_2
@@ -1353,7 +1353,7 @@ Disney提供有一个开源的BRDF工具BRDF Explorer\cite{m:BRDFExplorer}，这
 	R_F(0^o)=( \cfrac{n_1-n_2}{n_1+n_2})^2
 \end{equation}
 
-\noindent 由于介质参数是随着波普变化的，所以菲涅耳反射率是一个光谱度量，即它包含RGB三个分量值。因为菲涅耳反射率在大部分范围内趋近于$R_F(0^o)$，因此我们也常其为材质的特征镜面反射率（characteristic specular reflectance）\myindex{特征镜面反射率}{characteristic specular reflectance}，同时因为它满足一个颜色值的条件--具有RGB分量并且每个分量的值位于0和1之间，所以我们通常也称它为镜面颜色（specular color）\myindex{镜面颜色}{specular color}，通常表示为$\mathbf{c}_{spec}$，我们还将在后面的材质模型一节中介绍它。
+\noindent 由于介质参数是随着波谱变化的，所以菲涅耳反射率是一个光谱度量，即它包含RGB三个分量值。因为菲涅耳反射率在大部分范围内趋近于$R_F(0^o)$，因此我们也称其为材质的特征镜面反射率（characteristic specular reflectance）\myindex{特征镜面反射率}{characteristic specular reflectance}，同时因为它满足一个颜色值的条件--具有RGB分量并且每个分量的值位于0和1之间，所以我们通常也称它为镜面颜色（specular color）\myindex{镜面颜色}{specular color}，通常表示为$\mathbf{c}_{spec}$，我们还将在后面的材质模型一节中介绍它。
 
 
 
@@ -1415,7 +1415,7 @@ Disney提供有一个开源的BRDF工具BRDF Explorer\cite{m:BRDFExplorer}，这
 	f(\mathbf{l},\mathbf{v})=f_d+ \cfrac{R_F(\theta_h)G(\theta_l,\theta_v)D(\theta_h)}{4\cos\theta_l \cos\theta_v}
 \end{equation}
 
-\noindent 这个方程包含漫反射和光泽部分，其中漫反射通常与方向无关，为一个常数；而光泽部分包含三个组件：菲涅耳反射率$R_F(\theta_h)$，表示几何遮挡关系的$G(\theta_l,\theta_v)$，以及微面元法线发布函数$D(\theta_h)$，其中$D(\theta_h)$必须是归一化的。$\theta_l$和$\theta_v$分别表示入射方向$\mathbf{l}$和观察方向$\mathbf{v}$与表面法线$\mathbf{n}$的夹角，$\theta_h$是表面法线$\mathbf{n}$和半矢量$\mathbf{h}$之间的夹角，$\theta_d$则是入射方向$\mathbf{l}$和半矢量$\mathbf{h}$之间的差值。由于假设材质是各项同性（我们将在后面讨论各向异性材质的法线分布函数）的，因此微面元法线分布函数$D$仅有一个变量$\theta_h$。分母$4\cos\theta_l \cos\theta_v$表示一个从微观面元空间向宏观像素空间转变的转换因子，因为$f(\mathbf{l},\mathbf{v})$是宏观空间的一个度量。
+\noindent 这个方程包含漫反射和光泽部分，其中漫反射通常与方向无关，为一个常数；而光泽部分包含三个组件：菲涅耳反射率$R_F(\theta_h)$，表示几何遮挡关系的$G(\theta_l,\theta_v)$，以及微面元法线分布函数$D(\theta_h)$，其中$D(\theta_h)$必须是归一化的。$\theta_l$和$\theta_v$分别表示入射方向$\mathbf{l}$和观察方向$\mathbf{v}$与表面法线$\mathbf{n}$的夹角，$\theta_h$是表面法线$\mathbf{n}$和半矢量$\mathbf{h}$之间的夹角，$\theta_d$则是入射方向$\mathbf{l}$和半矢量$\mathbf{h}$之间的差值。由于假设材质是各项同性（我们将在后面讨论各向异性材质的法线分布函数）的，因此微面元法线分布函数$D$仅有一个变量$\theta_h$。分母$4\cos\theta_l \cos\theta_v$表示一个从微观面元空间向宏观像素空间转变的转换因子，因为$f(\mathbf{l},\mathbf{v})$是宏观空间的一个度量。
 
 
 以下我们分别讨论微面元BRDF的各个部分，以及各个部分的选择，尤其我们要讨论几个主流游戏引擎各自的选择，这些选择大都基于或者源自\cite{a:PhysicallyBasedShadingatDisney}的BRDF模型。首先对于菲涅耳反射率，工业中比较广泛的解决方案还是前面讲述的Schlick近似，所以本节将集中讨论法线分布函数$D$以及几何遮挡函数$G$。
@@ -1543,7 +1543,7 @@ MERL BRDF数据库是对一些实物的进行测量，以二进制数据的方�
 	G_1(\mathbf{v},\mathbf{h})=\chi^{+}( \cfrac{\mathbf{v}\cdot\mathbf{h}}{\mathbf{v}\cdot\mathbf{n}})   \cfrac{2}{1+\sqrt{1+\alpha^2_g \tan^2 \theta_v}}
 \end{equation}
 
-\noindent 对于Walter的近似方法，Disney将粗糙度参数$\alpha_g$从$[0,1]$ 重映射到$[0.5,1]$，即：$\alpha_g=(0.5+roughness/2)^2$，以使$G$函数随着粗糙度变化更平滑；对于Secondary lobe，则直接使用一个固定的粗糙度参数0.25。
+\noindent 对于Walter的近似方法，Disney将粗糙度参数$\alpha_g$从$[0,1]$ 重映射到$[0.25,1]$，即：$\alpha_g=(0.5+roughness/2)^2$，以使$G$函数随着粗糙度变化更平滑；对于Secondary lobe，则直接使用一个固定的粗糙度参数0.25。
 
 但是，Brent Burley在2014\cite{a:ExtendingtheDisneyBRDFtoaBSDFwithIntegratedSubsurfaceScattering}年对Disney BRDF模型进行了一次修订，基于Heitz\cite{a:UnderstandingtheMaskingShadowingFunctioninMicrofacetBasedBRDFs}的分析，他们去掉了这种重映射，而采用了Heitz的各项异性的形式（仅针对Primary lobe），即：
 

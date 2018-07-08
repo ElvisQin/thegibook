@@ -160,7 +160,7 @@ for each light
 	\label{f:shade-gpu-trends}
 \end{figure}
 
-通过第\ref{chp:hardware}章的内容可知，处理器对任何寄存器以外的内存读取都会导致延迟，这些延迟包括存储器本身处理数据输入输出的延迟，以及数据由存储器向处理器传输过程中带宽的限制。图\ref{f:shade-gpu-trends}是近十几年GPU性能发展的趋势，我们可以看出GPU计算能力提升的速度会大大高于其传输带宽的提升，虽然缓存可以在一定程度上减少带宽导致的延迟，但是它仍然比寄存器要慢得多；同时在GPU中，缓存是基于内核内多个线程共享的，它还必须处理同步的问题。所以在GPU编程中，我们要充分优化内存读写的算法，尽可能低将数据读取到寄存器\footnote{回想第\ref{chp:hardware}章的内容，GPU拥有数量众多的寄存器，将数据读取到本地寄存器，并在单线程内进行足够的计算，然后将最终计算结果写入全局内部是GPU并行计算的基本策略。}，对其进行更多计算使用，然后再写入到全局内存中。
+通过第\ref{chp:hardware}章的内容可知，处理器对任何寄存器以外的内存读取都会导致延迟，这些延迟包括存储器本身处理数据输入输出的延迟，以及数据由存储器向处理器传输过程中带宽的限制。图\ref{f:shade-gpu-trends}是近十几年GPU性能发展的趋势，我们可以看出GPU计算能力提升的速度会大大高于其传输带宽的提升，虽然缓存可以在一定程度上减少带宽导致的延迟，但是它仍然比寄存器要慢得多；同时在GPU中，缓存是基于内核内多个线程共享的，它还必须处理同步的问题。所以在GPU编程中，我们要充分优化内存读写的算法，尽可能地将数据读取到寄存器\footnote{回想第\ref{chp:hardware}章的内容，GPU拥有数量众多的寄存器，将数据读取到本地寄存器，并在单线程内进行足够的计算，然后将最终计算结果写入全局内部是GPU并行计算的基本策略。}，对其进行更多计算使用，然后再写入到全局内存中。
 
 针对带宽的问题，我们有两种解决方案：比较好的解决方案是将循环结构中光源的循环放入到双重循环结构的内部，这样针对所有覆盖该表面点的光源只需要对G-buffer中的数据读写一次，但是这需要额外的工作来找出每个表面点被哪些光源覆盖，即所谓的光源分配（light assignment）\index{光源分配light assignment}\index[en]{light assignment光源分配}，这种解决方案正是本章后面第\ref{sec:shade-tiled-shading}和\ref{sec:shade-clustered-shading}节的内容，这些方法的重点内容就是解决光源分配。
 
@@ -365,7 +365,7 @@ for each pixel
 \begin{figure}
 \begin{fullwidth}
 	\includegraphics[width=\thewidth]{figures/shade/clusters}
-	\caption{分簇着色使用的是一种针对视锥体空间进行划分的方法，它以分块着色的块在基础，在深度方向上按指数形式进行划分，每个子空间称为一个簇，左图仅列出屏幕空间Y方向}
+	\caption{分簇着色使用的是一种针对视锥体空间进行划分的方法，它以分块着色的块为基础，在深度方向上按指数形式进行划分，每个子空间称为一个簇，左图仅列出屏幕空间Y方向}
 	\label{f:shade-clusters}
 \end{fullwidth}
 \end{figure}
@@ -781,7 +781,7 @@ SMAA和MLAA算法使用相似的步骤，但是每个步骤内部使用的方法
 	\label{f:shade-local-contrast-adaptation}
 \end{figure}
 
-SMAA采样一种适应性双阈值（adaptive double threshold）\index{适应性双阈值adaptive double threshold}\index[en]{adaptive double threshold适应性双阈值}的策略来克服这种问题，这种策略的思路如图\ref{f:shade-local-contrast-adaptation}下左所示，其中灰色的点表示当前处理的像素点，黄色表示当前像素点可能的左边边缘，蓝色表示相邻像素的边缘。首先计算出所有蓝色边缘中亮度差值并取最大值$c_{\max}$，然后根据$c_{2l}>0.5\cdot c_{\max}$是否为true决定左边缘$c_l$是否存在。用同样的思路计算图\ref{f:shade-local-contrast-adaptation}下中的上边缘。然而实践中，由于计算所有边缘涉及大量的内存占用和读取，实际的算法仅选择一部分进行比较，如图\ref{f:shade-local-contrast-adaptation}下右所示。
+SMAA采用一种适应性双阈值（adaptive double threshold）\index{适应性双阈值adaptive double threshold}\index[en]{adaptive double threshold适应性双阈值}的策略来克服这种问题，这种策略的思路如图\ref{f:shade-local-contrast-adaptation}下左所示，其中灰色的点表示当前处理的像素点，黄色表示当前像素点可能的左边边缘，蓝色表示相邻像素的边缘。首先计算出所有蓝色边缘中亮度差值并取最大值$c_{\max}$，然后根据$c_{2l}>0.5\cdot c_{\max}$是否为true决定左边缘$c_l$是否存在。用同样的思路计算图\ref{f:shade-local-contrast-adaptation}下中的上边缘。然而实践中，由于计算所有边缘涉及大量的内存占用和读取，实际的算法仅选择一部分进行比较，如图\ref{f:shade-local-contrast-adaptation}下右所示。
 
 最终的算法如下：首先计算出$e_l=|L-L_l|>T$，这里$e_l$表示边缘是否应该激活的枚举值，$L$和$L_l$分别为当前和相邻左边像素的亮度值，$T$为给定的阈值（通常在0.02到0.2之间），然后通过如下式决定边缘是否应该保留：
 
@@ -1110,7 +1110,7 @@ TAA最著名的问题是关于重影（ghosting）\index{重影ghosting}\index[e
 
 不同颜色区间可以相互转化，但可能存在一定的颜色损失。例如通常显示器所能表达的sRGB颜色空间就只能表示一个较小的颜色范围，因此为了保证亮度高的颜色范围能够被保留，通常颜色之间的转换不是线性的，例如伽马矫正\footnote{参见：\url{https://en.wikipedia.org/wiki/Gamma_correction}}（gamma correction）就是一种非线性的颜色空间转换，它能够保留更多高亮度的颜色区域。
 
-这样，要表示当前像素周围$3\times 3$个像素的颜色范围，我们只需要在颜色空间上使用一个2D的多边形包围住这9个像素的颜色值，如图\ref{f:shade-clamping}(b)所示，这里为了简单起见，仅使用一个三角形，在实际中，这个多边形的顶点数量最多可以和所包围的像素的数量相同（这里是9个，即一个八边形），显然，当前像素的颜色应该处于该多边形颜色范围内。出于性能考虑，\cite{a:AnExcursioninTemporalSupersampling,a:RealtimeglobalilluminationandreflectionsinDust514,a:TemporalAntialiasingInUncharted4}\footnote{其中，Unreal Engine 4使用的是YCoCg颜色模型，YCgCo是一个压缩的颜色模型，能够与RGB之间进行无损的转换，但是YCgCo模型的其中一个维度是亮度，所以它能够直接在亮度方向上进行裁剪，亮度比色度具有更高的颜色对比度，YCgCo模型参见：\url{https://en.wikipedia.org/wiki/YCgCo},}使用的是更简单的AABB包围盒的形状，如图\ref{f:shade-clamping}(c)所示。
+这样，要表示当前像素周围$3\times 3$个像素的颜色范围，我们只需要在颜色空间上使用一个2D的多边形包围住这9个像素的颜色值，如图\ref{f:shade-clamping}(b)所示，这里为了简单起见，仅使用一个三角形，在实际中，这个多边形的顶点数量最多可以和所包围的像素的数量相同（这里是9个，即一个八边形），显然，当前像素的颜色应该处于该多边形颜色范围内。出于性能考虑，\cite{a:AnExcursioninTemporalSupersampling,a:RealtimeglobalilluminationandreflectionsinDust514,a:TemporalAntialiasingInUncharted4}\footnote{其中，Unreal Engine 4使用的是YCoCg颜色模型，YCoCg是一个压缩的颜色模型，能够与RGB之间进行无损的转换，但是YCoCg模型的其中一个维度是亮度，所以它能够直接在亮度方向上进行裁剪，亮度比色度具有更高的颜色对比度，YCoCg模型参见：\url{https://en.wikipedia.org/wiki/YCoCg},}使用的是更简单的AABB包围盒的形状，如图\ref{f:shade-clamping}(c)所示。
 
 \begin{figure}
 \begin{fullwidth}
