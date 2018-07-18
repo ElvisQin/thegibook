@@ -152,7 +152,7 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 \end{fullwidth}
 \end{figure}
 
-对焦散的渲染尤其困难，其主要原因是这样方向光线的采样几率很低，甚至几乎可以认为是零，导致一般的采样方法根本不能获得足够的信息，例如光子映射技术就是使用完全不同于采样的回归方法才能比较好的处理计算焦散。
+对焦散的渲染尤其困难，其主要原因是这些方向光线的采样几率很低，甚至几乎可以认为是零，导致一般的采样方法根本不能获得足够的信息，例如光子映射技术就是使用完全不同于采样的回归方法才能比较好的处理计算焦散。
 
 
 
@@ -275,7 +275,7 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 
 \noindent 式中引入因子$\cos\theta$，是因为物理上有意义的量是${\rm d}A$在垂直于$(\alpha,\beta)$方向的平面上的投影，而非${\rm d}A$本身。$\overline{\cos}$表示$\cos\theta$的最小值为$0$，这是因为光不能向该面的背面发射。$L$称作点$(\xi,\eta)$处方向$(\alpha,\beta)$上的辐射亮度（radiance）\myindex{辐射亮度}{radiance}，其单位为$W/(m^2\cdot sr)$。
 
-辐射亮度测试的是单束光的量度，它也正是感应器（例如人的眼睛，或者场景中的虚拟摄像机）测量的度量，所以它在光照计算中特别重要。计算渲染方程的目标就是计算出表面上的点到摄像机所在方向上的辐射亮度。另外值得注意的是，$L$的值不随距离发射点距离的变化而变化。
+辐射亮度测试的是单束光的度量，它也正是感应器（例如人的眼睛，或者场景中的虚拟摄像机）测量的度量，所以它在光照计算中特别重要。计算渲染方程的目标就是计算出表面上的点到摄像机所在方向上的辐射亮度。另外值得注意的是，$L$的值不随距离发射点距离的变化而变化。
 
 通常用两种不同的方式把${\rm d}\Phi$分解为两个量的乘积，以表示它对${\rm d}\omega$和${\rm d} A$的显式关系：
 
@@ -302,7 +302,7 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 	I(\alpha,\beta)={\rm \int} L\overline{\cos}\theta {\rm d}A
 \end{equation}
 
-$I$称为面积$A$在方向$(\alpha,\beta)$上的辐射强度（radiance intensity）\myindex{辐射强度}{radiance intensity}，其单位为$W/sr$。$I$也是一个与距离无关的量，但它是与发射面$A$的面积有关的，由于光源通常具有一定的形状和面积，所以图形学中常常使用$I$来表示一个光源的辐射强度分布，这个分布是方向的函数，如图\ref{f:intro-radiant-intensity}表示一个点光源，这个点光源每秒发出100瓦特的辐射通量，但是它在不同的方向上具有不同辐射强度。
+$I$称为面积$A$在方向$(\alpha,\beta)$上的辐射强度（radiance intensity）\myindex{辐射强度}{radiance intensity}，其单位为$W/sr$。$I$也是一个与距离无关的量，但它是与发射面$A$的面积有关的，由于光源通常具有一定的形状和面积，所以图形学中常常使用$I$来表示一个光源的辐射强度分布，这个分布是方向的函数，如图\ref{f:intro-radiant-intensity}表示一个点光源，这个点光源的辐射通量为100瓦特，但是它在不同的方向上具有不同辐射强度。
 
 \begin{figure}
 \sidecaption
@@ -374,7 +374,7 @@ $E$称为点$(\xi,\eta)$的辐射照度（irradiance）\myindex{辐射照度}{ir
 如图\ref{f:intro-inverse-square-law}所示，设${\rm d}A$是点$P$处的面元，$QP=r$,又设$\theta$是$QP$与${\rm d}A$的法线夹角，则光源在单位时间内射过${\rm d}A$的能量是$I{\rm d}\omega$，其中$I$是光源沿$QP$方向的辐射强度，${\rm d}\omega$是对$Q$所张的立体角。由几何基础学：
 
 \begin{equation}
-	\cos\theta {\rm d}S=r^{2}{\rm d}\omega
+	\cos\theta {\rm d}A=r^{2}{\rm d}\omega
 \end{equation}
 
 
@@ -1796,7 +1796,7 @@ Walter介绍的BTDF模型同样基于前面讨论的微面元理论，即宏观�
 对于折射光在粗糙透明物体内部的传播，根据Beer-Lambert定律，光穿过一个体积的透射比$T$为:
 
 \begin{equation}
-	T={\rm e}^{-\sigma^\alpha d}
+	T={\rm e}^{-\sigma_{\alpha} d}
 \end{equation}
 
 \noindent 这里$\sigma_\alpha$为一个吸收系数，$d$为光折射传播的距离。但是吸收系数理解起来不太直观，所以Disney使用两个新的参数：一个$transmittance$颜色值，和一个相应的$atDistance$值，并以此来推导吸收率：$\sigma_\alpha=-(\log T)/d$，如图\ref{f:intro-transmittance}所示。
@@ -1954,7 +1954,7 @@ specular transmission &= (1-F)DG
 \noindent 所以：
 
 \begin{equation}
-	L_r(x\to\omega_o)={\rm \int}_{\Omega_x} f_r(x,\Psi\to\omega_o)L(x\leftarrow\omega_i)\cos(N_x,\omega_i){\rm d}\omega_{\omega_i}
+	L_r(x\to\omega_o)={\rm \int}_{\Omega_x} f_r(x,\omega_i\to\omega_o)L(x\leftarrow\omega_i)\cos(N_x,\omega_i){\rm d}\omega_{\omega_i}
 \end{equation}
 
 \noindent 其中，$\Omega_x$表示沿$x$点法线方向的半空间，如果是折射光则是法线反方向的半空间。所以我们得到最终的渲染方程为：

@@ -295,14 +295,14 @@ locate_photons( p ) {
 		$\delta$ = signed distance to splitting plane of node n 
 		if ($\delta$<0) {
 			//搜索左子树
-			locate photons( 2p ) 
+			locate_photons( 2p ) 
 			if($\delta^{2}<d^{2}$ )
-				locate photons( 2p + 1 ) //检查右子树 
+				locate_photons( 2p + 1 ) //检查右子树 
 		} else {
 			//搜索右子树
-			locate photons( 2p + 1 ) 
+			locate_photons( 2p + 1 ) 
 			if($\delta^{2}<d^{2}$ )
-				locate photons( 2p ) //检查左子树
+				locate_photons( 2p ) //检查左子树
 		}
 	}
 			
