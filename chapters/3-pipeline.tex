@@ -17,7 +17,7 @@
 
 所以，理解宿主程序与渲染管线进行交互的关键是状态机的概念。宿主程序并不能直接调用GPU执行一个命令，而是通过一个状态机来记录所有宿主程序当前要执行GPU应用程序的各种状态，这些状态的设置占据了大部分图形接口的内容，然后宿主通过Draw等相关的命令将这些状态及后面讲述的各种OpenGL对象\footnote{注意，有些初学者会认为我们提交到GPU的是着色器程序，而实际上在OpenGL中着色器程序也被视作一种OpenGL对象（如本章后面所述），OpenGL执行环境拿到这些对象之后根据相关的状态设置将其放入到渲染管线的某些阶段进行执行。}提交到GPU中，GPU开始根据各种状态的设置开始执行图形渲染，或者纯粹的计算工作（如计算着色器），或者其他一些特殊命令（例如将OpenGL缓存中的数据读取回宿主程序）。
 
-这些状态信息中有些是用来控制渲染管线中固定阶段的执行（例如是否需要进行深度测试等），更多地状态用于控制各种OpenGL对象以及对这些对象的读取和写入操作。由于宿主程序不能直接获取GPU内存的指针地址，所以一个OpenGL对象包含各种状态信息用来指导该对象在OpenGL被怎么使用，例如它的大小，数据类型，对象类型，例如图\ref{f:api-pipeline}中包含多种对象类型，以及数据的格式（如对于纹理对象中的纹素格式）；另一方面，这些对象大部分不是由着色器分配的，所以我们在编写着色器程序的时候并不能直接取得这些OpenGL对象的引用，那么OpenGL中对于着色器程序访问这些OpenGL对象严重地依赖于一种绑定（Binding）\index{绑定binding}\index[en]{binding绑定}的机制。着色器程序在被编译和链接的时候会给每个属性分配一个索引地址，宿主程序可以将这些索引地址绑定到某个OpenGL对象上，然后在GPU中执行的时候OpenGL执行环境就可以正确获取到要访问的数据；另外，也有一些其他OpenGL状态用来控制这种着色器对OpenGL对象的访问，例如是否需要对纹理进行某种方式的过滤操作。由于这种着色器访问OpenGL对象的复杂性，OpenGL对象状态几乎也是学习图形接口的难点之一，我们将在下一节详细描述OpenGL对象。
+这些状态信息中有些是用来控制渲染管线中固定阶段的执行（例如是否需要进行深度测试等），更多地状态用于控制各种OpenGL对象以及对这些对象的读取和写入操作。由于宿主程序不能直接获取GPU内存的指针地址，所以一个OpenGL对象包含各种状态信息用来指导该对象在OpenGL被怎么使用，例如它的大小，数据类型，对象类型，例如图\ref{f:api-pipeline}中包含多种对象类型，以及数据的格式（如对于纹理对象中的纹素格式）；另一方面，这些对象大部分不是由着色器分配的，所以我们在编写着色器程序的时候并不能直接取得这些OpenGL对象的引用，因此在着色器程序访问这些OpenGL对象严重地依赖于一种绑定（Binding）\index{绑定binding}\index[en]{binding绑定}的机制。着色器程序在被编译和链接的时候会给每个属性分配一个索引地址，宿主程序可以将这些索引地址绑定到某个OpenGL对象上，然后在GPU中执行的时候OpenGL执行环境就可以正确获取到要访问的数据；另外，也有一些其他OpenGL状态用来控制这种着色器对OpenGL对象的访问，例如是否需要对纹理进行某种方式的过滤操作。由于这种着色器访问OpenGL对象的复杂性，OpenGL对象状态几乎也是学习图形接口的难点之一，我们将在下一节详细描述OpenGL对象。
 
 \begin{figure}
 \begin{fullwidth}
@@ -94,7 +94,7 @@ void glGen*(GLsizei n​, GLuint *objects​);
 void glBind*(GLenum target​, GLuint object​);
 \end{lstlisting}
 
-同样，*表示对象类型，object为要绑定的对象的名称，即是前面glBind*命名分配的名称。要其中target参数指示该对象的用途，也可以说它是OpenGL对象类型的进一步划分，同一类型的OpenGL对象拥有类似的使用方法，但是它们在OpenGL中的用途甚至存储结构可能是不一样的。OpenGL使用target来区分不同用途的对象，如表\ref{t:api-buffer-target}所示为OpenGL缓存（Buffer）对象所对应的各种目标名称，读者可以在\cite{b:OpenGL4.5CoreProfile}找到所有其他类型对象所对应的目标名称。
+同样，*表示对象类型，object为要绑定的对象的名称，即是前面glBind*命名分配的名称。其中target参数指示该对象的用途，也可以说它是OpenGL对象类型的进一步划分，同一类型的OpenGL对象拥有类似的使用方法，但是它们在OpenGL中的用途甚至存储结构可能是不一样的。OpenGL使用target来区分不同用途的对象，如表\ref{t:api-buffer-target}所示为OpenGL缓存（Buffer）对象所对应的各种目标名称，读者可以在\cite{b:OpenGL4.5CoreProfile}找到所有其他类型对象所对应的目标名称。
 
 当绑定一个OpenGL对象到一个目标之后，如果该对象之前还没有被绑定过，OpenGL接口即在当前的上下文中为该对象创建一个状态列表\footnote{为什么要在第一次绑定到目标而不是在创建对象名称之后为其创建状态列表，也是因为每个对象的状态列表是与其使用用途相对应的，同一类型（type）的对象可以有多种不同的用途(target)，所以具有不同的状态列表。}，并使用其类型对应的默认值填充这些状态值\footnote{所以，一个新被创建名称的对象可以被绑定到不同的目标用途上，但是首次绑定决定了该对象的存储位置及布局等，一旦这些信息确定则不能再修改该对象的用途目标。}，例如表\ref{t:api-buffer-state}即为一个缓存对象的状态列表及默认值，关于更多OpenGL对象状态的内容可以参考\cite{b:OpenGL4.5CoreProfile}第23章的内容。
 
@@ -327,7 +327,7 @@ void glClearBufferData​(GLenum target​​, GLenum internalformat​, GLenum 
 void glClearBufferSubData​(GLenum target​, GLenum internalformat​, GLintptr offset​, GLsizeiptr size​, GLenum format​, GLenum type​, const void * data​);
 \end{lstlisting}
 
-其中，glClearBufferData用于清除全部数据，而glClearBufferSubData用于清除部分或全部数据，这些命令都不会对缓存对象的存储进行重新分配，这些命令的工作机制类似于后面会讲述的像素传输操作。internalformat用于定于数据在缓存对象中的格式，format和type用于定义data中数据的格式，这里data不是包含整个缓存对象大小的数据，而仅是一个“像素”的大小，这些方法会重复复制data的数据直至填充满整个缓存对象，更多关于像素传输及其格式的内容，参见后面第\ref{sec:api-textures}节的内容。
+其中，glClearBufferData用于清除全部数据，而glClearBufferSubData用于清除部分或全部数据，这些命令都不会对缓存对象的存储进行重新分配，这些命令的工作机制类似于后面会讲述的像素传输操作。internalformat用于定义数据在缓存对象中的格式，format和type用于定义data中数据的格式，这里data不是包含整个缓存对象大小的数据，而仅是一个“像素”的大小，这些方法会重复复制data的数据直至填充满整个缓存对象，更多关于像素传输及其格式的内容，参见后面第\ref{sec:api-textures}节的内容。
  
 缓存对象的数据也可以从另一个缓存对象（或同一个缓存对象的不同部分）复制。为了在缓存对象之间进行数据复制，我们首先需要绑定复制源（source）和复制目的地（destination）缓存对象到对应的目标（target），然后使用以下命令用于缓存对象之间的数据复制：
 

@@ -233,7 +233,7 @@ AO的计算实际上是要针对每个点，在该点法线对应的半空间上
 
 
 \subsection{辐射能量}
-在辐射度量学中，最基本的单位是辐射能量（radiant energy）\myindex{辐射能量}{radiant energy}，表示为$Q$，单位为J(焦耳)，辐射能$Q$是以辐射的形式发射，传播或接收的能量。每个光子都携带一定的能量，这个能量正比于它的频率$v$，即：
+在辐射度量学中，最基本的单位是辐射能量（radiant energy）\myindex{辐射能量}{radiant energy}，表示为$Q$，单位为J(焦耳)，辐射能量$Q$是以辐射的形式发射，传播或接收的能量。每个光子都携带一定的能量，这个能量正比于它的频率$v$，即：
 
 \begin{equation}
 	Q=hv
@@ -1277,13 +1277,13 @@ Disney提供有一个开源的BRDF工具BRDF Explorer\cite{m:BRDFExplorer}，这
 	L_1= \cfrac{{\rm d}^{2}\Phi_1(\theta_1,\varphi_1)}{{\rm d}s\cos\theta_1 \sin\theta_1 {\rm d}\theta_1 {\rm d}\varphi_1}
 \end{equation}
 
-\noindent 上式的分母表示入射“铅笔”的几何范围，因为反射光$L_R$具有与入射光一样大小的反射角，所以它同样具有一样大小的几何范围。因此反射辐射亮度$L_R$可以表示为：
+\noindent 上式的分母表示入射“光锥”的几何范围，因为反射光$L_R$具有与入射光一样大小的反射角，所以它同样具有一样大小的几何范围。因此反射辐射亮度$L_R$可以表示为：
 
  \begin{equation}
  	L_R=R_F(\theta_1)L_1
  \end{equation}
 
-\noindent 对于折射“铅笔”，由于折射角和入射角之间满足折射定律，通过对折射公式\ref{eq:intro-snell-Law}求微分得：
+\noindent 对于折射“光锥”，由于折射角和入射角之间满足折射定律，通过对折射公式\ref{eq:intro-snell-Law}求微分得：
 
 \begin{equation}\label{eq:intro-snell-Law-diff}
 	n_1 \cos\theta_1 {\rm d}\theta_1=n_2 \cos\theta_2 {\rm d}\theta_2
@@ -1295,7 +1295,7 @@ Disney提供有一个开源的BRDF工具BRDF Explorer\cite{m:BRDFExplorer}，这
 	n^{2}_1{\rm d}s\cos\theta_1 \sin\theta_1 {\rm d}\theta_1 {\rm d}\varphi_1=n^{2}_2 {\rm d}s \cos\theta_2 \sin\theta_2 {\rm d}\theta_2 {\rm d}\varphi_2
 \end{equation}
 
-\noindent 用${\rm d}G_1$和${\rm d}G_2$分别表示入射铅笔和折射铅笔的几何范围，则上式可以简化为：
+\noindent 用${\rm d}G_1$和${\rm d}G_2$分别表示入射光锥和折射光锥的几何范围，则上式可以简化为：
 
 \begin{equation}\label{eq:eq-intro-eq:intro-snell-Law-1}
 	n^{2}_1 {\rm d}G_1=n^{2}_2 {\rm d}G_2
@@ -1861,7 +1861,7 @@ Walter介绍的BTDF模型同样基于前面讨论的微面元理论，即宏观�
 	R_d(r)= \cfrac{{\rm e}^{-r/d}+{\rm e}^{-r/(3d)}}{8\pi dr}
 \end{equation}
 
-\noindent 为了计算每一束入射光对其他位置漫反射的贡献，需要针对整个无限的平面的每一个位置做一个积分计算，当对整个无限平面做积分计算时，其$R_d(r)$散射函数是归一化的，即该入射点向周围所以位置扩散的总量为1：
+\noindent 为了计算每一束入射光对其他位置漫反射的贡献，需要针对整个无限的平面的每一个位置做一个积分计算，当对整个无限平面做积分计算时，其$R_d(r)$散射函数是归一化的，即该入射点向周围所有位置扩散的总量为1：
 
 \begin{equation}
 	{\rm \int}^{2\pi}_0{\rm \int}^\infty_0 R_{\rm d}(r)r{\rm d}r{\rm d}\phi=1
