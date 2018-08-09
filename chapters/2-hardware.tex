@@ -292,16 +292,16 @@ branch =   T,   T,   N,   T,   T,   T,   T,  N,   T,   N,   N,   T,   T,   T,   
 
 由于条件分支导致处理器资源浪费，现代处理器大都采用一种方法来避免比较和跳转操作，从而能够减轻分支带来的性能开支。这种方法基于一个第三个参数，来在两个操作数之间进行选择，而不需要执行比较和跳转指令，这种方法称为条件转移（conditional move）\index{条件转移conditional move}\index[en]{conditional move条件转移}或者无分支选择（branchless select）\index{无分支选择branchless select}\index[en]{branchless select无分支选择}。
 
-条件转移类似于C++中的三元操作符，在处理器中，一个浮点数条件转移操作符称作fsel，它具有如下的指令形式：
+条件转移类似于C++中的三元操作符，在处理器中，一个浮点数条件转移操作符称作fsel，它是浮点数选择（floating-point selection）\myindex{浮点数选择}{floating-point selection}的简称，它具有如下的指令形式：
 
 \begin{lstlisting}[language=C++]
 fsel f0, f1, f2, f3 // f0 = ( f1 >= 0 ? f2 : f3 )
 \end{lstlisting}
 
-编译器往往能够将三元操作符直接转换为fsel操作符：
+该指令直接将f1与0.0进行比较，然后直接选择f2或者f3，这是一个单条指令，不包含分支或者跳转。编译器往往能够将三元操作符直接转换为fsel操作符：
 
 \begin{lstlisting}[language=C++]
-	return a >= 0 ? b : c;	-->   fsel fr1,fr1,fr2,fr3
+	return a >= 0 ? b : c;	-->   fsel fr0,fr1,fr2,fr3
 \end{lstlisting}
 
 甚至如：
@@ -315,7 +315,7 @@ return ( a >= 0 ? b + 1 : c + 2 ) + ( d >= 0 ? e + 1 : f + 2 ) ;
 \begin{lstlisting}[language=C++]
 fr1 = a, fr2 = b, fr3 = c,
 fr4 = d, fr5 = e, fr6 = f
-fr0 = 1.0, fr13 = 2.0f
+fr0 = 1.0f, fr13 = 2.0f
 fadds   fr12,fr2,fr0      ; fr12 = b + 1
 fadds   fr11,fr3,fr13     ; fr11 = c + 2
 fadds   fr10,fr5,fr0      ; fr10 = e + 1
@@ -325,7 +325,7 @@ fsel    fr7,fr4,fr10,fr9  ; fr7  = d >= 0 ? fr10 : fr9
 fadds   fr1,fr8,fr7     ; return = fr8 + fr7
 \end{lstlisting}
 
-通过上面的示例可以看出，fsel对两个输入值都需要进行计算，即相当于计算了原来if条件语句的两个分支语句。然而即便如此，fsel带来的性能提升仍然十分明显，尤其是当程序中有大量if条件语句并列，或者在一个循环语句中穿插if条件语句等情形，这些带来的处理器资源浪费极大。在\cite{a:DoggedDetermination:TechnologyandProcessatNaughtyDogInc.}中，Jason Gregory建议对于高性能部分，尽量使用fsel指令，并且拆分循环内的条件语句，尽可能地使用简单的，少分支的算法。
+通过上面的示例可以看出，fsel对两个输入值都需要进行计算，即相当于计算了原来if条件语句的两个分支语句。然而即便如此，fsel带来的性能提升仍然十分明显，这得益于它直接省略掉了分支选择，尤其是当程序中有大量if条件语句并列，或者在一个循环语句中穿插if条件语句等情形，这些带来的处理器资源浪费极大。当然fsel只处理浮点数的比较，读者可以从\cite{a:ThePowerPCCompilerWritersGuide}了解更多信息。在\cite{a:DoggedDetermination:TechnologyandProcessatNaughtyDogInc.}中，Jason Gregory建议对于高性能部分，尽量使用fsel指令，并且拆分循环内的条件语句，尽可能地使用简单的，少分支的算法。
 
 
 

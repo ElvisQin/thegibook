@@ -6,7 +6,7 @@
 
 我们可以将所有这些方法和理论分为两大类，其中第一类方法通过寻找更快的数学方法来比较精确地计算渲染积分方程（见第\ref{sec:intro-the-rendering-equation}节），这方面有两大经典方法：即基于有限元分解的辐射度理论，以及基于蒙特卡洛积分的光线追踪技术。
 
-有限元方法（finite element method，FEM）\myindex{有限元方法}{finite element method}是一种常见的积分计算方法，它将一个沿无限维空间的积分分解为一个有限纬度(称为一个有限元)的积分, 我们只需要求出每个有限元的均值，便可以很容易地计算出渲染积分方程，在辐射度理论中，我们通常通过蒙特卡洛等方法预计算出每个有限元的均值，供渲染时渲染方程的实时计算，关于有限元方法详见本书第\ref{chp:rad}章的内容；而基于蒙特卡洛（Monte Carlo）\myindex{蒙特卡洛}{Monte Carlo}的方法则是通过随机抽样, 使用有限个采样点的函数贡献值，来近似计算积分方程的值，这又称为对积分的估计，由于在渲染中一个这样的样本称为一条光线的路径，因此基于蒙特卡洛的方法又称为光线追踪技术，关于光线追踪技术详见本书第\ref{chp:mc}章的内容。
+有限元方法（finite element method，FEM）\myindex{有限元方法}{finite element method}是一种常见的积分计算方法，它将一个沿无限维空间的积分分解为一个有限纬度(称为一个有限元)的积分, 我们只需要求出每个有限元的均值，便可以很容易地计算出渲染积分方程，在辐射度理论中，我们通常通过蒙特卡洛等方法预计算出每个有限元的均值，供渲染时渲染方程的实时计算，关于有限元方法详见本书第\ref{chp:rad}章的内容；而基于蒙特卡洛（Monte Carlo）\myindex{蒙特卡洛}{Monte Carlo}的方法则是通过随机抽样, 使用有限个采样点的函数贡献值，来近似计算积分方程的值，这又称为对积分的估计，由于在渲染中一个这样的样本称为一条光线的路径，因此基于蒙特卡洛的方法又称为光线追踪技术，关于光线追踪技术详见本书第\ref{chp:path-tracing}章的内容。
 
 上述两种方法均能达到非常高的图像品质，然而它们的计算仍然十分耗时, 因此它们主要被用于影视动画等离线渲染领域，例如Pixar的RenderMan RIS就是基于光线追踪技术的渲染器产品。
 
@@ -1159,7 +1159,7 @@ MSAA相对于超采样大大减少了计算量（每个像素着色器只执行�
     f_r(\omega_i,\omega_r)= \cfrac{{\rm d}L_r(\omega_r)}{{\rm d}E_i(\omega_i)}= \cfrac{{\rm d}L_r(\omega_r)}{L_i(\omega_i)\cos\theta_i {\rm d}\omega_i}
 \end{equation}
 
-其中，$\omega_i$是入射光方向，$\omega_r$表示观察方向，$\theta_i$为入射光方向与表面法线$\mathbf{n}$的夹角 如图\ref{f:intro-brdf}所示。由于在球面坐标系中，一个方向可以用一个方位角（azimuth angle）\myindex{方位角}{azimuth angle}$\phi$和一个顶点角（zenith angle）\myindex{顶点角}{zenith angle}$\theta$表示，因此整个BRDF函数具有4个变量。BRDF函数的单位为$sr^{-1}$，其中$sr$为立体角。直观上讲，BRDF的值表示入射光方向单位立体角的能量在反射方向上反射的比率。
+其中，$\omega_i$是入射光方向，$\omega_r$表示观察方向，$\theta_i$为入射光方向与表面法线$\mathbf{n}$的夹角 如图\ref{f:intro-brdf}所示。由于在球面坐标系中，一个方向可以用一个方位角（azimuth angle）\myindex{方位角}{azimuth angle}$\phi$和一个天顶角（zenith angle）\myindex{天顶角}{zenith angle}$\theta$表示，因此整个BRDF函数具有4个变量。BRDF函数的单位为$sr^{-1}$，其中$sr$为立体角。直观上讲，BRDF的值表示入射光方向单位立体角的能量在反射方向上反射的比率。
 
 \begin{figure}
 \sidecaption
@@ -1289,7 +1289,7 @@ Disney提供有一个开源的BRDF工具BRDF Explorer\cite{m:BRDFExplorer}，这
 	n_1 \cos\theta_1 {\rm d}\theta_1=n_2 \cos\theta_2 {\rm d}\theta_2
 \end{equation}
 
-\noindent 因为在球面坐标系统中，一个方向可以由方位角（azimuth angle）\myindex{方位角}{azimuth angle}，$\varphi$和顶点角（zenith angle）\myindex{顶点角}{zenith angle}，$\theta$组成，虽然折射导致入射角和折射角的顶点角的变化范围不一致，但是方位角的变化范围为$\pi$是相同的，入射角的方位角的变化将会导致折射角方位角相同的变化，即${\rm d}\varphi_1={\rm d}\varphi_2$。所以用折射定律的等式分别乘以式\ref{eq:intro-snell-Law-diff}，再乘以${\rm d}s$得：
+\noindent 因为在球面坐标系统中，一个方向可以由方位角（azimuth angle）\myindex{方位角}{azimuth angle}，$\varphi$和天顶角（zenith angle）\myindex{天顶角}{zenith angle}，$\theta$组成，虽然折射导致入射角和折射角的天顶角的变化范围不一致，但是方位角的变化范围为$\pi$是相同的，入射角的方位角的变化将会导致折射角方位角相同的变化，即${\rm d}\varphi_1={\rm d}\varphi_2$。所以用折射定律的等式分别乘以式\ref{eq:intro-snell-Law-diff}，再乘以${\rm d}s$得：
 
 \begin{equation}
 	n^{2}_1{\rm d}s\cos\theta_1 \sin\theta_1 {\rm d}\theta_1 {\rm d}\varphi_1=n^{2}_2 {\rm d}s \cos\theta_2 \sin\theta_2 {\rm d}\theta_2 {\rm d}\varphi_2
