@@ -229,7 +229,7 @@ void glBufferStorage​(GLenum target​, GLsizeiptr size​, const GLvoid * dat
 	\item 使用glGetBufferSubData读回缓存对象部分数据到到CPU始终合法。
 \end{itemize}
 
-flags位平面的值是如下列表中的值按位或（OR）的结果：
+flags位的值是如下列表中的值按位或（OR）的结果：
 
 \begin{itemize}
 	\item GL\_DYNAMIC\_STORAGE\_BIT：仅当此位被设置时，缓存对象数据存储的数据可以通过BufferSubData命令进行更新，当然缓存对象始终可以被服务端的调用（如ClearBufferSubData和CopyBufferSubData命令）修改。
@@ -1636,7 +1636,7 @@ void VertexAttribDivisor( uint index, uint divisor );
 
 
 \paragraph{间接绘制}
-此外，OpenGL还支间接绘制（Indirect rendering）\index{间接绘制indirect rendering}\index[en]{indirect rendering间接绘制}，它的大部分绘制参数（例如顶点开始位置以及顶点的数量等）来自于一个绑定到GL\_DRAW\_INDIRECT\_BUFFER绑定目标的缓存对象。
+此外，OpenGL还支持间接绘制（Indirect rendering）\index{间接绘制indirect rendering}\index[en]{indirect rendering间接绘制}，它的大部分绘制参数（例如顶点开始位置以及顶点的数量等）来自于一个绑定到GL\_DRAW\_INDIRECT\_BUFFER绑定目标的缓存对象。
 
 间接绘制的目的是避免不必要的GPU->CPU->GPU的数据复制操作，在OpenGL中，有时候顶点数据来自于渲染管线的中间产物（如变换反馈缓存），甚至直接由计算着色器或其他GPU计算产生的计算结果，这个时候这些缓存对象中的顶点的顺序，以及绘制相关的一些参数也是有GPU直接设置的，如果使用传统的绘制命令，则需要将这些参数都读回到CPU，然后再以参数的方式复制到GPU，造成一些不必要的开支。因此间接绘制命令直接可以从一个缓存对象中读取绘制命令需要的参数。
 

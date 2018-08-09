@@ -1118,7 +1118,7 @@ MSAA相对于超采样大大减少了计算量（每个像素着色器只执行�
 	\label{f:intro-sample-coverage}
 \end{figure}
 
-如图\ref{f:intro-sample-coverage}所示，除了MSAA中的子采样点，CSAA还使用了一个二进制结构的数组蒙板（bit mask）表示覆盖率，这个覆盖率比子采样点具有更高的分辨率，在光栅化阶段，光栅化其首先投影几何图形到该蒙板以计算覆盖率，然后对子采样点进行采样计算深度，模板及颜色值，其中计算颜色值的时候其覆盖率直接由该蒙板提供。这样使得更少的子采样点可以得到更精准的覆盖率，而原本这需要更多的子采样点来存储这些数据，而每个子采样点存储深度，模板及颜色值，所以在存储占用及数据传输带宽占用方面都是很大的。
+如图\ref{f:intro-sample-coverage}所示，除了MSAA中的子采样点，CSAA还使用了一个二进制结构的数组蒙板（bit mask）表示覆盖率，这个覆盖率比子采样点具有更高的分辨率，在光栅化阶段，光栅器首先投影几何图形到该蒙板以计算覆盖率，然后对子采样点进行采样计算深度，模板及颜色值，其中计算颜色值的时候其覆盖率直接由该蒙板提供。这样使得更少的子采样点可以得到更精准的覆盖率，而原本这需要更多的子采样点来存储这些数据，而每个子采样点存储深度，模板及颜色值，所以在存储占用及数据传输带宽占用方面都是很大的。
 
 关于覆盖率与深度，模板及颜色值的分离，其思路来源于\cite{a:TheA-bufferanAntialiasedHiddenSurfaceMethod}中的A-buffer技术，图形学中还存在大量从分离覆盖率着手的解决方案。本节仅对全屏反走样技术做基本的介绍，更多的反走样技术还涉及与渲染方法（例如延迟着色）结合起来工作，所以我们需要在接触相关的概念之后才能进行深入地学习，后面还会更深入地讨论各种各样的反走样技术。
 
@@ -1765,7 +1765,7 @@ Walter介绍的BTDF模型同样基于前面讨论的微面元理论，即宏观�
 \noindent 则Walter定义的BTDF可以写为：
 
 \begin{equation}
-	f_t(\mathbf{i},\mathbf{o},\mathbf{n})= \cfrac{|\mathbf{i}\cdot\mathbf{h}_t|}{|\mathbf{i}\cdot\mathbf{n}|}\cdot \cfrac{|\mathbf{o}\cdot\mathbf{h}_t|}{|\mathbf{o}\cdot\mathbf{n}|}\cdot \cfrac{\eta^2}{(\mathbf{i}\cdot\mathbf{h}_t+\eta\mathbf{o}\cdot\mathbf{h}_t)^2}\cdot \cfrac{1}{\eta^2}\cdot (1-R_F(\mathbf{i},\mathbf{h}_t))G(\mathbf{i},\mathbf{o},\mathbf{h}_t)D(\mathbf{h}_t)
+	f_t(\mathbf{i},\mathbf{o},\mathbf{n})= \cfrac{|\mathbf{i}\cdot\mathbf{h}_t|}{|\mathbf{i}\cdot\mathbf{n}|}\cdot \cfrac{|\mathbf{o}\cdot\mathbf{h}_t|}{|\mathbf{o}\cdot\mathbf{n}|}\cdot \cfrac{\eta^2}{(\mathbf{i}\cdot\mathbf{h}_t+\eta(\mathbf{o}\cdot\mathbf{h}_t))^2}\cdot (1-R_F(\mathbf{i},\mathbf{h}_t))G(\mathbf{i},\mathbf{o},\mathbf{h}_t)D(\mathbf{h}_t)
 \end{equation}
 
 折射定律不仅描述光在折射时的弯曲现象，它也间接地约束了光在折射方向发散的范围，我们在前面第\ref{sec:intro-fresnel}节讲述菲涅耳公式的时候已经讨论过这种现象，即入射光的辐射亮度在折射方向被缩放$\eta^2$（即公式\ref{eq:intro-fresnel-refractiom}），$\eta^2$同样也是光束发散范围的缩放因子，如图\ref{f:intro-fresnel-fraction}所示。

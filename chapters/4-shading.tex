@@ -467,7 +467,7 @@ for each pixel
 \sidecaption{
 	\begin{subfigure}[b]{0.28\textwidth}
 		\includegraphics[width=1.\textwidth]{figures/shade/shape-1}
-		\caption{42个顶点球行光源}
+		\caption{42个顶点球形光源}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.28\textwidth}
 		\includegraphics[width=1.\textwidth]{figures/shade/shape-2}
@@ -1115,7 +1115,7 @@ TAA最著名的问题是关于重影（ghosting）\index{重影ghosting}\index[e
 \begin{figure}
 \begin{fullwidth}
 	\includegraphics[width=\thewidth]{figures/shade/clamping}
-	\caption{(b)和(c)分别表示以不同的几何形状包围当前像素周围$3\times 3$个像素的颜色范围，(a)表示历史颜色缓存，历史颜色缓存里的颜色将被使用双线性过滤获得一个颜色值，这个颜色值如果落在了(b)或(c)的颜色范围内，则表示当前像素的颜色没有发生太大的变化，而历史颜色可以被混合仅当前像素的颜色中。}
+	\caption{(b)和(c)分别表示以不同的几何形状包围当前像素周围$3\times 3$个像素的颜色范围，(a)表示历史颜色缓存，历史颜色缓存里的颜色将被使用双线性过滤获得一个颜色值，这个颜色值如果落在了(b)或(c)的颜色范围内，则表示当前像素的颜色没有发生太大的变化，而历史颜色可以被混合进当前像素的颜色中。}
 	\label{f:shade-clamping}
 \end{fullwidth}
 \end{figure}
