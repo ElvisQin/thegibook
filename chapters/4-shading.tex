@@ -11,7 +11,7 @@
 	L_o(p,\mathbf{v})=L_e(p,\mathbf{v})+{\rm \int}_\Omega f(\mathbf{l},\mathbf{v})\otimes L_i(p,\mathbf{l})\cos{\theta_i}{\rm d}\omega_i
 \end{equation}
 
-这里$L_o(p,\mathbf{v})$表示点$p$处沿$\mathbf{v}$方向的辐射亮度，$L_e(p,\mathbf{v})$表示点$p$处沿$\mathbf{v}$方向自发光的辐射亮度，$L_i(p,\mathbf{v})$表示沿$\mathbf{l}$方向射向$p$点的辐射亮度，$f(\mathbf{l},p)$表示$p$点处的BRDF函数。
+这里$L_o(p,\mathbf{v})$表示点$p$处沿$\mathbf{v}$方向的辐射亮度，$L_e(p,\mathbf{v})$表示点$p$处沿$\mathbf{v}$方向自发光的辐射亮度，$L_i(p,\mathbf{l})$表示沿$\mathbf{l}$方向射向$p$点的辐射亮度，$f(\mathbf{l},\mathbf{v})$表示$p$点处的BRDF函数。
 
 对于方程\ref{eq:shade-rendering-equation}，其完整的解通常需要使用一些迭代的方法来计算，本书后面会讨论多种解这个方程的方法。但是很显然，这样一个方程并不是对GPU友好的，我们不能直接将它放入着色器中求解，着色器中要处理的公式，它必须是能够直接根据材质参数计算出最终结果的，也就是说着色器中不能包含未知的参数。
 
@@ -103,7 +103,7 @@
 延迟着色的过程如图\ref{f:shade-deferred-pipeline}所示，它可以简述如下：
 
 \begin{enumerate}
-	\item 绘制场景中所有的不透明几何体，并将每个片元对应的法线矢量，漫反射折射率，以及高光扩散系数等存储到G-buffer中，如图\ref{f:shade-g-buffer}所示。此过程涉及在片元着色器中输出多个颜色值，因此需要用到图形处理器接口中的MRT特性。此过程称为前向着色\index{前向着色forward shading}\index[en]{forward shading前向着色}阶段。
+	\item 绘制场景中所有的不透明几何体，并将每个片元对应的法线矢量，漫反射折射率，以及高光扩散系数等存储到G-buffer中，如本书后面图\ref{f:shade-g-buffer}所示。此过程涉及在片元着色器中输出多个颜色值，因此需要用到图形处理器接口中的MRT特性。此过程称为前向着色\index{前向着色forward shading}\index[en]{forward shading前向着色}阶段。
 	\item 分别计算每个光源对可见表面点的影响。这通过分别绘制包围每个光源影响范围的几何体来实现，此时我们应该关闭深度测试，因为我们只需要找出该光源影响的屏幕上的区域，同时每个光源包围几何体有两个面，我们应该根据情况绘制光源包围几何体的其中一面，例如当摄像机位于光源包围几何体内部时，我们应该绘制该几何体的背面，否则只需要绘制正面。对于一些没有体积的光源如直线光源，以及光源影响范围同时包括视锥体近平面和远平面时，我们直接绘制一个2D的包括全屏的平面。在着色器中，前向着色阶段输出的G-buffer将作为纹理数据被读入，G-buffer中的深度值用来计算像素的3D位置，以此用来计算光源的距离递减函数以及查询阴影贴图。最后该光源对每个像素点的颜色计算结果被写入到一个累积缓存（accumulate buffer）\index{累积缓存accumulate buffer}\index[en]{accumulate buffer累积缓存}。此过程称为延迟着色阶段。
 	\item 按传统的渲染管线绘制所有半透明的物体。
 \end{enumerate}
@@ -136,7 +136,7 @@
 虽然有上述这些优点，并且从渲染结果上看延迟渲染和传统渲染管线的结果是一致的（因为它并没有对式\ref{eq:shade-shading-equation}作任何修改），但是延迟渲染还是带来了一些新的问题，其中一些主要的问题包括：
 
 \begin{itemize}
-	\item 不支持半透明物体。一个包含半透明表面的像素点的颜色值是两个（或多个）表面点颜色值混合的结果，由于G-buffer只保存每个像素点的一个表面点的值，所以它不能支持半透明物体，在延迟渲染中我们必须对半透明物体单独采样传统的渲染管线来处理。
+	\item 不支持半透明物体。一个包含半透明表面的像素点的颜色值是两个（或多个）表面点颜色值混合的结果，由于G-buffer只保存每个像素点的一个表面点的值，所以它不能支持半透明物体，在延迟渲染中我们必须对半透明物体单独采用传统的渲染管线来处理。
 	\item 巨大的帧缓存存储占用。通常一个G-buffer中每个像素可以占用多达128bits甚至以上的内存占用，当使用多重采样时更是会占用巨大的内存（我们将在第\ref{sec:shade-anti-aliasing}节讨论延迟着色中多重采样的问题）；此外，为了保证多个光源累加结果的精确性，颜色累积缓存还必须使用更高精度的缓存对象。
 	\item 对屏幕区域的像素点（而不是根据每个物体自身的类型）进行着色计算，这使得我们很难针对每种物体使用自定义的着色器，因为各种类型的物体被混在一个屏幕区域，我们必须使用统一的着色器，这使得自定义着色器变得非常困难，我们将在第\ref{sec:shade-deferred-custom-shader}节中讨论延迟着色中的着色器管理。
 	\item 最后一个问题是内存访问的高带宽占用，这将在本节及接下来的内容中重点介绍。
@@ -358,7 +358,7 @@ for each pixel
 
 
 \subsubsection{簇分配}
-对3D空间执行某种空间结构的划分，都可能导致大量的空域，比如场景中会有大量空间位置不包含最终屏幕上呈现的像素点。传统的几何空间的划分可以使用如BVH这样的树状结构来忽略大部分空域，但是分簇着色使用的是一种特殊的子空间结构（见下面的内容），并不能用简单地用树状结构进行管理。所以分簇着色使用一种特殊的方式来构建簇集合：它对每个可视像素点都做一个簇索引键值的计算，这样遍历完所有像素点后的簇索引键值就是有效的簇，然后去掉重复的（即一个簇内的像素点计算出相同的索引值）簇索引键值，就形成一个有效的簇列表。
+对3D空间执行某种空间结构的划分，都可能导致大量的空域，比如场景中会有大量空间位置不包含最终屏幕上呈现的像素点。传统的几何空间的划分可以使用如BVH这样的树状结构来忽略大部分空域，但是分簇着色使用的是一种特殊的子空间结构（见下面的内容），并不能简单地用树状结构进行管理。所以分簇着色使用一种特殊的方式来构建簇集合：它对每个可视像素点都做一个簇索引键值的计算，这样遍历完所有像素点后的簇索引键值就是有效的簇，然后去掉重复的（即一个簇内的像素点计算出相同的索引值）簇索引键值，就形成一个有效的簇列表。
 
 簇分配的第一个问题涉及怎样表述每一个簇的空间结构，因为这关系到簇索引键值怎样计算，一般的按一个固定尺寸的正方体（uniform grid）的划分会导致离摄像机较远的区域拥有非常密集的簇，所以其簇的密度几乎接近于像素的大小，这显然增加了后面光源分配的计算量；考虑到我们仅仅对视锥体内的点感兴趣，即观察空间（view space）\index{观察空间view space}\index[en]{view space观察空间}，所以分簇着色技术对视锥体进行划分，它以分块着色中2D屏幕上块的划分为基础，然后在深度方向上添加一个细分维度，如图\ref{f:shade-clusters}所示，这样划分的每个子空间称为一个簇（cluster）\index{簇cluster}\index[en]{cluster簇}，或者子视椎体（sub frustum）\index{子视椎体sub frustum}\index[en]{sub frustum子视椎体}，或者视锥体素（frustum voxel，froxel\footnote{这是一个来自\cite{a:Learningfromfailure}中的概念。}）\index{视锥体素frustum voxel，froxel}\index[en]{frustum voxel，froxel视锥体素}。
 
@@ -429,7 +429,7 @@ for each pixel
 \begin{center}
 	\includegraphics[width=\textwidth]{figures/shade/sorted-key}
 \end{center}
-	\caption{每个簇内像素的法线分布用一个$3\times 3$的立方体表示，立方体每个面的每个细分面表示一个锥形的法线分布范围，54个位的组合可以由每个像素点分别计算出来。}
+	\caption{对索引键值列表进行排序和压缩，以找到唯一的索引键值，索引键值的排序可以基于深度或者法线方向等。}
 	\label{f:shade-sorted-key}
 \end{figure}
 
@@ -447,7 +447,7 @@ for each pixel
 
 本节我们要介绍的是来自\cite{a:GPUPro7:AdvancedRenderingTechniques}中针对DirectX 12的基于保守光栅化技术的光源分配方法，这是一种利用图形处理器的光栅化技术能够产生非常精确的簇光源分配的方法，当然这种方法仅适用于凸面光源（convex light）\index{凸面光源convex light}\index[en]{convex light凸面光源}形状，考虑到大多数光源如点光源和聚光灯光源的包围体都是凸面的，因此这种方法非常实用。
 
-保守光栅化化（conservative rasterization）\index{保守光栅化化conservative rasterization}\index[en]{conservative rasterization保守光栅化化}的概念非常简单，传统光栅化技术在选择每个图元所覆盖的片元时，是以该图元所占的面积是否覆盖该片元的中心位置来决定该图元是否覆盖到该片元，如图\ref{f:shade-conservative-rasterization}(a)图所示，显然这样的方法运用到光源剔除中就会漏掉一部分光源对簇的影响。与之相对应，保守光栅化则考虑任何部分被图元面积占用的片元均为有效片元，如图\ref{f:shade-conservative-rasterization}(b)图所示。在DirectX 12中，通过在创建一个管线状态对象的时候设置ConservativeRaster的标识为D3D12\_CONSERVATIVE\_RASTERIZATION\_MODE\_ON来开启保守光栅化化\footnote{OpenGL也可以通过一些扩展如GL\_INTEL\_conservative\_rasterization和GL\_NV\_conservative\_raster等来支持保守光栅化。}。
+保守光栅化（conservative rasterization）\index{保守光栅化conservative rasterization}\index[en]{conservative rasterization保守光栅化}的概念非常简单，传统光栅化技术在选择每个图元所覆盖的片元时，是以该图元所占的面积是否覆盖该片元的中心位置来决定该图元是否覆盖到该片元，如图\ref{f:shade-conservative-rasterization}(a)图所示，显然这样的方法运用到光源剔除中就会漏掉一部分光源对簇的影响。与之相对应，保守光栅化则考虑任何部分被图元面积占用的片元均为有效片元，如图\ref{f:shade-conservative-rasterization}(b)图所示。在DirectX 12中，通过在创建一个管线状态对象的时候设置ConservativeRaster的标识为D3D12\_CONSERVATIVE\_RASTERIZATION\_MODE\_ON来开启保守光栅化\footnote{OpenGL也可以通过一些扩展如GL\_INTEL\_conservative\_rasterization和GL\_NV\_conservative\_raster等来支持保守光栅化。}。
 
 \begin{figure}
 	\sidecaption
@@ -902,7 +902,7 @@ SSAA的每个子采样点通常是不重合的，因此如果我们能将这些�
 
 
 \subsubsection{静态场景}
-要使用TAA技术，在不同的帧当中相同的像素应该被使用一个抖动（jittering）\index{抖动jittering}\index[en]{jittering抖动}操作，以使当前帧的像素被移动到一个超采样中子采样点的位置。抖动的位移通常使用某种随机分布函数（第\ref{chp:mc}章介绍）产生，由于这些子采样点全部会被混合起来，所以为了达到更好的图像质量，该随机分布应该具有低差异性（low discrepancy）\index{低差异性low discrepancy}\index[en]{low discrepancy低差异性}，子采样点的分布尽量铺满整个像素区域，在Unreal Engine 4和神秘海域4中他们均使用Halton数列\footnote{参见：\url{http://en.wikipedia.org/wiki/Halton_sequence}}（Halton sequence）\index[en]{Halton sequenceHalton数列}来产生子采样点的分布，如图\ref{f:shade-halton}所示。
+要使用TAA技术，在不同的帧当中相同的像素应该被使用一个抖动（jittering）\index{抖动jittering}\index[en]{jittering抖动}操作，以使当前帧的像素被移动到一个超采样中子采样点的位置。抖动的位移通常使用某种随机分布函数（第\ref{chp:mc}章介绍）产生，由于这些子采样点全部会被混合起来，所以为了达到更好的图像质量，该随机分布应该具有低差异（low discrepancy）\myindex{低差异}{low discrepancy}性，子采样点的分布尽量铺满整个像素区域，在Unreal Engine 4和神秘海域4中他们均使用Halton数列\footnote{参见：\url{http://en.wikipedia.org/wiki/Halton_sequence}}（Halton sequence）\index[en]{Halton sequenceHalton数列}来产生子采样点的分布，如图\ref{f:shade-halton}所示。
 
 \begin{figure}
 	\sidecaption
