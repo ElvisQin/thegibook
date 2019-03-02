@@ -350,7 +350,7 @@ fadds   fr1,fr8,fr7     ; return = fr8 + fr7
 
 使用硬件对多线程技术的支持的一个目标是，允许在等待延迟的线程和已经准备好被执行的线程之间保持快速切换，为了达到这个目标，每个线程都需要拥有自己的指令和数据寄存器集合，还包括用于存储指令管线调度相关的一些处理单元和调度信息，当发生线程切换时，直接在高速的寄存器之间执行赋值和读取即可，而不需要重新从缓存读取数据。现代处理器的线程切换通常可以在一个时钟周期内完成。
 
-单处理器多线程技术的这些核心思路，主要包括始终切换到处于“准备好”的状态的线程，以及使用更多专有的寄存器来实现线程之间的快速切换，被用于后来的GPU架构中，当然GPU会有一些自己独特的“思维”，但是其核心架构都是随着CPU并行计算的发展而演变出来的，再结合下一节的多处理器技术，我们就可以推导出一个可以具有无限扩展，并且能够高效利用每个GPU处理器计算单元的并行计算模型。
+单处理器多线程技术的这些核心思路后来被用于GPU架构中，主要包括始终切换到处于‘准备好’的状态的线程，以及使用更多专有的寄存器来实现线程之间的快速切换。当然GPU会有一些自己独特的“思维”，但是其核心架构都是随着CPU并行计算的发展而演变出来的，再结合下一节的多处理器技术，我们就可以推导出一个可以具有无限扩展，并且能够高效利用每个GPU处理器计算单元的并行计算模型。
 
 
 
@@ -370,7 +370,7 @@ fadds   fr1,fr8,fr7     ; return = fr8 + fr7
 
 SMT与诸如英特尔的双核处理器是不同的，虽然它们最终都是集成在一个芯片上，但是双核处理器拥有独立的执行单元，指令调度，寄存器，L1缓存等，它们只是共享L2及以上的缓存，我们可以称之为缓存级别的共享；而SMT则是共享指令级的一些资源，接下来将讲述这些共享的资源，通过共享这些指令级的资源，我们看到SMT可以大大提升单个处理器的执行效率。
 
-我们将以英特尔的超线程技术来分析同时多线程技术，英特尔的超线程技术（Hyper-Threading Technology）\index{超线程技术hyper-threading technology}\index[en]{hyper-threading technology超线程技术}是一种SMT架构，在结构上，一个超线程架构的处理器由两个逻辑处理器（logical processor）\index{逻辑处理器logical processor}\index[en]{logical processor逻辑处理器}组成，每个逻辑处理器拥有自己的如架构状态等，但是两个逻辑处理器共享处理器的一些执行资源（Processor Execution Resources），如图\ref{f:rp-hyper-threading}所示。
+我们将以英特尔的超线程技术来分析同时多线程技术，英特尔的超线程技术（Hyper-Threading Technology）\index{超线程技术hyper-threading technology}\index[en]{hyper-threading technology超线程技术}是一种SMT架构，在结构上，一个超线程架构的处理器由两个逻辑处理器（logical processor）\index{逻辑处理器logical processor}\index[en]{logical processor逻辑处理器}组成，每个逻辑处理器拥有自己的（如架构状态等）一些资源，但是两个逻辑处理器共享处理器的一些执行资源（Processor Execution Resources），如图\ref{f:rp-hyper-threading}所示。
 
 \begin{figure}
 	\includegraphics[width=1.\textwidth]{figures/rp/hyper-threading}
@@ -404,7 +404,7 @@ SMT与诸如英特尔的双核处理器是不同的，虽然它们最终都是�
 \subsection{处理器级并行}
 前面讲述的指令级并行及线程级并行都旨在提高单个物理处理器的执行效率，然而单个物理处理器的计算能力总是有限的，只有进化到处理器级的并行，即拥有能够扩展物理处理器的能力，大规模，可扩展的并行计算才有可能形成。
 
-多处理器架构（multiprocessing architecture）\index{多处理器架构multiprocessing architecture}\index[en]{multiprocessing architecture多处理器架构}是指一个计算机系统拥有多个物理的处理器，或者拥有多个核（core）\myindex{核}{core}，两者的主要区别为多核处理器每个核仅拥有的L1缓存及寄存器，同一芯片内的核共享L2及主内存，而多个单独的物理处理器往往仅共享主存并拥有自己的缓存系统。
+多处理器架构（multiprocessing architecture）\index{多处理器架构multiprocessing architecture}\index[en]{multiprocessing architecture多处理器架构}是指一个计算机系统拥有多个物理的处理器，或者拥有多个核（core）\myindex{核}{core}，两者的主要区别为多核处理器每个核仅拥有L1缓存及寄存器，同一芯片内的核共享L2及主内存，而多个单独的物理处理器往往仅共享主存并拥有自己的缓存系统。
 
 关于多处理器架构，我们可以从两个角度来了解其特点，其一是所有处理器之间的对称性，其二是处理器之间的通信机制。
 

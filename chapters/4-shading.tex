@@ -576,7 +576,7 @@ for each pixel
 
 首先，G-buffer必须要支持所有类型的材质参数，每种不同类型的材质需要使用不同的渲染方法，所以这就可能导致巨大的G-buffer，因为其中一些材质参数对另一些类型的物体并不适用。为了尽可能减少G-buffer的体积，他们进行两个方面的优化，首先是对于特殊的材质，他们使用相互独立的材质参数，如图\ref{f:shade-g-buffer}所示，两个基本的G-buffer用来存储所有物体都需要的材质参数，例如法线，位置，粗糙度等等，第三个可选的G-buffer用来存储每种类型特殊的一些材质参数，这些物体包括织物，头发，皮肤以及丝绸等等，这个特殊的G-buffer对每个物体只使用一种类型，例如一个表面不可能同时包含织物和皮肤的材质参数，这是由材质创作管线限制的。
 
-其次，他们充分使用GCN架构内置的的位解码方法来充分压缩每个参数的长度，使得图\ref{f:shade-g-buffer}中每个G-buffer中每个像素仅占用16位的存储空间。传统的着色器编程语言通常使用固定的包含1到4个分量内部图像格式，某些参数在实际中可能占用比一个分量更少的位置，这就会导致一定的浪费。GCN架构提供的解码方法\cite{a:Low-levelShaderOptimizationforNext-GenandDX11}可以对任何整数按位进行解码，这使得我们可以在帧缓存中存储任何长度（甚至超过4个分量）的数据，并且这个操作可以在1个GPU时钟周期内完成，例如以下代码从一个整数中分别获取一个1，5和11位的颜色分量值：
+其次，他们充分使用GCN架构内置的的位解码方法来充分压缩每个参数的长度，使得图\ref{f:shade-g-buffer}中每个G-buffer中每个像素仅占用16位的存储空间。传统的着色器编程语言通常使用固定的包含1到4个分量内部图像格式，某些参数在实际中可能占用比一个分量更少的位置，这就会导致一定的浪费。GCN架构提供的解码方法\cite{a:Low-levelShaderOptimizationforNext-GenandDX11}可以对任何整数按位进行解码，这使得我们可以在帧缓存中存储任何长度（甚至超过4个分量）的数据，并且这个操作可以在1个GPU时钟周期内完成，例如以下代码分别取s变量二进制表示的$12\sim 16$、$6 \sim 11$和$1\sim 5$位，它们分别是5位、6位和5位的颜色分量：
 
 \begin{lstlisting}[language=C++]
 int r = s & 0x1F; 			  // 1 cycle
@@ -593,8 +593,8 @@ int b = (s >> 11) & 0x1F;	// 1 cycle
 神秘海域4中的延迟着色阶段是使用计算着色器以块为单位进行渲染的，其中每个块包含$16\times 16$个像素点。在延迟着色阶段，计算着色器分两步处理块中像素的着色计算：
 
 \begin{enumerate}
-	\item 对每个块执行材质类型定义（material classification）。
-	\item 对每个材质类型分别执行一次计算着色器。
+	\item 对每个块执行材质类型定义（material classification），以得到一个材质类型组合。
+	\item 对每个材质类型组合分别执行一次计算着色器。
 \end{enumerate}
 
 材质定义阶段的目的是找出每个块使用的计算着色器类型。为此，他们对每个不同材质类型的组合建立一个单独的计算着色器通道，所有可能的材质类型组合存储在一个查询表（lookup table）中，这样每个块通过其材质组合的索引值就能找到对应的计算着色器，如果在材质类型定义阶段像这样区分了所有的像素点，第二阶段就可以对每个材质类型组合使用一个独立的计算着色器，其仅包含少量\footnote{由下面的内容可知，这个数量取决于该块内材质类型的数量，在一个局部的块内，大部分的材质类型都是相同的，即使具有不同类型的材质，其分支的数量也比一个大型着色器的分支要少得多。}甚至无分支计算。
@@ -622,14 +622,14 @@ if (groupIndex == 0)
 
 由于这里使用计算着色器以块为单位进行材质类型定义的工作，所以AtomicIncrement表示一个被申领的块，这是一个原理计算器，它保证每个计算着色器实例不会处理同一个块，这里的思路是和\cite{a:SPU-basedDeferredShadingforBattlefield3onPlaystation3}中相似的。
 
-由于一个块包含$16\times 16$个像素，所以块内每个像素仍然可能使用不同的材质类型或组合，这就导致每个计算着色器内部还是会存在分支处理，尽管它比大型着色器的分支数量要小得多。这里进一步的优化是将那些块内每个像素拥有完全一样材质类型组合的块使用的着色器的分支计算去掉，所以这里使用了一个额外的包含无分支排列组合的查询表（branchless permutation table）\index{无分支组合查询表branchless permutation table}\index[en]{branchless permutation table无分支组合查询表}。我们可以使用下面的语句修改上述第6行代码为：
+由于一个块包含$16\times 16$个像素，所以块内每个像素仍然可能使用不同的材质类型或组合，这就导致每个计算着色器内部还是会存在分支处理，尽管它比大型着色器的分支数量要小得多。这里进一步的优化是将那些块内每个像素拥有完全一样材质类型的块使用的着色器的分支计算去掉，所以这里使用了一个额外的包含无分支排列组合的查询表（branchless permutation table）\index{无分支组合查询表branchless permutation table}\index[en]{branchless permutation table无分支组合查询表}。我们可以使用下面的语句修改上述第6行代码为：
 
 \begin{lstlisting}[language=C++]
 bool constantTileValue = IsTileConstantValue( … );
 short shaderIndex = constantTileValue? branchlessShaderTable[orReducedMaskBits]: shaderTable[orReducedMaskBits];
 \end{lstlisting}
 
-相对于传统的大型着色器，神秘海域4中使用的着色器管理技术可以带来$20\%\sim 30\%$的性能提升，如图\ref{f:shade-material-ID}所示，场景中大部分块内每个像素都拥有相同的材质类型组合，即它们不包含分支处理，将这些分支去掉，以及以材质类型为单位减少大型着色器的分支处理，延迟着色的性能得到大大提升。
+相对于传统的大型着色器，神秘海域4中使用的着色器管理技术可以带来$20\%\sim 30\%$的性能提升，如图\ref{f:shade-material-ID}所示，场景中大部分块内每个像素都拥有相同的材质类型，即它们不包含分支处理，将这些分支去掉，以及以材质类型为单位减少大型着色器的分支处理，延迟着色的性能得到大大提升。
 
 \begin{figure}
 	\includegraphics[width=1.0\textwidth]{figures/shade/material-ID}
@@ -745,7 +745,7 @@ SMAA和MLAA算法使用相似的步骤，但是每个步骤内部使用的方法
 
 \begin{itemize}
 	\item 第一通道：首先边缘被检测出来，这些边缘被存储到一个边缘纹理（edges texture）中，如图\ref{f:shade-smaa}(d)所示，纹理中的颜色表示每个边缘在像素中（即上，下，左和右）的位置：绿色像素的边缘在其像素顶部，红色像素的边缘在左边，黄色像素同时在以上两个方向拥有边缘\footnote{出于性能考虑，这里仅存储顶部和左边的边缘，因为其他两边的边缘能够从旁边邻近的像素推导出来。}。此外，在此通道，边缘像素的模板值被记录，以便后续的通道仅处理轮廓上的像素。
-	\item 第二通道：计算每个轮廓上像素的混合权重，即是图\ref{f:shade-mlaa}下图中a的值，如图\ref{f:shade-smaa}(e)所示。为了计算该权重值，首先找出每条经过该像素左边和顶部边缘线段的模式，如图\ref{f:shade-smaa}(b)所示，然后计算出该像素距离这些模式线段交叉边缘的距离，然后这两个距离值作为纹理坐标到一个预计算的纹理中进行采样，这个预计算的纹理是根据线段模式计算出来的权重分布值，如图\ref{f:shade-smaa}(c)所示。
+	\item 第二通道：计算每个轮廓上像素的混合权重，如图\ref{f:shade-smaa}(e)所示。为了计算该权重值，首先找出每条经过该像素左边和顶部边缘线段的模式，如图\ref{f:shade-smaa}(b)所示，然后计算出该像素距离这些模式线段交叉边缘的距离，然后这两个距离值作为纹理坐标到一个预计算的纹理中进行采样，这个预计算的纹理是根据线段模式计算出来的权重分布值，如图\ref{f:shade-smaa}(c)所示。
 	\item 第三通道：根据上一步的权重值从周围的四个像素中取出颜色值进行混合计算，计算结果如图\ref{f:shade-smaa}(f)所示。
 \end{itemize}
 
@@ -865,7 +865,7 @@ SMAA第一个通道输出的是一种包含边缘信息的纹理，其中纹理�
 \begin{figure}
 \begin{fullwidth}
 	\includegraphics[width=\thewidth]{figures/shade/edge}
-	\caption{面积纹理是一个多个$9\times 9$分辨率的子纹理组成，每个子纹理的坐标表示像素离两个交叉边缘的距离，这样通过预计算的面积查询，节省了着色器中复杂面积的实时计算。}
+	\caption{面积纹理是由25个$9\times 9$的子纹理组成的纹理，每个子纹理的坐标表示像素离两个交叉边缘的距离，这样通过预计算的面积查询，节省了着色器中复杂面积的实时计算。}
 	\label{f:shade-edge}
 \end{fullwidth}
 \end{figure}
@@ -957,7 +957,7 @@ return lerp(historyColor, currColor, 0.05f);
 
 
 \subsubsection{动态场景}
-当场景是动态的时：例如物体移动，摄像机移动，光源移动或变化导致遮挡关系发生变化，还有大量（在着色器中）通过程序控制的几何体（如海面，头发等），这时TAA的处理开始变得复杂。对于TAA，理想状态下，我们需要的是除了采样点位置外完全一致的两个像素点，然而当像素被移动时，这一切都可能发生变化。
+当场景是动态的时：例如物体移动，摄像机移动，光源移动或变化导致遮挡关系发生变化时，还有大量（在着色器中）通过程序控制的几何体（如海面，头发等），这时TAA的处理开始变得复杂。对于TAA，理想状态下，我们需要的是除了采样点位置外完全一致的两个像素点，然而当像素被移动时，这一切都可能发生变化。
 
 我们首先来概述一下动态场景带来三个最重要的问题，让读者首先有个思路，然后再分述每个问题的解决方案。基本来讲，动态场景带来以下三个新的问题：
 
@@ -1005,9 +1005,9 @@ $posLast_{ndc}$ -= g_projOffsetLast;
 float2 motionVector=($posLast_{ndc}$-$pos_{ndc}$)* float2(0.5f, -0.5f);
 \end{lstlisting}
 
-需要注意的是，这里需要使用去除抖动的坐标（上一帧的抖动值包含在摄像机信息中），因为对于历史颜色缓存而言，它存储的是每个像素中心点位置的颜色值，哪些抖动的子像素位置仅是用来进行不同的采样，然后这些子采样点被按照像素中心点的位置进行过滤，如果我们直接使用抖动过的位置，则计算出的结果可能是两个完全不同的像素位置；另一点需要注意的是，由于在后面的TAA阶段需要通过纹理坐标（即[0,1]的范围）来对历史颜色缓存（一个2D纹理）进行采样，所以我们需要在NDC空间计算移动矢量。
+需要注意的是，这里需要使用去除抖动的坐标（上一帧的抖动值包含在摄像机信息中），因为对于历史颜色缓存而言，它存储的是每个像素中心点位置的颜色值，那些抖动的子像素位置仅是用来进行不同的采样，然后这些子采样点被按照像素中心点的位置进行过滤，如果我们直接使用抖动过的位置，则计算出的结果可能是两个完全不同的像素位置；另一点需要注意的是，由于在后面的TAA阶段需要通过纹理坐标（即[0,1]的范围）来对历史颜色缓存（一个2D纹理）进行采样，所以我们需要在NDC空间计算移动矢量。
 
-有了移动矢量缓存，在TAA中就可以直接对当前对历史颜色缓存进行采样，即：
+有了移动矢量缓存，在TAA中就可以直接对历史颜色缓存进行采样，即：
 
 \begin{lstlisting}[language=C++]
 float2 uvLast = uv + motionVectorBuffer.Sample(point, uv);
@@ -1023,7 +1023,7 @@ float3 historyColor = historyBuffer.Sample(linear, uvLast);
 
 
 \paragraph{模糊处理}
-TAA中的模糊来源于在每次迭代中，对历史颜色纹理的采样使用了双线性过滤器，这样历史颜色的采样值来源于该像素周围4个像素颜色值按一定的权重比例的加权和（weighted sum）\index{加权和weighted sum}\index[en]{weighted sum加权和}，而这些周围参与加权的像素的颜色来源于更早历史周围的加权和，以此类推，随着时间的增加，参与加权的像素的范围就越来越大。
+TAA中的模糊来源于在每次迭代中，对历史颜色纹理的采样使用了双线性过滤器，这样历史颜色的采样值来源于该像素周围4个像素颜色值按一定的权重比例的加权和（weighted sum）\index{加权和weighted sum}\index[en]{weighted sum加权和}，而这些周围参与加权的像素的颜色来源于更早历史像素周围的加权和，以此类推，随着时间的增加，参与加权的像素的范围就越来越大。
 
 为了理解TAA中的模糊的原因，以及寻找解决方案，\cite{a:AmortizedSupersampling}用公式表示出了这种重投影的方差：
 
@@ -1045,7 +1045,7 @@ TAA中的模糊来源于在每次迭代中，对历史颜色纹理的采样使�
 \begin{figure}
 	\sidecaption
 	\includegraphics[width=0.65\textwidth]{figures/shade/blur-factor-alpha}
-	\caption{TAA对历史颜色缓存进行双线性过滤采样时，混合因子$\alpha$越大，则历史每个颜色对总的图像的恭喜越小，因此图像越清晰。}
+	\caption{TAA对历史颜色缓存进行双线性过滤采样时，混合因子$\alpha$越大，则历史每个颜色对总的图像的贡献越小，因此图像越清晰。}
 	\label{f:shade-blur-factor-alpha}
 \end{figure}
 
@@ -1093,7 +1093,7 @@ TAA最著名的问题是关于重影（ghosting）\index{重影ghosting}\index[e
 
 根据公式\ref{eq:shade-exponential-filter}，我们可以推断出现重影的原因主要是由于像素的颜色值发生了改变，但是历史不再“合法”的颜色还是被混合进了当前帧的输出图像中，随着时间的推移，历史颜色值的权重不断下降，历史颜色值逐渐变淡直至几乎肉眼无法察觉，这就形成一个拖尾的效应。
 
-这种改变的原因大概可以分为两类：第一类是整个像素的值发生了变化，例如由原来的可见变为不可见，这个时候历史上可见的颜色值就会被混合进不可见的区域，形成比较强烈的重影，如图\ref{f:shade-ghosting}(a)所示；第二类是一个像素内的局部颜色发生了改变，即某些子采样点的颜色发生了变化，这通常发生于子像素特性中，一些地方在一个像素尺寸内的频率域变化很大（例如一些超薄表面，草地等），使得某些子像素特性无法被渲染而被历史颜色所混合，这种重影即使在第一类重影被适当处理的情况下任然会发生，例如图\ref{f:shade-ghosting}(b)就是第一类重影被处理，但是崎岖不平的路面中具有频率变化范围较大的法线的范围，仍然被人物头像部分的历史颜色所混合。
+这种改变的原因大概可以分为两类：第一类是整个像素的值发生了变化，例如由原来的可见变为不可见，这个时候历史上可见的颜色值就会被混合进不可见的区域，形成比较强烈的重影，如图\ref{f:shade-ghosting}(a)所示；第二类是一个像素内的局部颜色发生了改变，即某些子采样点的颜色发生了变化，这通常发生于子像素特性中，一些地方在一个像素尺寸内的频率域变化很大（例如一些超薄表面，草地等），使得某些子像素特性无法被渲染而被历史颜色所混合，这种重影即使在第一类重影被适当处理的情况下仍然会发生，例如图\ref{f:shade-ghosting}(b)就是第一类重影被处理，但是崎岖不平的路面中具有较大频率变化范围的法线的部分，仍然被人物头像部分的历史颜色所混合。
 
 重影是由于历史颜色缓存不合法导致的混合结果，例如像素的可见性，颜色，几何体ID等发生变化都会导致历史颜色缓存中的颜色失效，对于这类失效的历史颜色，它们不应该再被混合进当前颜色中。所以，为了排除失效的历史颜色，TAA需要在混合时前判断历史颜色是否失效，这同SMAA中的边缘检测类似，可以使用多种像素的属性来进行比较，但是TAA中一般选择RGB颜色值进行比较。
 
@@ -1106,7 +1106,7 @@ TAA最著名的问题是关于重影（ghosting）\index{重影ghosting}\index[e
 	\label{f:shade-clamping}
 \end{figure}
 
-为了进一步理解邻域裁剪，我们首先需要了解颜色空间的概念。颜色空间\footnote{\url{参见：https://en.wikipedia.org/wiki/Color_space}}（color space）\index{颜色空间color space}\index[en]{color space颜色空间}是一个色度学（colorimetry）\index{色度学colorimetry}\index[en]{colorimetry色度学}中的概念，在色度学中，一个颜色只由RGB三个原色混合而成的，这三个原色的混合比例的和为1，由于这个限制，所以3D空间的颜色可以表述为2D空间的颜色范围，这个范围在2D的颜色空间上表现为一个三角形，在每个颜色空间内，每个颜色值到三角形每个顶点的比例之后为1，如图\ref{f:shade-conservative-rasterization}所示，不同的RGB三原色选择导致了不同的颜色空间，从而在整个颜色域也具有不同的颜色范围。
+为了进一步理解邻域裁剪，我们首先需要了解颜色空间的概念。颜色空间\footnote{\url{参见：https://en.wikipedia.org/wiki/Color_space}}（color space）\index{颜色空间color space}\index[en]{color space颜色空间}是一个色度学（colorimetry）\index{色度学colorimetry}\index[en]{colorimetry色度学}中的概念，在色度学中，一个颜色只由RGB三个原色混合而成的，这三个原色的混合比例的和为1，由于这个限制，所以3D空间的颜色可以表述为2D空间的颜色范围，这个范围在2D的颜色空间上表现为一个三角形，在每个颜色空间内，每个颜色值到三角形每个顶点的比例之后为1，如图\ref{f:shade-clamping}所示，不同的RGB三原色选择导致了不同的颜色空间，从而在整个颜色域也具有不同的颜色范围。
 
 不同颜色区间可以相互转化，但可能存在一定的颜色损失。例如通常显示器所能表达的sRGB颜色空间就只能表示一个较小的颜色范围，因此为了保证亮度高的颜色范围能够被保留，通常颜色之间的转换不是线性的，例如伽马矫正\footnote{参见：\url{https://en.wikipedia.org/wiki/Gamma_correction}}（gamma correction）就是一种非线性的颜色空间转换，它能够保留更多高亮度的颜色区域。
 
@@ -1185,7 +1185,7 @@ $\gamma$值的大小决定了AABB方差包围盒的大小，$\gamma$越大，重
 
 为了减少延迟着色计算阶段读取多个子像素的几何数据带来的高带宽占用，Cyril Crassin\cite{a:AggregateG-BufferAnti-Aliasing}等从纹理的预过滤（pre-filtering）\index{预过滤pre-filtering}\index[en]{pre-filtering预过滤}得到启发：如果多个子像素的几何数据能够像多级纹理一样使用预过滤的方式提前将过滤的结果计算出来，那么延迟着色阶段就可以和非SSAA渲染一样仅需要读取一次几何数据便可以计算包含子像素的特征，这样的思路将对几何数据采样的采样率和着色计算的频率分离开来，不但减少了SSAA带来着色计算量，也大大减少了读取多个子像素几何数据带来的带宽占用。
 
-Cyril Crassin等于第二年\cite{a:AggregateG-BufferAnti-Aliasing-ExtendedVersion-}对该算法进行了扩展，本节以该扩展的版本为准，这种技术称为聚集几何缓存反走样（Aggregate G-buffer anti-aliasing，AGAA）\index{聚集几何缓存反走样Aggregate G-buffer anti-aliasing}\index[en]{Aggregate G-buffer anti-aliasing聚集几何缓存反走样}。在多级纹理中，低分辨率的纹理通过从高一级分辨率的纹理中提前过滤出来，在AGAA中，高分辨率的子采样点几何数据被使用预过滤器提前过滤为一个称为几何聚集（geometry aggregate）\index{几何聚集geometry aggregate}\index[en]{geometry aggregate几何聚集}的更小分辨率几何数据，每个几何聚集对应一个像素内一部分可见图元的覆盖率，深度，法线等相关表面属性，经过预过滤的G-buffer称为几何聚集缓存（geometry aggregate buffer，AG-buffer）\index{几何聚集缓存geometry aggregate buffer}\index[en]{geometry aggregate buffer几何聚集缓存}。
+Cyril Crassin等于第二年\cite{a:AggregateG-BufferAnti-Aliasing-ExtendedVersion-}对该算法进行了扩展，本节以该扩展的版本为准，这种技术称为聚集几何缓存反走样（Aggregate G-buffer anti-aliasing，AGAA）\index{聚集几何缓存反走样Aggregate G-buffer anti-aliasing}\index[en]{Aggregate G-buffer anti-aliasing聚集几何缓存反走样}。在多级纹理中，低分辨率的纹理通过从高一级分辨率的纹理中提前过滤出来，在AGAA中，高分辨率的子采样点几何数据被使用预过滤器提前过滤为一个称为几何聚集（geometry aggregate）\index{几何聚集geometry aggregate}\index[en]{geometry aggregate几何聚集}的更小分辨率几何数据，每个几何聚集对应一个像素内一部分可见图元的覆盖率，深度，法线等相关表面属性，经过预过滤的G-buffer称为聚集几何缓存（geometry aggregate buffer，AG-buffer）\index{聚集几何缓存aggregate geometry buffer}\index[en]{aggregate geometry buffer聚集几何缓存}。
 
 \begin{figure}
 \begin{fullwidth}
@@ -1228,7 +1228,7 @@ AGAA的处理过程包括4步，如图\ref{f:shade-agaa}所示：
 	\label{f:shade-agss-1}
 \end{figure}
 
-所有预过滤技术都基于一个假设，即所有被过滤的属性之间没有相关性（correlation）\index{相关性correlation}\index[en]{correlation相关性}，其中一个属性是完全独立于另一个属性的，如果属性之间存在相关性，例如一个子像素如果不可见了，则其他的属性都不应该参与过滤。在几何数据中存在两种相关性，一个是和阴影（即可见性）有关，另一个则是法线方向。为了尽可能减少这种相关性对聚集的影响，AGAA使用基于距离的分簇算法，因为我们可以假设在空间局部范围内，子像素之间的可见性和方向倾向于一致。
+所有预过滤技术都基于一个假设，即所有被过滤的属性之间没有相关性（correlation）\index{相关性correlation}\index[en]{correlation相关性}，其中一个属性是完全独立于另一个属性的，如果属性之间存在相关性，例如一个子像素不可见了，则其他的属性都不应该参与过滤。在几何数据中存在两种相关性，一个是和阴影（即可见性）有关，另一个则是法线方向。为了尽可能减少这种相关性对聚集的影响，AGAA使用基于距离的分簇算法，因为我们可以假设在空间局部范围内，子像素之间的可见性和方向倾向于一致。
 
 所以为了区分不同子采样点之间的聚集所属关系，我们需要计算每两个子像素之间的距离，子采样点$a$和$b$之间的距离$d$可以通过下式计算：
 
@@ -1254,7 +1254,7 @@ AGAA的处理过程包括4步，如图\ref{f:shade-agaa}所示：
 
 
 
-\subsubsection{生成几何聚集缓存}
+\subsubsection{生成聚集几何缓存}
 生成聚集几何缓存数据是AGAA中最重要的一步，也是该算法最核心的部分。AGAA基于多级纹理的预过滤技术，而所有预过滤技术都基于一个假设，即这些量和一个求和方程的其他项是线性无关的，使得它们可以被分离从来，以单独求其平均值。多级纹理的过滤技术就是提前将多个纹素按照一定的权重加权成一个纹素，然后直接供低分辨率的着色方程使用。而在着色方程中，多个子像素输入的几何数据也能够被分解成线性的组合，所以我们可以在着色计算之前，将这些几何数据进行过滤，按一定的权重求其加权平均值，然后直接供着色器使用。
 
 为了求每个聚集中对应子采样点几何数据的平均值，AGAA使用第二个光栅化几何通道，它对整个场景的几何数据以$n\times$MSAA的分辨率执行一次渲染，但是开启早期（在片元着色器之前）深度测试，并设置深度测试为EQUALS，这样就只有那些在前一通道可见的像素才会参与片元着色器的处理。

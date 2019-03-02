@@ -6,7 +6,7 @@
 
 我们可以将所有这些方法和理论分为两大类，其中第一类方法通过寻找更快的数学方法来比较精确地计算渲染积分方程（见第\ref{sec:intro-the-rendering-equation}节），这方面有两大经典方法：即基于有限元分解的辐射度理论，以及基于蒙特卡洛积分的光线追踪技术。
 
-有限元方法（finite element method，FEM）\myindex{有限元方法}{finite element method}是一种常见的积分计算方法，它将一个沿无限维空间的积分分解为一个有限纬度(称为一个有限元)的积分, 我们只需要求出每个有限元的均值，便可以很容易地计算出渲染积分方程，在辐射度理论中，我们通常通过蒙特卡洛等方法预计算出每个有限元的均值，供渲染时渲染方程的实时计算，关于有限元方法详见本书第\ref{chp:rad}章的内容；而基于蒙特卡洛（Monte Carlo）\myindex{蒙特卡洛}{Monte Carlo}的方法则是通过随机抽样, 使用有限个采样点的函数贡献值，来近似计算积分方程的值，这又称为对积分的估计，由于在渲染中一个这样的样本称为一条光线的路径，因此基于蒙特卡洛的方法又称为光线追踪技术，关于光线追踪技术详见本书第\ref{chp:path-tracing}章的内容。
+有限元方法（finite element method，FEM）\myindex{有限元方法}{finite element method}是一种常见的积分计算方法，它将一个沿无限维空间的积分分解为一个有限纬度(称为一个有限元)的积分, 我们只需要求出每个有限元的均值，便可以很容易地计算出渲染积分方程，在辐射度理论中，我们通常通过蒙特卡洛等方法预计算出每个有限元的均值，供渲染时渲染方程的实时计算，关于有限元方法详见本书第\ref{chp:rad}章的内容；而基于蒙特卡洛（Monte Carlo）\myindex{蒙特卡洛}{Monte Carlo}的方法则是通过随机采样, 使用有限个采样点的函数贡献值，来近似计算积分方程的值，这又称为对积分的估计，由于在渲染中一个这样的样本称为一条光线的路径，因此基于蒙特卡洛的方法又称为光线追踪技术，关于光线追踪技术详见本书第\ref{chp:path-tracing}章的内容。
 
 上述两种方法均能达到非常高的图像品质，然而它们的计算仍然十分耗时, 因此它们主要被用于影视动画等离线渲染领域，例如Pixar的RenderMan RIS就是基于光线追踪技术的渲染器产品。
 
@@ -81,7 +81,7 @@
 
 \cite{a:Shape-from-shadingonacloudyday}首次指出了这种环境阻挡对于图形识别以及增强图像质量的重要性，2010年Hayden Landis, Ken McGaugh和Hilmar Koch因为推进环境遮挡（ambient occlusion，AO）\myindex{环境遮挡}{ambient occlusion}在渲染技术中的运用而获得当年的奥斯卡科学技术奖，之后AO被大量应用于电影工业，如今主流的商业游戏引擎也几乎都支持某种程度（静态或动态）的AO。
 
-AO的计算实际上是要针对每个点，在该点法线对应的半空间上，针对每一个方向对可见性函数（visibility function）进行积分运算，其值为一个介于0到1之间表示遮挡程度的值。对于静态的场景我们可以预计算出这个值；在离线渲染的环境下，可以使用蒙特卡洛方法使用随机抽样的方式求积分\cite{a:GlobalIlluminationandAllThat}；而对于实时环境，则需要更高效的方法，例如由CryTek提出的基于屏幕空间的环境遮挡（screen space ambient occlusion，SSAO），以及Unreal Engine 4使用距离场来加速AO的计算。
+AO的计算实际上是要针对每个点，在该点法线对应的半空间上，针对每一个方向对可见性函数（visibility function）进行积分运算，其值为一个介于0到1之间表示遮挡程度的值。对于静态的场景我们可以预计算出这个值；在离线渲染的环境下，可以使用蒙特卡洛方法使用随机采样的方式求积分\cite{a:GlobalIlluminationandAllThat}；而对于实时环境，则需要更高效的方法，例如由CryTek提出的基于屏幕空间的环境遮挡（screen space ambient occlusion，SSAO），以及Unreal Engine 4使用距离场来加速AO的计算。
 
 
 
@@ -836,7 +836,7 @@ $E$称为点$(\xi,\eta)$的辐射照度（irradiance）\myindex{辐射照度}{ir
 
 可以看出，冲激串函数的傅里叶变换仍然为一个冲激串函数，这是一个非常重要的特性，由此我们可以得到采样后的函数$\tilde{f}(t)$的傅里叶变换为：
 
-\begin{equation}
+\begin{equation}\label{e:intro-temp1}
 \begin{aligned}
 	\tilde{F}(\mu)=&F(\mu)\star S(\mu)={\rm \int}^{\infty}_{-\infty}F(\tau)S(\mu-\tau){\rm d}\tau\\
 	=&\cfrac{1}{\Delta T}{\rm \int}^{\infty}_{-\infty}F(\tau)\sum^{\infty}_{n=-\infty}\delta\bigg(\mu-\tau-\cfrac{n}{\Delta T}\bigg){\rm d}\tau\\
@@ -847,7 +847,7 @@ $E$称为点$(\xi,\eta)$的辐射照度（irradiance）\myindex{辐射照度}{ir
 
 \noindent 其中，上式的第一行使用了卷积的基本定义，即两个函数的卷积等于它们乘积的积分，仍然需要注意的是，上述卷积中的翻转函数$S(\mu)$会在每个$\tau$处作用于整个函数$F(\tau)$的定义域上，而由于$S$是一个冲激串函数，我们把$\cfrac{1}{\Delta T}$项提到外面，就产生了一个神奇的结果，即它在每个位置处将$F(\mu)$复制一次，而复制的间隔由$1/\Delta T$决定。很明显，虽然采样后的函数$\tilde{f}(t)$（在空间域）是离散的，但是其傅里叶变换$\tilde{F}(\mu)$（在频率域）却是连续的，因为它由$F(\mu)$的几个拷贝组成，而$F(\mu)$是连续的。
 
-图\ref{f:intro-sampling-aliasing}显式了上述这种采样后函数的傅里叶变换图示，其中图\ref{f:intro-sampling-aliasing}(a)为原始连续带限函数$f(t)$的傅里叶变换，图\ref{f:intro-sampling-aliasing}(b)则表示采样后函数的傅里叶变换，如前所述，$1/\Delta T$是用于生成采样后函数的采样率。由此可以看出，为了保持对原始信号的重建能力，我们需要使用足够的采样率来保证$F(\mu)$的完整性，在图\ref{f:intro-sampling-aliasing}(c)中，采样率刚好能够保持$F(\mu)$，但在图\ref{f:intro-sampling-aliasing}(d)中，采样率低于保持不同$F(\mu)$拷贝的最小采样率要求。
+图\ref{f:intro-sampling-aliasing}显示了上述这种采样后函数的傅里叶变换图示，其中图\ref{f:intro-sampling-aliasing}(a)为原始连续带限函数$f(t)$的傅里叶变换，图\ref{f:intro-sampling-aliasing}(b)~(d)则表示采样后函数的傅里叶变换，如前所述，$1/\Delta T$是用于生成采样后函数的采样率。由此可以看出，为了保持对原始信号的重建能力，我们需要使用足够的采样率来保证$F(\mu)$的完整性，在图\ref{f:intro-sampling-aliasing}(c)中，采样率刚好能够保持$F(\mu)$，因此我们可以使用一个低通过滤器（如图中的虚线线段所示）来完全得多原始信号的所有频率信息，因此能够被完美重建，这部分的内容将在下一节讨论。而在图\ref{f:intro-sampling-aliasing}(d)中，采样率低于保持不同$F(\mu)$拷贝的最小采样率要求，因此它无法被完美重建。
 
 \begin{figure}
 	\sidecaption
@@ -856,7 +856,9 @@ $E$称为点$(\xi,\eta)$的辐射照度（irradiance）\myindex{辐射照度}{ir
 	\label{f:intro-sampling-aliasing}
 \end{figure}
 
-由此可知，当一个连续函数被采样成一个离散函数之后，其能够被重建为原函数的能力取决于采样点的密度(density of samples）\myindex{采样点的密度}{density of samples}，或称为采样率（sample rate）\myindex{采样率}{sample rate}。根据采样理论（the sampling theorem）\myindex{采样理论}{the sampling theorem}，对于一个带限函数$f(t)$，其最大的频率为$\mu_{\rm max}$，它能够完全被一系列以$1/(2\mu_{\rm max})$间隔采样的离散函数表示。换句话说，采样率必须大于或等于$2\mu_{\rm max}$采样点/秒，或者说对于一个采样率$f_s$，其离散函数能够被完美复原的条件是：$\mu_{\rm max}<f_s/2$。
+在图\ref{f:intro-sampling-aliasing}(d)中，由于采样后函数的周期变小，因此各个拷贝的相邻位置处发生重叠，如图\ref{f:intro-sampling-aliasing}(d)的红色线段部分所示，这部分的频率信息表现为相互叠加部分的和（这是因为式\ref{e:intro-temp1}是各个拷贝的和式），即这部分的频率信息被修改，因此发生了走样（aliasing）。实际上alias这个单词的意思是别名，这里的本意实际上是指某些频率信息被其他的频率值代替。可以想象，此时使用能够覆盖一个周期的低通过滤器，是不可能完全保留原始函数的所有频率信息的，因此无法被完美复原。
+
+由此可知，当一个连续函数被采样成一个离散函数之后，其能够被重建为原函数的能力取决于采样点的密度(density of samples）\myindex{采样点的密度}{density of samples}，或称为采样率（sample rate）\myindex{采样率}{sample rate}。根据采样理论（the sampling theorem）\myindex{采样理论}{the sampling theorem}，对于一个带限函数$f(t)$，其最大的频率为$\mu_{\rm max}$，它能够完全被一系列以$1/(2\mu_{\rm max})$间隔采样的离散函数表示。换句话说，采样率必须大于或等于$2\mu_{\rm max}$采样点/秒，或者说对于一个采样率$f_s$，其原始连续函数能够被完美复原的条件是：$\mu_{\rm max}<f_s/2$。
 
 当频率带宽$\mu_{\rm max}$太高（或者该函数完全不存在频率带宽），则这种不完美的复原导致的结果就是走样（aliasing）\myindex{走样}{aliasing}。这两个临界值$2\mu_{\rm max}$和$f_s/2$称作奈奎斯特采样率（Nyquist rate）\myindex{奈奎斯特采样率 }{Nyquist rate}和奈奎斯特频率（Nyquist frequency）\myindex{奈奎斯特频率}{Nyquist frequency}。由该采样定律定义的不等式条件称为奈奎斯特准则（Nyquist criterion）\myindex{奈奎斯特准则}{Nyquist criterion}。采样理论又称为奈奎斯特-香农采样定理（Nyquist–Shannon sampling theorem）\myindex{奈奎斯特-香农采样定理}{Nyquist–Shannon sampling theorem}以纪念Harry Nyquist和Claude Shannon对其的贡献。 
 
@@ -1077,11 +1079,11 @@ $E$称为点$(\xi,\eta)$的辐射照度（irradiance）\myindex{辐射照度}{ir
 \subsection{全屏反走样}\label{sec:intro-msaa}
  在第\ref{sec:intro-sampling}节讨论了几种形成走样的原因，其中的几何走样和着色走样这两种比较明显的走样是和分辨率有关的，所以如果我们能够从像素着色器（pixel shader）来解决走样的问题，或许我们能够解决所有由于分辨率带来的走样\footnote{注意，前面提到过着色走样并不能通过本节所讲述的MSAA技术减轻走样，本节稍后将会分析其原因。}。本节基于屏幕空间的反走样技术正是基于这样的思路，并且它通常是由硬件在渲染管线中直接实现的反走样技术，因此不对任何具体渲染实现有什么影响。
 
-在开始讨论具体的全屏反走样技术之前，首先我们应该思考的是，对于固定的屏幕分辨率（相当于固定的采样率），其反走样的思路是什么。通过前面对采样及滤波器等知识的学习，我们知道走样是一个采样问题，它不能通过任何技术手段在采样之后消除这种由采样不足导致的走样。那么走样是什么，走样是由于采样率低导致傅里叶变换的高频部分没有被覆盖，从而使相邻的采样点之间出现比较大的差值。所以，对于固定采样率的前提下，我们能做的事情就是对原始函数进行平滑，消除原始函数的高频部分，而这可以通过低通过滤器来实现（回想第\ref{sec:intro-reconstruction}节滤波器的主要功能是通过卷积实现平滑）。
+在开始讨论具体的全屏反走样技术之前，首先我们应该思考的是，对于固定的屏幕分辨率（相当于固定的采样率），其反走样的思路是什么。通过前面对采样及滤波器等知识的学习，我们知道走样是一个采样问题，它不能通过任何技术手段在采样之后消除这种由采样不足导致的走样。那么走样是什么，走样是由于采样率低导致傅里叶变换的高频部分被修改，从而使高频区域出现较大的误差。所以，在固定采样率的前提下，我们能做的事情就是对原始函数进行平滑，消除原始函数的高频部分，即减少了频率宽度，而这可以通过低通过滤器来实现（回想第\ref{sec:intro-reconstruction}节滤波器的主要功能是通过卷积实现平滑）。
 
 然而，在渲染中，我们通常并不能对原始函数进行平滑，一方面存储这样的原始函数（例如几何图形的可见性函数）需要大量的内存；另一方面，平滑是一个相对的概念，例如一个图像数据的频率对于$1920\times 1200$的分辨率来说是平滑的，但是它对于$1024\times 640$的分辨率来说频率带宽仍然太宽。这就是为什么纹理缩小时需要使用多级纹理（mipmap）\myindex{多级纹理}{mipmap}技术而不是直接从原始图像进行缩放。
 
-根据以上这些分析，过采样（oversampling）\myindex{过采样}{Oversampling}就是一种针对特定分辨率的反走样技术，它通过使用一个比输出分辨率略高的采样率对原始函数进行采样，并对这个高分辨率的样本函数使用滤波器进行平滑，然后对这个高分辨率的样本函数进行重采样得到输出分辨率的图像。
+根据以上这些分析，过采样（oversampling）\myindex{过采样}{Oversampling}就是一种针对特定分辨率的反走样技术，它通过使用一个比输出分辨率略高的采样率对原始函数进行采样，并对这个高分辨率的样本函数使用滤波器进行平滑（重建），然后对这个高分辨率的样本函数进行重采样得到输出分辨率的图像。
 
 过采样又称为超采样（supersampling）\myindex{超采样}{supersampling}，它是一种对每个像素点计算多个子采样点（subsamples）\myindex{子采样点}{subsamples}的反走样技术。其最简单的形式称为全屏反走样（full-scene antialiasing，FSAA）\myindex{全屏反走样}{full-scene antialiasing}，FSAA对场景以一个更高的分辨率进行渲染，然后对相邻的采样点取平均值得到最终图像，例如对于一个$1000\times 800$分辨率的图像，首先使用$2000\times 1600$的分辨率对场景进行渲染，然后对每个$2\times 2$的样本面积求平均值得到最终图像。这种技术的特点是实现非常简单，但是其计算成本很高，每一个子采样点都需要被使用完整的渲染管线进行着色。
 
@@ -1105,7 +1107,7 @@ MSAA需要借助图形API的光栅化技术来实现，在图形渲染管线（�
 	\label{f:intro-msaa}
 \end{figure}
 
-图\ref{f:intro-msaa}为DirectX 11中MSAA的实现，对于每个通过深度和模板测试的子采样点，其深度和模板值将被写入到缓冲区，该子采样点的颜色值由像素着色器计算，该颜色将被乘以该像素点的覆盖率，覆盖率是由几何图形所占区域的子采样点与总采样点之比。
+图\ref{f:intro-msaa}为DirectX 11中MSAA的实现，对于每个通过深度和模板测试的子采样点，其深度和模板值将被写入到缓冲区，该子采样点的颜色值由像素着色器计算，最后该颜色将被乘以该像素点的覆盖率，覆盖率是由几何图形所占区域中所有可见的子采样点与总采样点之比。
 
 在上述的光栅化过程中，像素着色器根据像素点中心的位置从纹理采样，以计算该像素的颜色值，然而如果几何图形只占据像素点的一小部分，则中心点不会被覆盖到，从而导致从纹理中不正确的位置获得颜色值。为了保证颜色计算的正确性，这个像素着色器使用的采样位置可以被调整到覆盖区域中某个点的位置，这种技术称为质心采样（centroid sampling）\myindex{质心采样}{centroid sampling}，或者质心插值（centroid interpolation）\myindex{质心插值}{centroid interpolation}。对于一个被几何图形覆盖的像素点，它首先从像素中心点开始寻找，如果中心点没被几何图形覆盖，则一次向外延伸直到找到一个被覆盖的子采样点，该点的位置将作为最终像素着色器对纹理采样的位置。
 
@@ -1415,7 +1417,7 @@ Disney提供有一个开源的BRDF工具BRDF Explorer\cite{m:BRDFExplorer}，这
 	f(\mathbf{l},\mathbf{v})=f_d+ \cfrac{R_F(\theta_h)G(\theta_l,\theta_v)D(\theta_h)}{4\cos\theta_l \cos\theta_v}
 \end{equation}
 
-\noindent 这个方程包含漫反射和光泽部分，其中漫反射通常与方向无关，为一个常数；而光泽部分包含三个组件：菲涅耳反射率$R_F(\theta_h)$，表示几何遮挡关系的$G(\theta_l,\theta_v)$，以及微面元法线分布函数$D(\theta_h)$，其中$D(\theta_h)$必须是归一化的。$\theta_l$和$\theta_v$分别表示入射方向$\mathbf{l}$和观察方向$\mathbf{v}$与表面法线$\mathbf{n}$的夹角，$\theta_h$是表面法线$\mathbf{n}$和半矢量$\mathbf{h}$之间的夹角，$\theta_d$则是入射方向$\mathbf{l}$和半矢量$\mathbf{h}$之间的差值。由于假设材质是各项同性（我们将在后面讨论各向异性材质的法线分布函数）的，因此微面元法线分布函数$D$仅有一个变量$\theta_h$。分母$4\cos\theta_l \cos\theta_v$表示一个从微观面元空间向宏观像素空间转变的转换因子，因为$f(\mathbf{l},\mathbf{v})$是宏观空间的一个度量。
+\noindent 这个方程包含漫反射和光泽部分，其中漫反射通常与方向无关，为一个常数；而光泽部分包含三个组件：菲涅耳反射率$R_F(\theta_h)$，表示几何遮挡关系的$G(\theta_l,\theta_v)$，以及微面元法线分布函数$D(\theta_h)$，其中$D(\theta_h)$必须是归一化的。$\theta_l$和$\theta_v$分别表示入射方向$\mathbf{l}$和观察方向$\mathbf{v}$与表面法线$\mathbf{n}$的夹角，$\theta_h$是表面法线$\mathbf{n}$和半矢量$\mathbf{h}$之间的夹角，$\theta_d$则是入射方向$\mathbf{l}$和半矢量$\mathbf{h}$之间的夹角。由于假设材质是各项同性（我们将在后面讨论各向异性材质的法线分布函数）的，因此微面元法线分布函数$D$仅有一个变量$\theta_h$。分母$4\cos\theta_l \cos\theta_v$表示一个从微观面元空间向宏观像素空间转变的转换因子，因为$f(\mathbf{l},\mathbf{v})$是宏观空间的一个度量。
 
 
 以下我们分别讨论微面元BRDF的各个部分，以及各个部分的选择，尤其我们要讨论几个主流游戏引擎各自的选择，这些选择大都基于或者源自\cite{a:PhysicallyBasedShadingatDisney}的BRDF模型。首先对于菲涅耳反射率，工业中比较广泛的解决方案还是前面讲述的Schlick近似，所以本节将集中讨论法线分布函数$D$以及几何遮挡函数$G$。
@@ -1482,7 +1484,7 @@ MERL BRDF数据库是对一些实物的进行测量，以二进制数据的方�
 \begin{aligned}
 	aspect&=\sqrt{1-0.9 anisotropic}\\
 	\alpha_x &=roughness^2/aspect\\
-		\alpha_y &=roughness^2\dot aspect
+		\alpha_y &=roughness^2\cdot aspect
 \end{aligned}
 \end{equation}
 
@@ -1669,7 +1671,7 @@ Metallic控制表面的“金属感”，金属和非金属是一个非此即彼
 
 那么Metallic参数是如何与BRDF函数发生作用的呢，在前面关于BRDF各部分的公式中似乎看不到Metallic相关的参数及其对BRDF的影响。
 
-这里需要从前面讲述的材质分类当中去寻找答案，前面第\ref{sec:intro-materials}节在讲述材质的时候说明，材质可以分为金属和非金属（或者绝缘体），而金属对折射进表面内部的光全部吸收，从而使金属材质将不会有光从表面内部再散射回来，因此金属材质没有漫反射部分。所以在Disney的BRDF模型中，他们对金属材质去掉漫反射部分，并使用Base Color的值作为光泽的入射光进行计算，不过他们仍然提供了一个$specularTint$供美术人员调整这种由入射光向$baseColor$的过度。由于这种特殊的计算方式，Metallic属性没有一个线性的计算公式，因此大部分解决方案都是使用混合的方式来实现0和1之外的插值。
+这里需要从前面讲述的材质分类当中去寻找答案，前面第\ref{sec:intro-materials}节在讲述材质的时候说明，材质可以分为金属和非金属（或者绝缘体），而金属将折射进表面内部的光全部吸收，从而使金属材质将不会有光从表面内部再散射回来，因此金属材质没有漫反射部分。所以在Disney的BRDF模型中，他们对金属材质去掉漫反射部分，并使用Base Color的值作为光泽的入射光进行计算，不过他们仍然提供了一个$specularTint$供美术人员调整这种由入射光向$baseColor$的过度。由于这种特殊的计算方式，Metallic属性没有一个线性的计算公式，因此大部分解决方案都是使用混合的方式来实现0和1之外的插值。
 
 对于Specular，前面我们说过，它其实等于$R_F(0^o)$的值，它表示入射光被反射的量，或者说反射率。需要注意的是，对于非金属而言，它们的反射率往往与波长无关，即它们RGB的分量相同，如表\ref{t:intro-fresnel-insulator}所示，因此它们对于光泽的反射，仅影响入射光的亮度，而通常不会影响其颜色。但是金属的反射率通常和波长是有关的，它对入射光不同的颜色分量通常具有不同的反射率，如表\ref{t:intro-fresnel-metal}所示。但是传统的金属渲染使用了一种简便的方式，它直接使用$baseColor$来代替入射光，并可能与漫反射部分进行混合（$metallic$介于0和1之间时），因此$specular$通常也是一个介于0到1之间的浮点值，而不是一个颜色值。
 

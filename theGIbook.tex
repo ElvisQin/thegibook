@@ -241,21 +241,51 @@
 \renewcommand{\arraystretch}{1.5}
 
 
-
-%\setCJKmainfont{SimSun}     % 语义和语法同fontspec
-%\setCJKsansfont{SimHei}
-%\setCJKmonofont{SimHei}
-
-
 \titleformat*{\subsection}{\large\bfseries\fontfamily{Times New Roman}}
 \titleformat*{\paragraph}{\normalsize\bfseries\fontfamily{Times New Roman}}
 
 
 
 
+\usepackage[framemethod=TikZ]{mdframed}
+\newcounter{revision}[section]
+\newenvironment{revision}[5][]{%
+\refstepcounter{revision}%
+\ifstrempty{#1}%
+{\mdfsetup{%
+frametitle={%
+\tikz[baseline=(current bounding box.east),outer sep=0pt]
+\node[anchor=east,rectangle,fill=blue!20]
+{\strut 修订~\therevision:~#1: #2};}}
+}%
+{\mdfsetup{%
+frametitle={%
+\tikz[baseline=(current bounding box.east),outer sep=0pt]
+\node[anchor=east,rectangle,fill=blue!20]
+{\strut 修订~\therevision:~#1: #2};}}%
+}%
+\mdfsetup{innertopmargin=10pt,linecolor=blue!20,%
+linewidth=2pt,topline=true,%
+frametitleaboveskip=\dimexpr-\ht\strutbox\relax
+}
+\vspace{0.5cm}
+\begin{mdframed}[]\relax%
+\textbf{类型}：#3\\
+\textbf{读者}：#4\\
+\textbf{地址}：#5\\
+\textbf{问题简述}：
+}{\end{mdframed}}
+
+
+
+
+
+
+
+
 \begin{document}
 \dominitoc
-%\includepdf[pages={1,{}}]{figures/Cover-front}
+\includepdf[pages={1,{}},width=190mm]{figures/Cover-front}
 
 \thispagestyle{empty}
 
@@ -286,32 +316,30 @@
 \pagenumbering{roman}
 \setcounter{page}{-1}
 
-\include{templates/dedic}
-%\include{templates/foreword}
-\include{templates/preface}
-%\include{templates/acknow}
 
+%\begin{comment}
+
+\include{templates/dedic}
+\include{templates/preface}
 
 \setcounter{tocdepth}{2}
 \renewcommand*\contentsname{目~~录}
 \tableofcontents
 \clearpage
 
+%\end{comment}
+
 
 \mainmatter
 \input{chapters/chapters}
 
+\input{templates/revision}
 
-
-
-%\input{templates/chapter}
-%\input{templates/appendix}
 
 
 \backmatter
-%\include{templates/glossary}
-%\include{templates/solutions}
-%\include{templates/epilogue}
+
+
 
 
 \newgeometry{centering,paperwidth=190mm,paperheight=240mm,left=22mm,top=24mm,marginparsep=0mm,marginparwidth=0mm,textwidth=153mm,height=200mm}
@@ -324,10 +352,7 @@
 \addcontentsline{toc}{chapter}{参~考~文~献}\mtcaddchapter 
 
 
-%\begin{comment}
-
-
-
+\begin{comment}
 
 \small
 \extrachap{专有名词索引}
@@ -337,13 +362,11 @@
 \newpage
 \printindex[en]
 
-%\extrachap{数学概念索引}
-%\addcontentsline{toc}{chapter}{数学概念索引}\mtcaddchapter 
 
-%\printindex[math-zh]
-%\printindex[math-en]
-%\end{comment}
+\end{comment}
+
+\pagestyle{empty}
 
 
-%\includepdf[pages={{},1}]{figures/Cover-end}
+\includepdf[pages={{1-2}},width=190mm]{figures/Cover-end}
 \end{document}
