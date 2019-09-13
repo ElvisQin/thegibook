@@ -421,7 +421,7 @@ $E$称为点$(\xi,\eta)$的辐射照度（irradiance）\myindex{辐射照度}{ir
 当然，几何光学模型仍然比较复杂，在计算机图形学中，我们作出了一些简化假设，这虽然限制了一些效果如衍射，但是它处理起来相对简单，并且满足一般图形学的需求。这些假设包括：
 
 \begin{itemize}
-	\item 物体的表面是绝对光滑\footnote{当然现实世界的物体表面不是绝对光滑的，但是这种粗糙度介于光的波长和一个像素的尺寸之间，这种粗糙度可以通过下一节介绍的微面元技术实现，它本质上是反射和折射的一种聚合。}（smooth）的。
+	\item 物体的表面是绝对光滑\footnote{真实世界的物体表面不是绝对光滑的，它的粗糙度介于光的波长和一个像素的尺寸之间，这种粗糙度可以通过下一节介绍的微面元技术实现，它本质上是反射和折射的一种聚合。}（smooth）的。
 	\item 光仅可以被发射（emitted），反射（reflected）或者传播（transmitted）。
 	\item 光以无限快的速度沿直线传播。
 \end{itemize} 
@@ -1099,7 +1099,7 @@ $E$称为点$(\xi,\eta)$的辐射照度（irradiance）\myindex{辐射照度}{ir
 
 超采样技术对每个子采样点的着色，深度及位置等都需要进行单独的计算。对于由几何图形光栅化导致的走样，实际上我们只需要对其可见性函数进行采样即可，即是说我们可以将可见性函数从着色当中分离出来，这样对于每个像素点只需要计算一次着色（即执行一次像素着色器），这样将大大减少反走样的计算量。基于这样思路的反走样技术称为多重采样反走样（multisample antialiasing，MSAA）\myindex{多重采样反走样}{multisample antialiasing}。然而其代价是由于每个像素的颜色只计算一次，因此它不能实现着色走样的反走样，这仍然需要借助多级纹理等技术来实现。
 
-MSAA需要借助图形API的光栅化技术来实现，在图形渲染管线（见第\ref{chp:pipeline}章）的光栅化阶段，光栅化器根据输入的几何图形的顶点，按照输出分辨率将几何图形光栅化成一个个像素点，然后对每个像素点执行一个像素着色器以计算该像素颜色，深度，模板值，其中像素着色器只计算颜色值，而深度值由光栅化器计算，模板值则应用程序对图形接口的调用来决定。而在一个实现MSAA的光栅化器，它会对每个像素生成多个子采样点，并计算每个子采样点的深度和模板值，而对于颜色值，光栅化器对每个像素只调用一次像素着色器，然后将计算结果复制给每个子采样点。
+MSAA需要借助图形API的光栅化技术来实现，在图形渲染管线的光栅化阶段，光栅化器根据输入的几何图形的顶点，按照输出分辨率将几何图形光栅化成一个个像素点，然后对每个像素点执行一个像素着色器以计算该像素颜色，深度，模板值，其中像素着色器只计算颜色值，而深度值由光栅化器计算，模板值则应用程序对图形接口的调用来决定。而在一个实现MSAA的光栅化器，它会对每个像素生成多个子采样点，并计算每个子采样点的深度和模板值，而对于颜色值，光栅化器对每个像素只调用一次像素着色器，然后将计算结果复制给每个子采样点。
 
 \begin{figure}
 	\includegraphics[width=1.\textwidth]{figures/intro/msaa}
@@ -1253,9 +1253,9 @@ MSAA相对于超采样大大减少了计算量（每个像素着色器只执行�
 \end{fullwidth}
 \end{figure}
 
-由于物体表面微观结构上不是绝对光滑的，所以导致表面上的每个点反射或折射光\footnote{这里的入射光实际上是一个物体表面一个像素尺寸大小的范围内接收的来自某个方向的所有光线，实际上是微观上的多条光线。}至多个不同的方向（每个方向一条光线）。所以给定一个入射方向，BRDF的值分布在所有可能的出射方向上。在图\ref{f:intro-brdf-models}中，球面的部分是漫反射部分，因为漫反射可能沿所有出射方向都有反射光；叶形状部分则是光泽反射部分。
+由于物体表面微观结构不是绝对光滑的，这导致表面上的每个点反射或折射光\footnote{这里的入射光实际上是一个物体表面一个像素尺寸大小的范围内接收的来自某个方向的所有光线，实际上是微观上的多条光线。}至多个不同的方向（每个方向一条光线）。所以给定一个入射方向，BRDF的值分布在所有可能的出射方向上。在图\ref{f:intro-brdf-models}中，球面的部分是漫反射，因为漫反射可能沿所有出射方向都有反射光；叶形状部分则是光泽反射部分。
 
-Disney提供有一个开源的BRDF工具BRDF Explorer\cite{m:BRDFExplorer}，这个工具可以导入并绘制给定的BRDF模型，这些BRDF模型可以由OpenGL GLSL着色语言编写，或者来自MERL数据库的对真实材质测量的BRDF二进制数据，以及MIT CSAIL的各向异性的BRDF数据格式。当参数发生改变时，环境可以被实时地重新渲染，可以非常方便地用来分析和评估不同的BRDF模型。
+Disney提供有一个开源的BRDF工具（BRDF Explorer\cite{m:BRDFExplorer}），它可以导入并绘制给定的BRDF模型，这些BRDF模型可以由OpenGL GLSL着色语言编写，或者来自MERL数据库的对真实材质测量的BRDF二进制数据，以及MIT CSAIL的各向异性BRDF数据格式。当参数改变时，环境可以被实时地重新渲染，可以非常方便地用来分析和评估不同的BRDF模型。
 
 
 
@@ -1570,7 +1570,7 @@ Unreal Engine 4\cite{a:RealShadinginUnrealEngine4}则选择使用Schlick\cite{a:
 
 
 \subsubsection{漫反射BRDF}
-对于漫反射，出于性能的考虑，工业中比较流行的方案是朗伯BRDF（Lambert BRDF）\myindex{朗伯BRDF}{Lambert BRDF}模型，即光从各个方向以相同的亮度反射，所以BRDF函数是一个常数：
+出于性能的考虑，工业中流行的漫反射方案是朗伯BRDF（Lambert BRDF）\myindex{朗伯BRDF}{Lambert BRDF}模型，即光从各个方向以相同的亮度反射，所以BRDF函数是一个常数：
 
 \begin{equation}\label{eq:intro-lambert-diff}
 	f_{d}(\mathbf{l},\mathbf{v})= \cfrac{\mathbf{c}_{\rm diff}}{\pi}
@@ -1634,7 +1634,7 @@ Unreal Engine 4\cite{a:RealShadinginUnrealEngine4}则选择使用Schlick\cite{a:
 \end{fullwidth}
 \end{figure}
 
-Base Color表示物体表面的真实颜色，如图\ref{f:intro-basecolor}所示，它是美术设计师在设计表面的时候对其绘制的实际颜色，它通常使用一个纹理来记录一个表面各个位置的颜色值。Base Color即是方程\ref{eq:intro-lambert-diff}中的$\mathbf{c}_{\rm diff}$，以及方程\ref{eq:intro-Disney-diff}中的$baseColor$参数。
+Base Color表示物体表面的真实颜色，如图\ref{f:intro-basecolor}所示，是美术设计师在设计表面时对其绘制的实际颜色，通常使用纹理来记录一个表面各个位置的颜色值。Base Color即是方程\ref{eq:intro-lambert-diff}中的$\mathbf{c}_{\rm diff}$，以及方程\ref{eq:intro-Disney-diff}中的$baseColor$参数。
 
 \begin{shaded}
 为什么$baseColor$或者$\mathbf{c}_{\rm diff}$表示物体表面的“真实颜色”？这里我们需要理解着色的概念到底是什么，任何物体在没有光照的时候都是看不见的，可以说一个物体本身是不具备任何“颜色”的（发光的光源除外），着色的过程即是将光照射在物体表面，从而计算物体表面呈现的颜色的过程。光与物体表面进行交互分为两种方式：光泽反射和漫反射（这里仅分析绝缘体，后面会详细解释金属），对于光泽反射，它的反射率的RGB分量是一样的，即它不会改变入射光的颜色，仅改变其亮度，如表\ref{t:intro-fresnel-insulator}（见第\pageref{t:intro-fresnel-insulator} 页）所示。因此光泽反映的是光源本身，例如一个白色点光源在物体表面光泽部分看到的仍然是一个白色的（亮度被菲涅耳反射率缩放）小圆点形状，使用环境贴图作为光源则会在物体表面“印上”周围的环境。所以光泽反射几乎与物体表面的真实颜色无关。
@@ -1731,7 +1731,7 @@ Metallic控制表面的“金属感”，金属和非金属是一个非此即彼
 
 
 \subsection{双向散射分布函数}\label{sec:intro-bsdf}
-前面讨论的BRDF模型通过少数几个参数就可以表述比较广泛的材质，并可以渲染出逼真的图像品质，但是对于如折射，次表面散射还是需要使用其他一些特别的(ad hoc)方法来专门处理。然而这些特别的方法通常不能保证能量守恒，因此当整个渲染器是基于光线追踪的技术来计算光照时，这种能量的不守恒将会被放大，以至于使整个图像品质失真，因为光线追踪技术对这些特别的函数进行采样，并依此在场景中通过光的传播传递能量，如果这些采样函数本身不能保证能量守恒，它将会导致这些传递的能量完全是错误的。这就是Disney在2014年开发新的基于光线追踪技术的渲染器Hyperion\footnote{关于Disney的Hyperion渲染技术，我们将在第\ref{chp:path-tracing}章详细讨论。}时遇到的困难。我们需要一个对反射，折射以及次表面散射效果更统一的，并能保证能量守恒的模型。
+前面讨论的BRDF模型通过少数几个参数就可以表述比较广泛的材质，并可以渲染出逼真的图像品质，但是对于如折射，次表面散射还是需要使用其他一些特别的(ad hoc)方法来专门处理。然而这些特别的方法通常不能保证能量守恒，因此当整个渲染器是基于光线追踪的技术来计算光照时，这种能量的不守恒将会被放大，以至于使整个图像品质失真，因为光线追踪技术对这些特别的函数进行采样，并依此在场景中通过光的传播传递能量，如果这些采样函数本身不能保证能量守恒，它将会导致这些传递的能量完全是错误的。这就是Disney在2014年开发新的基于光线追踪技术的渲染器Hyperion\footnote{关于Disney的Hyperion渲染技术，我们将在第\ref{chp:path-tracing}章详细讨论。}时遇到的困难。因此，我们需要一个对反射，折射以及次表面散射效果更统一的，并能保证能量守恒的模型。
 
 这使我们将目光转移到更一般的双向散射分布函数（bidirectional scattering distribution function，BSDF）\myindex{双向散射分布函数}{bidirectional scattering distribution function}，它其实是BRDF和BTDF的总和。BTDF全称为双向折射分布函数（bidirectional transmittance distribution function，BTDF）\myindex{双向折射分布函数}{bidirectional transmittance distribution function}，它和BRDF的形式基本一样，唯一的区别是BTDF的观察方向是在折射方向范围内。这样BSDF就表示，给定某点的入射方向和出射方向（在反射范围或折射范围内），出射方向上辐射亮度增量与入射方向辐射照度增量的比率。
 
@@ -1869,7 +1869,7 @@ Walter介绍的BTDF模型同样基于前面讨论的微面元理论，即宏观�
 	{\rm \int}^{2\pi}_0{\rm \int}^\infty_0 R_{\rm d}(r)r{\rm d}r{\rm d}\phi=1
 \end{equation}
 
-\noindent 因此该配置称为归一化的\footnote{通过后面的Monte Carlo积分，归一化的分布函数可以简单地使用Inversion Method对其采样。}散射（normalized diffusion），因为其是归一化的，所以每一个点的漫反射颜色值可以通过对整个表面做积分的结果乘以$baseColor$来计算。他们通过一个参数$scatterDistance$来表示参数$d$，当$scatterDistance=0$时，直接使用原来的BRDF漫反射模型。注意，Disney的BSDF模型中可以分别对R，G和B设置不同的$scatterDistance$值，$scatterDistance$本质上控制$R(r)$曲线的高度和宽度，对于美术人员来讲，它可以理解为次表面的柔和度（softness）。如图\ref{f:intro-bssrdf-sss}表示不同柔和度下的效果。
+\noindent 因此该配置称为归一化的\footnote{从后面的内容可知，归一化的分布函数可以简单地使用Inversion Method来采样。}散射（normalized diffusion），因为其是归一化的，所以每一个点的漫反射颜色值可以通过对整个表面做积分的结果乘以$baseColor$来计算。他们通过一个参数$scatterDistance$来表示参数$d$，当$scatterDistance=0$时，直接使用原来的BRDF漫反射模型。注意，Disney的BSDF模型中可以分别对R，G和B设置不同的$scatterDistance$值，$scatterDistance$本质上控制$R(r)$曲线的高度和宽度，对于美术人员来讲，它可以理解为次表面的柔和度（softness）。如图\ref{f:intro-bssrdf-sss}表示不同柔和度下的效果。
 
 \begin{figure}
 \begin{fullwidth}
@@ -1970,7 +1970,7 @@ specular transmission &= (1-F)DG
 
 
 \subsection{光线路径表达式}
-在开始介绍路径追踪技术之前，我们需要首先介绍一下光照路径表达式的概念。光照路径表达式（light path expressions）\myindex{光照路径表达式}{light path expressions}是全局光照算法中一个非常有用的工具，它可以用于度量一个全局光照算法中从光源到摄像机所能形成的路径形式，它可以用以指导这些算法是否应该增加或减少某些光照路径的采样密度来实现不同的效果。例如，焦散效果路径（caustic path）\myindex{焦散路径}{caustic path}可能会导致很多噪点，除非我们使用代价高得多的采样数量，因此有些路径追踪算法可以直接忽略掉焦散效果以减少噪点；此外，区分漫反射和光泽反射也是减少噪点的一种必要手段。
+在开始介绍路径追踪技术之前，需要首先介绍一下光照路径表达式的概念。光照路径表达式（light path expressions）\myindex{光照路径表达式}{light path expressions}是全局光照算法中一个非常有用的工具，它可以用于度量一个全局光照算法中从光源到摄像机所能形成的路径形式，它可以用以指导这些算法是否应该增加或减少某些光照路径的采样密度来实现不同的效果。例如，焦散路径（caustic path）\myindex{焦散路径}{caustic path}可能会导致很多噪点，除非使用代价高得多的采样数量，因此有些路径追踪算法可以直接忽略掉焦散效果以减少噪点；此外，区分漫反射和光泽反射也是减少噪点的一种必要手段。
 
 光照路径可以使用\cite{a:Adaptiveradiositytexturesforbidirectionalraytracing}中提到的简明的形式进行表示：$E$表示摄像机，$L$表示光源或发光体，$D$表示一次漫反射，$S$表示一次光泽反射，$V$表示体积内的散射，$|$表示对两边的路径取或，$*$表示零次或多次重复，$+$表示一次或多次重复，$[x]$表示路径是可选的。
 
