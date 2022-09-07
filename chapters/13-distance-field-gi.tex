@@ -1244,7 +1244,7 @@ DDM 的压缩方案如图\ref{f:df-ddm-compression}所示，与前面介绍的�
 \begin{fullwidth}
 	\includegraphics[width=\thewidth]{figures/shadows/depth-bias}
 	\caption{阴影贴图算法，首先将摄像机置于光源的位置并使用光栅化渲染一张阴影贴图，其中存储的是表面像素的深度值，然后在像素着色器中，如果该像素相对于光源的深度大于阴 影贴图中对应位置处的深度值，则该像素位于阴影当中（图片来自\cite{b:rts}）}
-	\label{f:df-depth-bias}
+	\label{f:df-depth-bias} % orig
 \end{fullwidth}
 \end{figure}
 
@@ -1260,7 +1260,7 @@ DDM 的压缩方案如图\ref{f:df-ddm-compression}所示，与前面介绍的�
 		\caption{彼得潘问题}
 	\end{subfigure}
 	\caption{(a)由表面的自我遮挡形成的阴影瑕疵，以及(b)由于光照泄露形成的彼得潘问题（图片 来自 Unity3D 官方文档）}
-	\label{f:df-depth-bias}
+	\label{f:df-depth-bias} % dup
 \end{figure}
 
 针对阴影瑕疵的问题，我们期望选择的偏差值的大小其实依赖于表面相对 于光源的角度，例如表面与光线方向之间的夹角越大，则需要的偏差值越小， 反之则越大。所以比较标准的做法是针对这种情况来动态调整实际使用的偏差 值。\cite{a:Eliminatesurfaceacnewithgradientshadowmapping}提出了一种方法，该方法依赖于两个偏差值，其中一个常数的偏差值，另一个偏差值则依赖于根据表面所在三角形的斜率，算法根据这个斜率来对阴影贴图样本的深度值进行插值，从而得出一个适当的调整偏差。另外一些常用的方法也根据表面法线等信息来动态计算偏差值\cite{a:Adaptivedepthbiasforshadowmaps}， \cite{b:rts}包含了更多的实践方法，这里不再对其详细讨论。
@@ -1386,7 +1386,7 @@ DDM 的压缩方案如图\ref{f:df-ddm-compression}所示，与前面介绍的�
 		\caption{密度缓存}
 	\end{subfigure}
 \caption{使用两个缓存来计算软阴影，其中密度缓存 (b) 记录了“硬阴影”边界，而距离缓存 (a) 记录了像素到其最近遮挡物的距离值，前者用来选择一个核函数的窗宽，对后者执行过滤（图片来自\cite{a:Implementingfastraytracedsoftshadowsinagameengine}）}
-\label{f:df-ray-tracing-buffers}
+\label{f:df-ray-tracing-buffers} % orig
 \end{fullwidth}
 \end{figure}
 
@@ -1417,7 +1417,7 @@ DDM 的压缩方案如图\ref{f:df-ddm-compression}所示，与前面介绍的�
 	\end{subfigure}
 }
 \caption{半影区的尺寸计算，对密度缓存中像素值的过滤并不同于一般的过滤方法，这里对位于阴影区内和外的像素使用的核函数的窗宽，使用不同的策略进行选取（图片来自\cite{a:Implementingfastraytracedsoftshadowsinagameengine}）}
-\label{f:df-ray-tracing-buffers}
+\label{f:df-ray-tracing-buffers} % dup
 \end{figure}
 
 如果像素位于照亮区，由于这些位置根本没有距离值，但是它可能受附近 阴影像素的影响，所以这里使用一种交叉搜索算法，该搜索算法试图寻找出另外一个对该像素位置具有阴影影响的像素。如果在 $X$ 和 $Y$ 轴上有像素位于阴 影区，则使用最大的那个距离值作为该像素的半影尺寸，如图\ref{f:df-ray-tracing-buffers}(b) 所示。

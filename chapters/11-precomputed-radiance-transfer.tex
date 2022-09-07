@@ -1100,7 +1100,7 @@ $ZXZXZ$方法中的缺点在于围绕$y$轴的计算很耗时，\cite{a:FastAppr
 			\caption{雅可比加权}
 	\end{subfigure}
 	\caption{不同基函数$b_i(x)$对一个粗糙表面的GGX核函数的重建结果，这里对每个像素均使用8个样本进行重建，好的基函数能够大大减少需要的方向样本的数量，提高了精确度并加快了收敛速度（图片来自\cite{a:FastFilteringofReflectionProbes}）}
-	\label{f:pl-reconstruction-comparation}
+	\label{f:pl-reconstruction-comparation} % orig
 \end{fullwidth}
 \end{figure}
 
@@ -1733,7 +1733,7 @@ L2范数又称为最小二乘法（least squares）\mathindex{最小二乘法}{l
 			\caption{执行可见性判断的体积光照贴图效果}
 	\end{subfigure}
 	\caption{图中展示了三个简单的场景，其中(a)仅包含直接光照，由于直接光照包含可见性测试所以其结果是正确的，然而当使用体积光照贴图来计算间接光照时，由于缺乏可见性测试，两个相邻但是光照条件完全不同的场景之间就会出现光照泄露(b)，在(c)中，通过简单地在体积光照样本和着色像素之间添加可见性测试，这种光照泄露可以被很好地控制（图片来自\cite{a:Lightprobeinterpolationusingtetrahedraltessellations}）}
-	\label{f:pl-reconstruction-comparation}
+	\label{f:pl-reconstruction-comparation} % dup
 \end{fullwidth}
 \end{figure}
 
