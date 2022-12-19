@@ -1,43 +1,28 @@
 name: Build
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - 'master'
+  pull_request:
 
 jobs:
-  extract-fonts:
-    runs-on: macos-latest
-    steps:
-      - run: |
-          ls -lah /Library/Fonts/
-          ls -lahR /System/Library/Fonts/
-
   build-pdf:
     runs-on: ubuntu-latest
     container:
       image: texlive/texlive
 
     steps:
-      - name: Install dependences
-        run: |
-          apt update
-          apt install libarchive-tools
-          apt install p7zip-full
-          apt install wget
-
-      - name: Install Windows fonts
-        run: |
-          wget https://software-static.download.prss.microsoft.com/dbazure/988969d5-f34g-4e03-ac9d-1f9786c66751/22621.525.220925-0207.ni_release_svc_refresh_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso
-          7z e *.iso sources/install.wim
-          rm -fv *.iso
-          7z e install.wim -y -r 'simsun.ttc'
-          rm -fv *.wim
-          install -vDm644 -t "/usr/share/fonts/TTF/" *.ttc
-
       - uses: actions/checkout@v3
+
+      - name: Replace fontset
+        run: |
+          # workaround for missing fonts in action runner
+          sed -i 's/fontset *= *my/fontset = fandol/g' theGIbook.tex
 
       - name: Build pass 1
         run: xelatex -halt-on-error theGIbook
       - name: Build pass 2
-        run: bibtex -halt-on-error theGIbook
+        run: bibtex theGIbook
       - name: Build pass 3
         run: xelatex -halt-on-error theGIbook
       - name: Build pass 4
