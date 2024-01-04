@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkthegibook=self.webpackChunkthegibook||[]).push([[1145],{6556:o=>{o.exports=JSON.parse('{"permalink":"/thegibook/blog/tags/docusaurus","page":1,"postsPerPage":10,"totalPages":1,"totalCount":4,"blogDescription":"Blog","blogTitle":"Blog"}')}}]);

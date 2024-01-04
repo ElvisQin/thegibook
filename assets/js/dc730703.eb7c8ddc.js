@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkthegibook=self.webpackChunkthegibook||[]).push([[8216],{8106:o=>{o.exports=JSON.parse('{"permalink":"/thegibook/blog/tags/hola","page":1,"postsPerPage":10,"totalPages":1,"totalCount":1,"blogDescription":"Blog","blogTitle":"Blog"}')}}]);

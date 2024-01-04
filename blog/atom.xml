@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
-    <id>https://thegibook.com/blog</id>
+    <id>https://thegibook.com/thegibook/blog</id>
     <title>TheGIBook Blog</title>
     <updated>2021-08-26T00:00:00.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
-    <link rel="alternate" href="https://thegibook.com/blog"/>
+    <link rel="alternate" href="https://thegibook.com/thegibook/blog"/>
     <subtitle>TheGIBook Blog</subtitle>
-    <icon>https://thegibook.com/img/thegibook.jpg</icon>
+    <icon>https://thegibook.com/thegibook/img/thegibook.jpg</icon>
     <entry>
         <title type="html"><![CDATA[Welcome]]></title>
-        <id>https://thegibook.com/blog/welcome</id>
-        <link href="https://thegibook.com/blog/welcome"/>
+        <id>https://thegibook.com/thegibook/blog/welcome</id>
+        <link href="https://thegibook.com/thegibook/blog/welcome"/>
         <updated>2021-08-26T00:00:00.000Z</updated>
         <summary type="html"><![CDATA[Docusaurus blogging features are powered by the blog plugin.]]></summary>
         <content type="html"><![CDATA[<p><a href="https://docusaurus.io/docs/blog" target="_blank" rel="noopener noreferrer">Docusaurus blogging features</a> are powered by the <a href="https://docusaurus.io/docs/api/plugins/@docusaurus/plugin-content-blog" target="_blank" rel="noopener noreferrer">blog plugin</a>.</p>
@@ -22,7 +22,7 @@
 <li><code>2019-05-30-welcome/index.md</code></li>
 </ul>
 <p>A blog post folder can be convenient to co-locate blog post images:</p>
-<p><img loading="lazy" alt="Docusaurus Plushie" src="https://thegibook.com/assets/images/docusaurus-plushie-banner-a60f7593abca1e3eef26a9afa244e4fb.jpeg" width="1500" height="500" class="img_ev3q"></p>
+<p><img loading="lazy" alt="Docusaurus Plushie" src="https://thegibook.com/thegibook/assets/images/docusaurus-plushie-banner-a60f7593abca1e3eef26a9afa244e4fb.jpeg" width="1500" height="500" class="img_ev3q"></p>
 <p>The blog supports tags as well!</p>
 <p><strong>And if you don't want a blog</strong>: just delete this directory, and use <code>blog: false</code> in your Docusaurus config.</p>]]></content>
         <author>
@@ -39,8 +39,8 @@
     </entry>
     <entry>
         <title type="html"><![CDATA[MDX Blog Post]]></title>
-        <id>https://thegibook.com/blog/mdx-blog-post</id>
-        <link href="https://thegibook.com/blog/mdx-blog-post"/>
+        <id>https://thegibook.com/thegibook/blog/mdx-blog-post</id>
+        <link href="https://thegibook.com/thegibook/blog/mdx-blog-post"/>
         <updated>2021-08-01T00:00:00.000Z</updated>
         <summary type="html"><![CDATA[Blog posts support Docusaurus Markdown features, such as MDX.]]></summary>
         <content type="html"><![CDATA[<p>Blog posts support <a href="https://docusaurus.io/docs/markdown-features" target="_blank" rel="noopener noreferrer">Docusaurus Markdown features</a>, such as <a href="https://mdxjs.com/" target="_blank" rel="noopener noreferrer">MDX</a>.</p>
@@ -53,8 +53,8 @@
     </entry>
     <entry>
         <title type="html"><![CDATA[Long Blog Post]]></title>
-        <id>https://thegibook.com/blog/long-blog-post</id>
-        <link href="https://thegibook.com/blog/long-blog-post"/>
+        <id>https://thegibook.com/thegibook/blog/long-blog-post</id>
+        <link href="https://thegibook.com/thegibook/blog/long-blog-post"/>
         <updated>2019-05-29T00:00:00.000Z</updated>
         <summary type="html"><![CDATA[This is the summary of a very long blog post,]]></summary>
         <content type="html"><![CDATA[<p>This is the summary of a very long blog post,</p>
@@ -84,8 +84,8 @@
     </entry>
     <entry>
         <title type="html"><![CDATA[First Blog Post]]></title>
-        <id>https://thegibook.com/blog/first-blog-post</id>
-        <link href="https://thegibook.com/blog/first-blog-post"/>
+        <id>https://thegibook.com/thegibook/blog/first-blog-post</id>
+        <link href="https://thegibook.com/thegibook/blog/first-blog-post"/>
         <updated>2019-05-28T00:00:00.000Z</updated>
         <summary type="html"><![CDATA[Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque elementum dignissim ultricies. Fusce rhoncus ipsum tempor eros aliquam consequat. Lorem ipsum dolor sit amet]]></summary>
         <content type="html"><![CDATA[<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque elementum dignissim ultricies. Fusce rhoncus ipsum tempor eros aliquam consequat. Lorem ipsum dolor sit amet</p>]]></content>
