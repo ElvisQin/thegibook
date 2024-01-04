@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkthegibook=self.webpackChunkthegibook||[]).push([[3658],{8684:e=>{e.exports=JSON.parse('{"label":"hello","permalink":"/thegibook/blog/tags/hello","allTagsPath":"/thegibook/blog/tags","count":2,"unlisted":false}')}}]);
