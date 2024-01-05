@@ -8,7 +8,7 @@ export default function Figure({ id, num, caption, children }) {
             <div align="center" id={id}>
                 {children}
             </div>
-            <p align="left"><b>图{num}：</b>{caption}</p>
+            <p align="left"><b>图（{num}）：</b>{caption}</p>
         </div>
     )
 }
