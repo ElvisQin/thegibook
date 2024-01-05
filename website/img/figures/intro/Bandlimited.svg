@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="483.2pt" height="246.4pt" viewBox="0 0 483.2 246.4">
+<g>
+<path stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke="#0000ff" d="M95.539 213.68C150.848 190.398 140.008 104.887 156.859 98.039 174.129 91.016 187.973 113.828 199.016 111.109 217.957 106.441 205.891 68.355 242.477 68.953 276.152 69.508 268.621 106.695 282.672 110.457 298.426 114.672 314.777 86.578 326.789 97.441 349.137 117.645 330.547 180.281 386.266 213.449"/>
+<path stroke-width="2" stroke-linecap="butt" stroke-miterlimit="4" stroke-linejoin="miter" fill="none" stroke="#000000" d="M241.785 229.406 242.109 15.031"/>
+<path stroke-width="2" stroke-linecap="butt" stroke-miterlimit="4" stroke-linejoin="miter" fill="none" stroke="#000000" d="M473.191 214.047 1.633 214.375"/>
+<path d="M235.574 19.078 242.152 5.84 248.809 19.238 241.988 16.055ZM235.574 19.078" fill-rule="evenodd"/>
+<path stroke-width=".8" stroke-linecap="butt" stroke-miterlimit="4" stroke-linejoin="miter" fill="none" stroke="#000000" d="M235.574 19.078 242.152 5.84 248.809 19.238 241.988 16.055ZM235.574 19.078"/>
+<path d="M468.699 207.594 481.934 214.172 468.535 220.828 471.723 214.008ZM468.699 207.594" fill-rule="evenodd"/>
+<path stroke-width=".8" stroke-linecap="butt" stroke-miterlimit="4" stroke-linejoin="miter" fill="none" stroke="#000000" d="M468.699 207.594 481.934 214.172 468.535 220.828 471.723 214.008ZM468.699 207.594"/>
+<text xml:space="preserve" transform="matrix(1 0 -0 1 0 246.4)" font-size="22.4" font-family="TimesNewRomanPS" font-style="italic"><tspan y="-226.13899" x="256.16523 269.82923 275.42924 282.88844 288.48844 299.68846">X ( &#x0192;)</tspan><tspan y="-11.11087" x="445.83869 451.4387"> &#x0192;</tspan><tspan y="-9.150154" x="377.45866">B</tspan></text>
+<text xml:space="preserve" transform="matrix(1 0 -0 1 0 246.4)" font-size="22.4" font-family="TimesNewRomanPS" font-style="italic"><tspan y="-8.49654" x="80.353549">&#x2212;</tspan></text>
+<text xml:space="preserve" transform="matrix(1 0 -0 1 0 246.4)" font-size="22.4" font-family="TimesNewRomanPS" font-style="italic"><tspan y="-8.49654" x="95.45115">B</tspan></text>
+</g>
+</svg>
