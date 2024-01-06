@@ -45,6 +45,13 @@ const config = {
           remarkPlugins: [remarkMath],
           rehypePlugins: [rehypeKatex],
           sidebarPath: './sidebars.js',
+          editUrl: 'https://github.com/ElvisQin/thegibook/edit/master/website',
+          // Equivalent to `docsUrl`.
+          routeBasePath: 'docs',
+          // Equivalent to `enableUpdateBy`.
+          showLastUpdateAuthor: true,
+          // Equivalent to `enableUpdateTime`.
+          showLastUpdateTime: true,
         },
         blog: {
           showReadingTime: true,

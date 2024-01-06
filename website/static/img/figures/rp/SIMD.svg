@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   version="1.1"
+   id="svg2"
+   width="533.33331"
+   height="533.33331"
+   viewBox="0 0 533.33331 533.33331"
+   sodipodi:docname="SIMD.eps"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs6" />
+  <sodipodi:namedview
+     id="namedview4"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1" />
+  <g
+     id="g8"
+     inkscape:groupmode="layer"
+     inkscape:label="ink_ext_XXXXXX"
+     transform="matrix(1.3333333,0,0,-1.3333333,0,533.33333)">
+    <g
+       id="g10"
+       transform="scale(0.1)">
+      <path
+         d="M 0,0 H 4000 V 4000 H 0 Z"
+         style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         id="path12" />
+      <path
+         d="M 0,0 H 4000 V 4000 H 0 Z"
+         style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         id="path14" />
+      <path
+         d="M 200,200 H 600 V 3096.59 H 200 Z"
+         style="fill:#ccccff;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         id="path16" />
+      <path
+         d="M 200,200 H 600 V 3096.59 H 200 Z"
+         style="fill:none;stroke:#000000;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+         id="path18" />
+      <g
+         id="g20"
+         transform="scale(10)">
+        <text
+           xml:space="preserve"
+           transform="matrix(0,1,1,0,48.5559,117.151)"
+           style="font-variant:normal;font-weight:normal;font-size:24px;font-family:'Times New Roman';-inkscape-font-specification:Times-Roman;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text24"><tspan
+             x="0 17.332798 27.983988 34.651192 45.302395 51.302395 64.651192 76.651192 88.651192"
+             y="0"
+             sodipodi:role="line"
+             id="tspan22">Data Pool</tspan></text>
+      </g>
+      <path
+         d="M 903.41,3400 H 3800 v 400 H 903.41 Z"
+         style="fill:#cdffcb;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         id="path26" />
+      <path
+         d="M 903.41,3400 H 3800 v 400 H 903.41 Z"
+         style="fill:none;stroke:#000000;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+         id="path28" />
+      <g
+         id="g30"
+         transform="scale(10)">
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,158.046,351.444)"
+           style="font-variant:normal;font-weight:normal;font-size:24px;font-family:'Times New Roman';-inkscape-font-specification:Times-Roman;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text34"><tspan
+             x="0 7.9920001 19.992001 29.332798 36 43.992001 55.992001 66.643211 73.310402 79.977623 91.977623 103.97762 109.97762 123.32641 135.3264 147.3264"
+             y="0"
+             sodipodi:role="line"
+             id="tspan32">Instruction Pool</tspan></text>
+      </g>
+      <path
+         d="m 2101.71,2450 h 500 v 500 h -500 z"
+         style="fill:#ffcccc;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         id="path36" />
+      <path
+         d="m 2101.7,2450 h 500 v 500 h -500 z"
+         style="fill:none;stroke:#000000;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+         id="path38" />
+      <g
+         id="g40"
+         transform="scale(10)">
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,217.123,259.992)"
+           style="font-variant:normal;font-weight:normal;font-size:28px;font-family:'Times New Roman';-inkscape-font-specification:Times-Roman;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text44"><tspan
+             x="0 15.573615"
+             y="0"
+             sodipodi:role="line"
+             id="tspan42">PU</tspan></text>
+      </g>
+      <path
+         d="m 2101.71,1700 h 500 v 500 h -500 z"
+         style="fill:#ffcccc;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         id="path46" />
+      <path
+         d="m 2101.7,1700 h 500 v 500 h -500 z"
+         style="fill:none;stroke:#000000;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+         id="path48" />
+      <g
+         id="g50"
+         transform="scale(10)">
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,217.123,184.992)"
+           style="font-variant:normal;font-weight:normal;font-size:28px;font-family:'Times New Roman';-inkscape-font-specification:Times-Roman;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text54"><tspan
+             x="0 15.573615"
+             y="0"
+             sodipodi:role="line"
+             id="tspan52">PU</tspan></text>
+      </g>
+      <path
+         d="m 2101.71,950 h 500 v 500 h -500 z"
+         style="fill:#ffcccc;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         id="path56" />
+      <path
+         d="m 2101.7,950 h 500 v 500 h -500 z"
+         style="fill:none;stroke:#000000;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+         id="path58" />
+      <g
+         id="g60"
+         transform="scale(10)">
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,217.123,109.992)"
+           style="font-variant:normal;font-weight:normal;font-size:28px;font-family:'Times New Roman';-inkscape-font-specification:Times-Roman;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text64"><tspan
+             x="0 15.573615"
+             y="0"
+             sodipodi:role="line"
+             id="tspan62">PU</tspan></text>
+      </g>
+      <path
+         d="m 2101.71,200 h 500 v 500 h -500 z"
+         style="fill:#ffcccc;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         id="path66" />
+      <path
+         d="m 2101.7,200 h 500 v 500 h -500 z"
+         style="fill:none;stroke:#000000;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+         id="path68" />
+      <g
+         id="g70"
+         transform="scale(10)">
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,217.123,34.9922)"
+           style="font-variant:normal;font-weight:normal;font-size:28px;font-family:'Times New Roman';-inkscape-font-specification:Times-Roman;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text74"><tspan
+             x="0 15.573615"
+             y="0"
+             sodipodi:role="line"
+             id="tspan72">PU</tspan></text>
+      </g>
+      <path
+         d="M 2900,3300 V 450"
+         style="fill:none;stroke:#000000;stroke-width:20;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path76" />
+      <path
+         d="m 2700,460 v -20 h 200 v 20 h -200"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="path78" />
+      <path
+         d="m 2653.84,450 69.2,40 v -80 z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="path80" />
+      <path
+         d="m 2653.84,450 69.2,40 v -80 z"
+         style="fill:none;stroke:#000000;stroke-width:5.33333;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path82" />
+      <path
+         d="m 2700,1210 v -20 h 200 v 20 h -200"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="path84" />
+      <path
+         d="m 2653.84,1200 69.2,40 v -80 z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="path86" />
+      <path
+         d="m 2653.84,1200 69.2,40 v -80 z"
+         style="fill:none;stroke:#000000;stroke-width:5.33333;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path88" />
+      <path
+         d="m 2700,1960 v -20 h 200 v 20 h -200"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="path90" />
+      <path
+         d="m 2653.84,1950 69.2,40 v -80 z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="path92" />
+      <path
+         d="m 2653.84,1950 69.2,40 v -80 z"
+         style="fill:none;stroke:#000000;stroke-width:5.33333;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path94" />
+      <path
+         d="m 2700,2710 v -20 h 200 v 20 h -200"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="path96" />
+      <path
+         d="m 2653.84,2700 69.2,40 v -80 z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="path98" />
+      <path
+         d="m 2653.84,2700 69.2,40 v -80 z"
+         style="fill:none;stroke:#000000;stroke-width:5.33333;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path100" />
+      <path
+         d="m 650,460 v -20 h 1350 v 20 H 650"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="path102" />
+      <path
+         d="m 2046.16,450 -69.2,-40 v 80 z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="path104" />
+      <path
+         d="m 2046.16,450 -69.2,-40 v 80 z"
+         style="fill:none;stroke:#000000;stroke-width:5.33333;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path106" />
+      <path
+         d="m 650,1210 v -20 h 1350 v 20 H 650"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="path108" />
+      <path
+         d="m 2046.16,1200 -69.2,-40 v 80 z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="path110" />
+      <path
+         d="m 2046.16,1200 -69.2,-40 v 80 z"
+         style="fill:none;stroke:#000000;stroke-width:5.33333;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path112" />
+      <path
+         d="m 650,1960 v -20 h 1350 v 20 H 650"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="path114" />
+      <path
+         d="m 2046.16,1950 -69.2,-40 v 80 z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="path116" />
+      <path
+         d="m 2046.16,1950 -69.2,-40 v 80 z"
+         style="fill:none;stroke:#000000;stroke-width:5.33333;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path118" />
+      <path
+         d="m 650,2710 v -20 h 1350 v 20 H 650"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="path120" />
+      <path
+         d="m 2046.16,2700 -69.2,-40 v 80 z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="path122" />
+      <path
+         d="m 2046.16,2700 -69.2,-40 v 80 z"
+         style="fill:none;stroke:#000000;stroke-width:5.33333;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path124" />
+      <g
+         id="g126"
+         transform="scale(10)">
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,15.268,352.157)"
+           style="font-variant:normal;font-weight:normal;font-size:22px;font-family:'Times New Roman';-inkscape-font-specification:Times-Roman;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text130"><tspan
+             x="0 12.236398 19.562397 39.124798"
+             y="0"
+             sodipodi:role="line"
+             id="tspan128">SIMD</tspan></text>
+      </g>
+    </g>
+  </g>
+</svg>
