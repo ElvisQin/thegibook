@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   version="1.1"
+   id="svg2"
+   width="362.66666"
+   height="274.66666"
+   viewBox="0 0 362.66666 274.66666"
+   sodipodi:docname="inversion-method.eps"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs6">
+    <clipPath
+       clipPathUnits="userSpaceOnUse"
+       id="clipPath18">
+      <path
+         d="M 0,0 H 2720 V 2054.1 H 0 Z"
+         id="path16" />
+    </clipPath>
+  </defs>
+  <sodipodi:namedview
+     id="namedview4"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1" />
+  <g
+     id="g8"
+     inkscape:groupmode="layer"
+     inkscape:label="ink_ext_XXXXXX"
+     transform="matrix(1.3333333,0,0,-1.3333333,0,274.66667)">
+    <g
+       id="g10"
+       transform="scale(0.1)">
+      <g
+         id="g12">
+        <g
+           id="g14"
+           clip-path="url(#clipPath18)">
+          <path
+             d="M 5,200.148 H 2715"
+             style="fill:none;stroke:#000000;stroke-width:10;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+             id="path20" />
+          <path
+             d="M 211.348,2049.1 V 15.9102"
+             style="fill:none;stroke:#000000;stroke-width:10;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+             id="path22" />
+          <path
+             d="M 208.313,1281.7 H 1081.23"
+             style="fill:none;stroke:#ff7600;stroke-width:10;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:40, 40;stroke-dashoffset:0;stroke-opacity:1"
+             id="path24" />
+          <path
+             d="M 209.16,1427.66 H 1340.3"
+             style="fill:none;stroke:#ff7600;stroke-width:10;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:40, 40;stroke-dashoffset:0;stroke-opacity:1"
+             id="path26" />
+          <path
+             d="M 1086.89,1278.05 V 197.016"
+             style="fill:none;stroke:#ff7600;stroke-width:10;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:40, 40;stroke-dashoffset:0;stroke-opacity:1"
+             id="path28" />
+          <path
+             d="M 1347.16,1422.13 V 195.367"
+             style="fill:none;stroke:#ff7600;stroke-width:10;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:40, 40;stroke-dashoffset:0;stroke-opacity:1"
+             id="path30" />
+          <g
+             id="g32"
+             transform="scale(10)">
+            <text
+               xml:space="preserve"
+               transform="matrix(1,0,0,-1,254.057,25.5957)"
+               style="font-style:italic;font-variant:normal;font-size:14px;font-family:'Times New Roman';-inkscape-font-specification:TimesNewRomanPS-ItalicMT;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+               id="text38"><tspan
+                 x="0"
+                 y="0"
+                 id="tspan34">x</tspan><tspan
+                 x="-228.85201"
+                 y="-167.31"
+                 id="tspan36">y</tspan></text>
+          </g>
+          <path
+             d="M 217.145,1825.79 H 2658.79"
+             style="fill:none;stroke:#000000;stroke-width:10;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:40, 40;stroke-dashoffset:0;stroke-opacity:1"
+             id="path40" />
+          <g
+             id="g42"
+             transform="scale(10)">
+            <text
+               xml:space="preserve"
+               transform="matrix(1,0,0,-1,9.97305,180.132)"
+               style="font-variant:normal;font-weight:normal;font-size:14px;font-family:'Times New Roman';-inkscape-font-specification:TimesNewRomanPSMT;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+               id="text48"><tspan
+                 x="0"
+                 y="0"
+                 id="tspan44">1</tspan><tspan
+                 x="0"
+                 y="177.132"
+                 id="tspan46">0</tspan></text>
+          </g>
+          <path
+             d="m 2671.11,1819.26 c -106.39,-17.93 -213.04,-37.6 -318.68,-59.56 -106.04,-22.04 -212.74,-46.75 -317.42,-74.59 -105.53,-28.06 -212.55,-60.32 -315.56,-96.57 C 1613,1551.07 1508.37,1508.63 1406.6,1459.79 1299.44,1408.36 1196.41,1350.31 1097.72,1283.98 989.344,1211.14 888.668,1129.97 794.656,1039.31 685.133,933.691 587.773,818.172 500.086,693.883 390.848,539.047 298.078,372.602 217.949,201.039"
+             style="fill:none;stroke:#000000;stroke-width:20;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+             id="path50" />
+          <g
+             id="g52"
+             transform="scale(10)">
+            <text
+               xml:space="preserve"
+               transform="matrix(1,0,0,-1,27.5344,131.512)"
+               style="font-style:italic;font-variant:normal;font-size:14px;font-family:'Times New Roman';-inkscape-font-specification:TimesNewRomanPS-ItalicMT;writing-mode:lr-tb;fill:#ff7600;fill-opacity:1;fill-rule:nonzero;stroke:none"
+               id="text58"><tspan
+                 x="0 6.9931641"
+                 y="0"
+                 sodipodi:role="line"
+                 id="tspan54">dy</tspan><tspan
+                 x="88.790199 95.783363"
+                 y="104.828"
+                 sodipodi:role="line"
+                 id="tspan56">dx</tspan></text>
+          </g>
+          <g
+             id="g60"
+             transform="scale(10)">
+            <text
+               xml:space="preserve"
+               transform="matrix(1,0,0,-1,221.623,155.111)"
+               style="font-style:italic;font-variant:normal;font-size:14px;font-family:'Times New Roman';-inkscape-font-specification:TimesNewRomanPS-ItalicMT;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+               id="text64"><tspan
+                 x="0 8.5585899 13.213754 19.427629"
+                 y="0"
+                 sodipodi:role="line"
+                 id="tspan62">P(x)</tspan></text>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>
