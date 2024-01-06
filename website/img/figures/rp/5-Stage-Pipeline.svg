@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   version="1.1"
+   id="svg2"
+   width="306.66666"
+   height="194.66667"
+   viewBox="0 0 306.66666 194.66667"
+   sodipodi:docname="5-Stage-Pipeline.eps"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs6" />
+  <sodipodi:namedview
+     id="namedview4"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1" />
+  <g
+     id="g8"
+     inkscape:groupmode="layer"
+     inkscape:label="ink_ext_XXXXXX"
+     transform="matrix(1.3333333,0,0,-1.3333333,0,194.66667)">
+    <g
+       id="g10"
+       transform="scale(0.1)">
+      <path
+         d="m 1326.02,13.5898 h 240 v 240 h -240 z"
+         style="fill:#8ae234;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="path12" />
+      <path
+         d="m 1326.02,13.5898 h 240 v 240 h -240 z"
+         style="fill:none;stroke:#000000;stroke-width:8;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path14" />
+      <path
+         d="m 1326.02,293.59 h 240 v 1000 h -240 z"
+         style="fill:#8ae234;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="path16" />
+      <path
+         d="m 10,10.4297 h 2280.27 v 1439.14 H 10 Z"
+         style="fill:none;stroke:#000000;stroke-width:16;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path18" />
+      <g
+         id="g20"
+         transform="scale(10)">
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,5.29063,132.958)"
+           style="font-variant:normal;font-weight:bold;font-size:9.6px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Bold;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text24"><tspan
+             x="0 3.5711999 10.4064 16.118401 20.707199 24.076723 27.724724 31.065523 39.100723 45.695923"
+             y="0"
+             sodipodi:role="line"
+             id="tspan22">Instr. No.</tspan></text>
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,26.48163,115.758)"
+           style="font-variant:normal;font-weight:bold;font-size:11.2px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Bold;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text36"><tspan
+             x="0"
+             y="0"
+             id="tspan26">1</tspan><tspan
+             x="0.28984401"
+             y="20"
+             id="tspan28">2</tspan><tspan
+             x="0.31718779"
+             y="40"
+             id="tspan30">3</tspan><tspan
+             x="0.2515628"
+             y="60"
+             id="tspan32">4</tspan><tspan
+             x="0.20507839"
+             y="80"
+             id="tspan34">5</tspan></text>
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,68.240608,115.758)"
+           style="font-variant:normal;font-weight:normal;font-size:9.6px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Roman;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text40"><tspan
+             x="0 2.832 23.059008 25.891008 65.059196 73.344002 79.411201 92.50576 102.00016"
+             y="0"
+             sodipodi:role="line"
+             id="tspan38">IFIDMEMWB</tspan></text>
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,105.68631,132.958)"
+           style="font-variant:normal;font-weight:bold;font-size:9.6px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Bold;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text50"><tspan
+             x="0 7.0367999 10.3296 17.203199 23.740906 27.033707 30.326506 37.190613 43.699413 47.040211 53.981117 58.56992 65.049919 71.923515"
+             y="0"
+             sodipodi:role="line"
+             id="tspan42">Pipeline Stage</tspan><tspan
+             x="-89.900398 -82.853996 -79.561203 -72.966003 -67.273201"
+             y="118.139"
+             sodipodi:role="line"
+             id="tspan44">Clock</tspan><tspan
+             x="-89.797272 -82.750877 -76.491676 -70.798874 -67.506073"
+             y="127.739"
+             sodipodi:role="line"
+             id="tspan46">Cycle</tspan><tspan
+             x="-36.224575 -12.013279 11.881217 35.900322 59.919426 83.833023 107.88765"
+             y="122.63041"
+             sodipodi:role="line"
+             id="tspan48">1234567</tspan></text>
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,113.96253,115.75859)"
+           style="font-variant:normal;font-weight:normal;font-size:9.6px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Roman;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text54"><tspan
+             x="0 6.0672002"
+             y="0"
+             sodipodi:role="line"
+             id="tspan52">EX</tspan></text>
+      </g>
+      <path
+         d="M 10,1289.57 H 2290.16"
+         style="fill:none;stroke:#000000;stroke-width:16;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path56" />
+      <path
+         d="M 610,249.57 V 10 m 0,1440 V 289.57"
+         style="fill:none;stroke:#000000;stroke-width:16;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path58" />
+      <path
+         d="M 6.01953,249.57 H 2286.29"
+         style="fill:none;stroke:#000000;stroke-width:16;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path60" />
+      <path
+         d="M 6.01953,289.57 H 2286.29"
+         style="fill:none;stroke:#000000;stroke-width:16;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path62" />
+      <g
+         id="g64"
+         transform="scale(10)">
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,92.2406,95.7578)"
+           style="font-variant:normal;font-weight:normal;font-size:9.6px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Roman;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text74"><tspan
+             x="0 2.832 23.059008 25.891008 65.059196 73.344002 79.411201 92.361626 101.85603 45.724831 51.79203"
+             y="0"
+             sodipodi:role="line"
+             id="tspan66">IFIDMEMWBEX</tspan><tspan
+             x="24 26.832001 47.05901 49.891006 88.915009 97.199806 103.26701 116.36157 125.85597 69.72477 75.791969"
+             y="20"
+             sodipodi:role="line"
+             id="tspan68">IFIDMEMWBEX</tspan><tspan
+             x="48 50.832001 71.059006 73.891006 112.91501 121.19981 127.26701 93.580704 99.647903"
+             y="40"
+             sodipodi:role="line"
+             id="tspan70">IFIDMEMEX</tspan><tspan
+             x="72 74.832001 94.915298 97.747299 117.5807 123.6479"
+             y="60"
+             sodipodi:role="line"
+             id="tspan72">IFIDEX</tspan></text>
+      </g>
+      <path
+         d="M 6.01953,1093.59 H 2286.02"
+         style="fill:none;stroke:#000000;stroke-width:8;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path76" />
+      <path
+         d="M 6.01953,893.59 H 2286.02"
+         style="fill:none;stroke:#000000;stroke-width:8;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path78" />
+      <path
+         d="M 6.01953,693.59 H 2286.02"
+         style="fill:none;stroke:#000000;stroke-width:8;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path80" />
+      <path
+         d="M 6.01953,493.59 H 2286.02"
+         style="fill:none;stroke:#000000;stroke-width:8;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path82" />
+      <path
+         d="m 846.02,1293.59 v -1000"
+         style="fill:none;stroke:#000000;stroke-width:8;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path84" />
+      <path
+         d="M 846.02,253.59 V 13.5898"
+         style="fill:none;stroke:#000000;stroke-width:8;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path86" />
+      <path
+         d="m 1086.02,1293.59 v -1000"
+         style="fill:none;stroke:#000000;stroke-width:8;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path88" />
+      <path
+         d="M 1086.02,253.59 V 13.5898"
+         style="fill:none;stroke:#000000;stroke-width:8;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path90" />
+      <path
+         d="m 1326.02,1293.59 v -1000"
+         style="fill:none;stroke:#000000;stroke-width:8;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path92" />
+      <path
+         d="M 1326.02,253.59 V 13.5898"
+         style="fill:none;stroke:#000000;stroke-width:8;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path94" />
+      <path
+         d="m 1566.02,1293.59 v -1000"
+         style="fill:none;stroke:#000000;stroke-width:8;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path96" />
+      <path
+         d="M 1566.02,253.59 V 13.5898"
+         style="fill:none;stroke:#000000;stroke-width:8;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path98" />
+      <path
+         d="m 1806.02,1293.59 v -1000"
+         style="fill:none;stroke:#000000;stroke-width:8;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path100" />
+      <path
+         d="M 1806.02,253.59 V 13.5898"
+         style="fill:none;stroke:#000000;stroke-width:8;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path102" />
+      <path
+         d="m 2046.02,1293.59 v -1000"
+         style="fill:none;stroke:#000000;stroke-width:8;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path104" />
+      <path
+         d="M 2046.02,253.59 V 13.5898"
+         style="fill:none;stroke:#000000;stroke-width:8;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="path106" />
+    </g>
+  </g>
+</svg>

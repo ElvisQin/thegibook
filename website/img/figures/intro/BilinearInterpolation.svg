@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   version="1.1"
+   id="svg2"
+   width="266.66666"
+   height="252"
+   viewBox="0 0 266.66666 252"
+   sodipodi:docname="BilinearInterpolation.eps"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs6" />
+  <sodipodi:namedview
+     id="namedview4"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1" />
+  <g
+     id="g8"
+     inkscape:groupmode="layer"
+     inkscape:label="ink_ext_XXXXXX"
+     transform="matrix(1.3333333,0,0,-1.3333333,0,252)">
+    <g
+       id="g10"
+       transform="scale(0.1)">
+      <g
+         id="g12"
+         transform="scale(1,-0.999996)">
+        <path
+           d="M 153.671,-1749.96 H 1998.9"
+           style="fill:none;stroke:#000000;stroke-width:5.93023;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:23.7209, 23.7209;stroke-dashoffset:0;stroke-opacity:1"
+           id="path14" />
+      </g>
+      <g
+         id="g16"
+         transform="scale(1,-0.999996)">
+        <path
+           d="M 967.726,-1885.62 V -121.79"
+           style="fill:none;stroke:#000000;stroke-width:5.93023;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:23.7209, 23.7209;stroke-dashoffset:0;stroke-opacity:1"
+           id="path18" />
+      </g>
+      <g
+         id="g20"
+         transform="scale(1,-0.999996)">
+        <path
+           d="M 424.607,-1885.62 V -121.79"
+           style="fill:none;stroke:#000000;stroke-width:5.93023;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:23.7209, 23.7209;stroke-dashoffset:0;stroke-opacity:1"
+           id="path22" />
+      </g>
+      <g
+         id="g24"
+         transform="scale(1,-0.999996)">
+        <path
+           d="M 153.671,-393.588 H 1998.9"
+           style="fill:none;stroke:#000000;stroke-width:5.93023;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:23.7209, 23.7209;stroke-dashoffset:0;stroke-opacity:1"
+           id="path26" />
+      </g>
+      <g
+         id="g28"
+         transform="scale(1,-0.999996)">
+        <path
+           d="M 153.671,-1370.03 H 1998.9"
+           style="fill:none;stroke:#000000;stroke-width:5.93023;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:23.7209, 23.7209;stroke-dashoffset:0;stroke-opacity:1"
+           id="path30" />
+      </g>
+      <g
+         id="g32"
+         transform="scale(1,-0.999996)">
+        <path
+           d="M 1781.4,-1885.62 V -121.79"
+           style="fill:none;stroke:#000000;stroke-width:5.93023;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:23.7209, 23.7209;stroke-dashoffset:0;stroke-opacity:1"
+           id="path34" />
+      </g>
+      <path
+         d="m 451.289,391.441 c 0,-14.769 -11.949,-26.722 -26.68,-26.722 -14.769,0 -26.718,11.953 -26.718,26.722 0,14.719 11.949,26.68 26.718,26.68 14.731,0 26.68,-11.961 26.68,-26.68 z"
+         style="fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         id="path36" />
+      <path
+         d="m 994.449,391.441 c 0,-14.769 -11.949,-26.722 -26.719,-26.722 -14.718,0 -26.679,11.953 -26.679,26.722 0,14.719 11.961,26.68 26.679,26.68 14.77,0 26.719,-11.961 26.719,-26.68 z"
+         style="fill:#0000ff;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         id="path38" />
+      <path
+         d="m 1808.12,1749.95 c 0,-14.76 -11.95,-26.72 -26.71,-26.72 -14.77,0 -26.72,11.96 -26.72,26.72 0,14.73 11.95,26.68 26.72,26.68 14.76,0 26.71,-11.95 26.71,-26.68 z"
+         style="fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         id="path40" />
+      <path
+         d="m 994.449,1749.95 c 0,-14.76 -11.949,-26.72 -26.719,-26.72 -14.718,0 -26.679,11.96 -26.679,26.72 0,14.73 11.961,26.68 26.679,26.68 14.77,0 26.719,-11.95 26.719,-26.68 z"
+         style="fill:#0000ff;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         id="path42" />
+      <path
+         d="m 1808.12,391.441 c 0,-14.769 -11.95,-26.722 -26.71,-26.722 -14.77,0 -26.72,11.953 -26.72,26.722 0,14.719 11.95,26.68 26.72,26.68 14.76,0 26.71,-11.961 26.71,-26.68 z"
+         style="fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         id="path44" />
+      <path
+         d="m 994.449,1370.03 c 0,-14.73 -11.949,-26.68 -26.719,-26.68 -14.718,0 -26.679,11.95 -26.679,26.68 0,14.77 11.961,26.72 26.679,26.72 14.77,0 26.719,-11.95 26.719,-26.72 z"
+         style="fill:#00b000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         id="path46" />
+      <path
+         d="m 451.289,1749.95 c 0,-14.76 -11.949,-26.72 -26.68,-26.72 -14.769,0 -26.718,11.96 -26.718,26.72 0,14.73 11.949,26.68 26.718,26.68 14.731,0 26.68,-11.95 26.68,-26.68 z"
+         style="fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         id="path48" />
+      <g
+         id="g50"
+         transform="scale(1,-0.999996)">
+        <path
+           d="M 153.671,-1885.62 V -121.79 H 1998.9"
+           style="fill:none;stroke:#000000;stroke-width:5.93023;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           id="path52" />
+      </g>
+      <g
+         id="g54"
+         transform="scale(10)">
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,38.5602,1.77852)"
+           style="font-style:oblique;font-variant:normal;font-size:11.7641px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Oblique;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text58"><tspan
+             x="0"
+             y="0"
+             id="tspan56">x</tspan></text>
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,45.52192,1.77852)"
+           style="font-style:oblique;font-variant:normal;font-size:6.66632px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Oblique;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text62"><tspan
+             x="0"
+             y="0"
+             id="tspan60">1</tspan></text>
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,93.08242,1.77852)"
+           style="font-style:oblique;font-variant:normal;font-size:11.7641px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Oblique;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text66"><tspan
+             x="0 81.678146"
+             y="0"
+             sodipodi:role="line"
+             id="tspan64">xx</tspan></text>
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,181.72032,1.77852)"
+           style="font-style:oblique;font-variant:normal;font-size:6.66632px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Oblique;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text70"><tspan
+             x="0"
+             y="0"
+             id="tspan68">2</tspan></text>
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,180.91407,42.89532)"
+           style="font-style:oblique;font-variant:normal;font-size:11.7641px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Oblique;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text74"><tspan
+             x="0"
+             y="0"
+             id="tspan72">Q</tspan></text>
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,190.17384,42.89532)"
+           style="font-style:oblique;font-variant:normal;font-size:6.66632px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Oblique;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text78"><tspan
+             x="0 4.2397795"
+             y="0"
+             sodipodi:role="line"
+             id="tspan76">21</tspan></text>
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,100.72304,41.8043)"
+           style="font-style:oblique;font-variant:normal;font-size:11.7641px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Oblique;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text82"><tspan
+             x="0"
+             y="0"
+             id="tspan80">R</tspan></text>
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,108.90273,41.8043)"
+           style="font-style:oblique;font-variant:normal;font-size:6.66632px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Oblique;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text86"><tspan
+             x="0"
+             y="0"
+             id="tspan84">1</tspan></text>
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,45.43473,42.89532)"
+           style="font-style:oblique;font-variant:normal;font-size:11.7641px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Oblique;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text90"><tspan
+             x="0"
+             y="0"
+             id="tspan88">Q</tspan></text>
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,54.6945,42.89532)"
+           style="font-style:oblique;font-variant:normal;font-size:6.66632px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Oblique;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text94"><tspan
+             x="0 4.2397795"
+             y="0"
+             sodipodi:role="line"
+             id="tspan92">11</tspan></text>
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,0.6304,37.19884)"
+           style="font-style:oblique;font-variant:normal;font-size:11.7641px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Oblique;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text98"><tspan
+             x="0"
+             y="0"
+             id="tspan96">y</tspan></text>
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,7.59212,37.19884)"
+           style="font-style:oblique;font-variant:normal;font-size:6.66632px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Oblique;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text102"><tspan
+             x="0"
+             y="0"
+             id="tspan100">1</tspan></text>
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,1.11517,135.17344)"
+           style="font-style:oblique;font-variant:normal;font-size:11.7641px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Oblique;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text108"><tspan
+             x="0"
+             y="0"
+             id="tspan104">y</tspan><tspan
+             x="-0.47851601"
+             y="-38.1973"
+             id="tspan106">y</tspan></text>
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,7.598764,173.37074)"
+           style="font-style:oblique;font-variant:normal;font-size:6.66632px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Oblique;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text112"><tspan
+             x="0"
+             y="0"
+             id="tspan110">2</tspan></text>
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,45.440964,178.9516)"
+           style="font-style:oblique;font-variant:normal;font-size:11.7641px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Oblique;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text116"><tspan
+             x="0"
+             y="0"
+             id="tspan114">Q</tspan></text>
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,54.700734,178.9516)"
+           style="font-style:oblique;font-variant:normal;font-size:6.66632px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Oblique;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text120"><tspan
+             x="0 4.2397795"
+             y="0"
+             sodipodi:role="line"
+             id="tspan118">12</tspan></text>
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,100.72963,177.86058)"
+           style="font-style:oblique;font-variant:normal;font-size:11.7641px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Oblique;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text124"><tspan
+             x="0"
+             y="0"
+             id="tspan122">R</tspan></text>
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,108.90932,177.86058)"
+           style="font-style:oblique;font-variant:normal;font-size:6.66632px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Oblique;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text128"><tspan
+             x="0"
+             y="0"
+             id="tspan126">2</tspan></text>
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,101.34682,140.01138)"
+           style="font-style:oblique;font-variant:normal;font-size:11.7641px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Oblique;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text134"><tspan
+             x="0"
+             y="0"
+             id="tspan130">P</tspan><tspan
+             x="79.573402"
+             y="-38.940201"
+             id="tspan132">Q</tspan></text>
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,190.17999,178.95158)"
+           style="font-style:oblique;font-variant:normal;font-size:6.66632px;font-family:BitstreamVeraSans;-inkscape-font-specification:BitstreamVeraSans-Oblique;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text138"><tspan
+             x="0 4.2397795"
+             y="0"
+             sodipodi:role="line"
+             id="tspan136">22</tspan></text>
+      </g>
+    </g>
+  </g>
+</svg>
