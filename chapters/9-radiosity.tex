@@ -1446,13 +1446,13 @@ Enlighten的实时光照计算是分多个迭代进行的，这得益于辐射�
 
 我们可以将辐射度传输的过程反过来，即通过曲面$i$向所有其他曲面“发射”（shooting）\myindex{发射}{shooting}辐射度，如图\ref{f:r-gathering-and-shooting}(b)所示。形状系数的互反关系提供了这样的基础，曲面$j$的辐射度中来自于曲面$i$的部分可以表示为：
 
-\begin{equation}\label{e:r-shooting}
+\begin{equation}\label{e:r-shooting} % orig
 	B_j\text{ 来自于 }B_i=\rho_j B_iF_{ij}A_i/A_j
 \end{equation}
 
 \noindent 上述的关系对所有曲面$j$都是成立的，即曲面$i$对整个场景的贡献可以表述为：
 
-\begin{equation}\label{e:r-shooting}
+\begin{equation}\label{e:r-shooting} % dup
 	\text{对所有曲面$j$: } B_j\text{ 来自于 }B_i=\rho_j B_iF_{ij}A_i/A_j
 \end{equation}
 
@@ -1462,7 +1462,7 @@ Enlighten的实时光照计算是分多个迭代进行的，这得益于辐射�
 
 在整个迭代的过程中，每个曲面$i$都会被重复访问多次，每次迭代后由曲面$i$发射出的辐射度分布都会更加精确。但是，在前一次迭代中环境中已经包含了$B_i$的光照值，因此在下一次迭代中，只有两次迭代中曲面$i$的辐射度的差值$\triangle B_i$需要被考虑，$\triangle B_i$表述的是还未发射的辐射度，例如在曲面$i$上一次被访问之后由于其他曲面的访问向曲面$i$发射的光照。接受曲面$j$的由于曲面$i$的未发射增量可以表述为：
 
-\begin{equation}\label{e:r-shooting}
+\begin{equation}\label{e:r-shooting} % dup
 	\text{来自曲面$i$的}\Delta B_j=\rho_j B^{u}_i F_{ij}A_i/A_j
 \end{equation}
 

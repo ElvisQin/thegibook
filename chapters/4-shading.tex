@@ -127,7 +127,7 @@
 		\caption{表面法线}
 	\end{subfigure}
 \caption{一个基本的几何缓存包含深度，漫反射率，表面法线矢量，以及高光扩展系数几个基本的式\ref{eq:shade-shading-equation}中的着色参数，这些着色参数可以被延迟着色（或其他后处理）阶段用于着色计算（图片来自Dice）}
-\label{f:shade-g-buffer}
+\label{f:shade-g-buffer} % orig
 \end{fullwidth}
 \end{figure}
 
@@ -570,7 +570,7 @@ for each pixel
 \begin{fullwidth}
 	\includegraphics[width=1.0\thewidth]{figures/shade/g-buffer}
 	\caption{顽皮狗神秘海域4中使用的基本的两个G-buffer，每个G-buffer中每个像素仅包含16位，它充分使用GCN架构的位解码技术来尽量压缩每个参数的长度（图片数据来自顽皮狗神秘海域4）}
-	\label{f:shade-g-buffer}
+	\label{f:shade-g-buffer} % dup
 \end{fullwidth}
 \end{figure}
 
@@ -1103,7 +1103,7 @@ TAA最著名的问题是关于重影（ghosting）\index{重影ghosting}\index[e
 \sidecaption
 	\includegraphics[width=0.65\textwidth]{figures/shade/color-space}
 	\caption{颜色空间是一个2D的平面区域，它通常由一个三角形构成，三角形的每个边表示每种颜色空间的RGB三种原色选择，在每个颜色空间内，每个颜色到三个顶点的原色的比例之和为1，不同的颜色空间能够表示的颜色数量不一样，它们之间可以相互转化，但可能存在损失（图片来自Wikipedia）。}
-	\label{f:shade-clamping}
+	\label{f:shade-clamping} % orig
 \end{figure}
 
 为了进一步理解邻域裁剪，我们首先需要了解颜色空间的概念。颜色空间\footnote{\url{参见：https://en.wikipedia.org/wiki/Color_space}}（color space）\index{颜色空间color space}\index[en]{color space颜色空间}是一个色度学（colorimetry）\index{色度学colorimetry}\index[en]{colorimetry色度学}中的概念，在色度学中，一个颜色只由RGB三个原色混合而成的，这三个原色的混合比例的和为1，由于这个限制，所以3D空间的颜色可以表述为2D空间的颜色范围，这个范围在2D的颜色空间上表现为一个三角形，在每个颜色空间内，每个颜色值到三角形每个顶点的比例之后为1，如图\ref{f:shade-clamping}所示，不同的RGB三原色选择导致了不同的颜色空间，从而在整个颜色域也具有不同的颜色范围。
@@ -1116,7 +1116,7 @@ TAA最著名的问题是关于重影（ghosting）\index{重影ghosting}\index[e
 \begin{fullwidth}
 	\includegraphics[width=\thewidth]{figures/shade/clamping}
 	\caption{(b)和(c)分别表示以不同的几何形状包围当前像素周围$3\times 3$个像素的颜色范围，(a)表示历史颜色缓存，历史颜色缓存里的颜色将被使用双线性过滤获得一个颜色值，这个颜色值如果落在了(b)或(c)的颜色范围内，则表示当前像素的颜色没有发生太大的变化，而历史颜色可以被混合进当前像素的颜色中。}
-	\label{f:shade-clamping}
+	\label{f:shade-clamping} % dup
 \end{fullwidth}
 \end{figure}
 

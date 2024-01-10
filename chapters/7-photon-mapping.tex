@@ -792,7 +792,7 @@ struct SPPMPixel {
 
 本节我们就通过概率的方法来寻找这些变量之间的关系。通过本章前面的内容可知，辐射亮度估计为：
 
-\begin{equation}\label{e:pm-pixel-value}
+\begin{equation}\label{e:pm-pixel-value} % orig
 	L(x,\omega)\approx \cfrac{1}{J}\sum^{J}_{j=1}k_r(x_j-x)\gamma_j
 \end{equation}
 
@@ -842,7 +842,7 @@ struct SPPMPixel {
 
 通过上一章的内容可知，光照计算的目标是要计算一个像素值$I$：
 
-\begin{equation}\label{e:pm-pixel-value}
+\begin{equation}\label{e:pm-pixel-value} % dup
 	I={\rm \int} W(x,\omega)L(x,\omega){\rm d}x{\rm d}\omega
 \end{equation}
 
@@ -2736,7 +2736,7 @@ Irradiance is radiant power incident per unit area at a point $x$ on a surface. 
 
 Using this equation, it is possible to approximate the reflected radiance term of the rendering equation using irradiance due to the radiant power incident from a particular solid angle. This irradiance is exactly what we obtain from the photon differentials, see equation \ref{e:photon-radiance}.
 
-\begin{equation}\label{e:photon-radiance-equation}
+\begin{equation}\label{e:photon-radiance-equation} % orig
 	L_r(x,{\omega})\approx\sum^{n}_{p=1} f_f(x,{\omega}_p,{\omega})\triangle E_p(x,{\omega}_p)
 \end{equation}
 
@@ -2747,7 +2747,7 @@ where $n$ is the number of photon differentials whose footprints overlap $x$. Wh
 \subsubsection{Kernel Smoothing}
 To provide kernel smoothing we reformulate the equation \ref{e:photon-radiance-equation} such that:
 
-\begin{equation}\label{e:photon-radiance-equation}
+\begin{equation}\label{e:photon-radiance-equation} % dup
 	\hat{L}_r(x,{\omega})\approx\sum^{n}_{p=1} f_f(x,{\omega}_p,{\omega})K(\mathbf{M}_p(x_p-x))\triangle E_p(x,{\omega}_p)
 \end{equation}
 
