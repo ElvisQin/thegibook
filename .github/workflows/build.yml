@@ -1,0 +1,34 @@
+name: Build
+on:
+  push:
+    branches:
+      - 'master'
+  pull_request:
+
+jobs:
+  build-pdf:
+    runs-on: ubuntu-latest
+    container:
+      image: texlive/texlive
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Replace fontset
+        run: |
+          # workaround for missing fonts in action runner
+          sed -i 's/fontset *= *my/fontset = fandol/g' theGIbook.tex
+
+      - name: Build pass 1
+        run: xelatex -halt-on-error theGIbook
+      - name: Build pass 2
+        run: bibtex theGIbook
+      - name: Build pass 3
+        run: xelatex -halt-on-error theGIbook
+      - name: Build pass 4
+        run: xelatex -halt-on-error theGIbook
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: theGIbook
+          path: ./*.pdf
